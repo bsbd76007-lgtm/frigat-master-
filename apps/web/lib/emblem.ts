@@ -1,25 +1,3 @@
-/**
- * FRIGAT — Emblem badge as a data URI
- *
- * The same artwork EmblemBadge renders, as a standalone string for
- * `metadata.icons`, where there is no React tree to render into.
- *
- * This lives in lib/ rather than beside the component because
- * components/EmblemBadge.tsx is a `'use client'` module: Next evaluates the
- * `metadata` export on the server during the build, and a client module's
- * exports are not callable there — importing it into app/layout.tsx threw
- * "emblemDataUri is not a function" and 500'd every route.
- *
- * Keep this in sync with EmblemBadge's markup by hand. It is duplicated
- * deliberately: the alternative is a shared module the client bundle would
- * have to carry a string-building function for, to produce a value only the
- * server ever needs.
- *
- * Not base64 — an SVG this small percent-encodes shorter, and it stays
- * readable in the page source. `#` must be escaped or it would start a URL
- * fragment and truncate the icon at the first colour.
- */
-
 export function emblemDataUri(letter = 'F'): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">\
 <defs>\

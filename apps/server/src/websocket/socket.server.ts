@@ -48,7 +48,6 @@ import type { ClientMessage, ServerMessage } from '../types/engine.types';
 
 const D = Prisma.Decimal;
 
-// ── Connection registry for broadcasts ──
 const sockets = new Set<WebSocket>();
 const connectionMeta = new Map<WebSocket, {
   userId: string;
@@ -58,34 +57,16 @@ const connectionMeta = new Map<WebSocket, {
 
 const roomMembers = new Map<string, Set<WebSocket>>();
 
-/** Live authenticated WebSocket count, surfaced on the admin metrics route. */
 export function activeSocketCount(): number {
   return sockets.size;
 }
 
-/**
- * Distinct players currently connected — the number behind "N Players Online".
- *
- * Counts users rather than sockets: one person with the dashboard open in two
- * tabs is one player, and `activeSocketCount` would say two. That distinction
- * is the whole reason this is a separate function — a player count that
- * inflates with tab count is a fabricated popularity signal, which is exactly
- * what this figure must not be.
- */
 export function onlinePlayerCount(): number {
   const players = new Set<string>();
   for (const meta of connectionMeta.values()) players.add(meta.userId);
   return players.size;
 }
 
-/**
- * Pushes a BALANCE frame to every socket a given player has open.
- *
- * Used by the payment webhook: a confirmed deposit is credited by an HTTP
- * request the player's browser never made, so without this their balance would
- * sit stale until the next bet. Silently does nothing when the player is
- * offline — the balance is already correct in the database either way.
- */
 export function pushBalanceToUser(userId: string, balance: string) {
   const payload = JSON.stringify({ type: 'BALANCE', data: { balance } });
   for (const [ws, meta] of connectionMeta) {
@@ -152,14 +133,12 @@ function randomDecimal(min: number, max: number): string {
   return new Prisma.Decimal(value).toFixed(8);
 }
 
-// ── Crash round manager (one shared instance) ──────────────────
 const crashManager = new CrashRoundManager(
   (event, data) => broadcastAll(event, data),
   async () => {
-    // On crash: settle everyone who didn't cash out as a loss (stake already debited).
     for (const bet of gameState.allCrashBets()) {
       if (!bet.settled) {
-        bet.settled = true; // stake was taken at BET; nothing to credit
+        bet.settled = true;
         accrueAffiliate({
           userId: bet.userId,
           betId: bet.betTransactionId,
@@ -209,14 +188,9 @@ async function payoutOf(
   const raw = new D(betAmount)
     .mul(new D(multiplier))
     .toDecimalPlaces(8, Prisma.Decimal.ROUND_DOWN);
-  // Apply the configured per-game maximum win before anything is credited.
   const { payout } = await capPayout(gameType, raw);
   return payout.toString();
 }
-
-// ─────────────────────────────────────────────
-// Handlers
-// ─────────────────────────────────────────────
 
 async function broadcastLiveBet(event: {
   userId: string;
@@ -403,7 +377,6 @@ async function handleInstantBet(
     balance = credited.balance;
   }
 
-  // 3b) Accrue the referrer's cut of whatever the player actually lost.
   accrueAffiliate({ userId, betId: bet.transactionId, stake: amount, payout, currency });
 
   // 4) Persist the game session for history / audit.
@@ -511,11 +484,9 @@ async function handleMinesReveal(
   }
 
   if (mines.isMine(state.layout, tile)) {
-    // Bust — stake already debited; reveal full board and end the game.
     state.active = false;
     gameState.clearMines(userId);
 
-    // Total loss: the referrer earns on the full stake.
     accrueAffiliate({
       userId,
       betId: state.betTransactionId,
@@ -557,7 +528,6 @@ async function handleMinesReveal(
     });
   }
 
-  // Safe reveal — advance and quote the next multiplier.
   state.revealed.push(tile);
   const multiplier = mines.multiplierAfter(
     state.layout.minesCount,
@@ -606,7 +576,6 @@ async function handleMinesCashout(
   state.active = false;
   gameState.clearMines(userId);
 
-  // Cashing out below the stake is still a net loss, so this is not a no-op.
   accrueAffiliate({
     userId,
     betId: state.betTransactionId,
@@ -704,8 +673,6 @@ async function handleChickenStart(
       gameType: 'CHICKEN',
       difficulty,
       laneCount: chicken.LANE_COUNT,
-      // The payout ladder is public information — it is a function of the
-      // difficulty alone and reveals nothing about where the traffic is.
       multipliers: chicken.multiplierTable(difficulty),
       hashedServerSeed: seed.hashedServerSeed,
       clientSeed: seed.clientSeed,
@@ -732,7 +699,6 @@ async function handleChickenStep(
   }
 
   if (state.road[lane]) {
-    // Hit — the stake was already debited at BET, so nothing is returned.
     state.active = false;
     gameState.clearChicken(userId);
 
@@ -793,7 +759,6 @@ async function handleChickenStep(
       lane,
       crossed: state.crossed,
       multiplier,
-      // Reaching the far side forces a settle — the ladder does not continue.
       complete: state.crossed >= chicken.LANE_COUNT,
     },
   });
@@ -821,7 +786,6 @@ async function handleChickenStep(
 function handleChickenResume(ws: WebSocket, userId: string) {
   const state = gameState.getChicken(userId);
   if (!state || !state.active) {
-    // Nothing live. Not an error — the client asks on every connect.
     return send(ws, { type: 'RESUME_NONE', data: { gameType: 'CHICKEN' } });
   }
 
@@ -862,7 +826,6 @@ async function handleChickenCashout(ws: WebSocket, userId: string) {
   await settleChicken(ws, userId, state);
 }
 
-/** Pays the accumulated multiplier and closes the round. */
 async function settleChicken(
   ws: WebSocket,
   userId: string,
@@ -1016,10 +979,6 @@ async function handleCrashCashout(ws: WebSocket, userId: string) {
   });
 }
 
-// ─────────────────────────────────────────────
-// Router
-// ─────────────────────────────────────────────
-
 async function route(ws: WebSocket, userId: string, msg: ClientMessage, username = 'player') {
   const { type, gameType, payload = {} } = msg;
   const actualGameType = typeof gameType === 'string' ? gameType : '';
@@ -1060,19 +1019,12 @@ async function route(ws: WebSocket, userId: string, msg: ClientMessage, username
   }
 }
 
-// ─────────────────────────────────────────────
-// Fastify registration
-// ─────────────────────────────────────────────
-
 export function registerSocketServer(app: FastifyInstance) {
-  // Background accruals have no request to log against; borrow the app logger.
   logError = (obj, msg) => app.log.error(obj, msg);
 
   app.get('/ws', { websocket: true }, (socket, req) => {
-    // In @fastify/websocket v10 the WebSocket is passed directly.
     const ws = socket as unknown as WebSocket;
 
-    // Authenticate the upgrade.
     let identity: { userId: string; role: string };
     try {
       identity = authenticateConnection(req.raw);
@@ -1084,8 +1036,6 @@ export function registerSocketServer(app: FastifyInstance) {
     }
 
     sockets.add(ws);
-    // Same derivation the /api/bets/recent history uses, so a player reads as
-    // one consistent handle across live frames and backfilled rows.
     connectionMeta.set(ws, {
       userId: identity.userId,
       username: publicHandle(identity.userId),
@@ -1120,7 +1070,6 @@ export function registerSocketServer(app: FastifyInstance) {
       })
       .catch(() => void 0);
 
-    // Sync initial balance + current crash phase.
     getBalance(identity.userId)
       .then((balance) => send(ws, { type: 'BALANCE', data: { balance } }))
       .catch(() => void 0);
@@ -1163,6 +1112,5 @@ export function registerSocketServer(app: FastifyInstance) {
     });
   });
 
-  // Kick off the perpetual crash loop once the server is ready.
   app.ready().then(() => crashManager.start());
 }

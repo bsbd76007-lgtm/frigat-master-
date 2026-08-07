@@ -1,21 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Crash Visualizer
- *
- * Renders the shared crash round: the exponential curve, the rocket riding its
- * head, the live multiplier counter, and a staged explosion on bust.
- *
- * The component is a pure renderer. `multiplier` arrives from CRASH_TICK and
- * `crashPoint` from CRASH_ROUND_END — both server-authoritative. Nothing here
- * decides an outcome.
- *
- * Elapsed time is derived by inverting the server's growth curve
- * (t = ln(m) / rate) rather than reading a local clock, so the plotted curve
- * always passes exactly through the multiplier the server last broadcast, even
- * if ticks arrive late or the tab was backgrounded.
- */
-
 import { useEffect, useMemo, useRef } from 'react';
 
 import { CRASH } from '@frigat/shared/constants';
@@ -25,14 +9,12 @@ import {
   usePrefersReducedMotion,
   type CanvasFrame,
 } from '@/lib/useCanvasRenderer';
-/** Shared with the server — no second copy to drift. */
 export const CRASH_GROWTH_RATE_PER_SEC = CRASH.growthRatePerSec;
 
 export type CrashPhase = 'IDLE' | 'BETTING' | 'RUNNING' | 'CRASHED';
 
 export interface CrashCanvasProps {
   phase: CrashPhase;
-  /** Live multiplier from the server's CRASH_TICK stream. */
   multiplier: number;
   crashPoint?: number | null;
   bettingMsRemaining?: number | null;
@@ -62,13 +44,11 @@ const COLORS = {
 const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 const EXPLOSION_MS = 1100;
 
-/** Inverse of the server's multiplierAtElapsed(). */
 export function elapsedSecondsFor(multiplier: number): number {
   if (multiplier <= 1) return 0;
   return Math.log(multiplier) / CRASH_GROWTH_RATE_PER_SEC;
 }
 
-/** The server's growth curve, used to plot intermediate points. */
 export function multiplierAtSeconds(seconds: number): number {
   return Math.exp(CRASH_GROWTH_RATE_PER_SEC * Math.max(0, seconds));
 }
@@ -103,7 +83,6 @@ export function CrashCanvas({
   const particlesRef = useRef<Particle[]>([]);
   const crashedAtRef = useRef<number | null>(null);
 
-  // Latch the bust moment so the explosion can be time-driven.
   useEffect(() => {
     if (phase === 'CRASHED') {
       if (crashedAtRef.current === null) {
@@ -135,7 +114,6 @@ export function CrashCanvas({
         const live = Math.max(1, displayMultiplier || 1);
         const elapsed = elapsedSecondsFor(live);
 
-        // Auto-zoom: keep a minimum window so an early round isn't a vertical wall.
         const spanSeconds = Math.max(6, elapsed * 1.12);
         const spanMultiplier = Math.max(2, live * 1.18);
 
@@ -180,7 +158,6 @@ export function CrashCanvas({
         const showCurve = phase === 'RUNNING' || busted;
 
         if (showCurve) {
-          // ── Curve, sampled along the server's growth function ──
           const samples = 120;
           const points: Array<[number, number]> = [];
           for (let i = 0; i <= samples; i += 1) {

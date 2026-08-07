@@ -10,9 +10,6 @@ import { emblemDataUri } from '@/lib/emblem';
 export const metadata: Metadata = {
   title: 'FRIGAT',
   description: 'Provably fair gaming platform',
-  // Inline SVG rather than a .ico file: one source of truth with the badge
-  // rendered on the cards, no extra request, and it stays sharp on a HiDPI
-  // tab strip where a 16px raster goes soft.
   icons: { icon: [{ url: emblemDataUri('F'), type: 'image/svg+xml' }] },
 };
 

@@ -1,13 +1,5 @@
 'use client';
 
-/**
- * Plinko — drop a ball through the peg field.
- *
- * The bucket table comes from @frigat/shared, the same module the engine reads,
- * so the payouts on screen are the payouts that settle. Each GAME_RESULT is
- * turned into a drop carrying the server's `path`, which the canvas replays.
- */
-
 import { useEffect, useState } from 'react';
 
 import { PLINKO_ROWS, PLINKO_TABLES, type PlinkoRisk } from '@frigat/shared/constants';
@@ -44,7 +36,7 @@ export default function PlinkoPage() {
             ? data.sessionId
             : `drop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         setDrops((prev) => [
-          ...prev.slice(-5), // keep a few balls in flight, bound the list
+          ...prev.slice(-5),
           {
             id,
             path: result!.path!,

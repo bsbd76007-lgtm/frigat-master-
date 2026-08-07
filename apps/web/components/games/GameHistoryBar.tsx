@@ -1,18 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Game History Bar
- *
- * Horizontal strip of recent outcome multipliers, newest first. Doubles as the
- * entry point into the fairness proof: when `onSelect` is supplied each badge
- * becomes a button, so a player can click a past round and open it in the
- * ProvablyFairModal.
- *
- * Tiers account for the platform's full multiplier range. PLINKO pays fractional
- * multipliers (0.2x–0.5x on centre buckets), so "below 1x" is a real partial
- * return and is styled distinctly from a total loss at 0x.
- */
-
 import { useMemo } from 'react';
 
 import type { GameType } from '@frigat/shared/types';
@@ -56,7 +43,6 @@ const CSS = `
 .fg-hist__scroll { position: relative; flex: 1 1 auto; min-width: 0; display: flex;
   gap: 6px; overflow-x: auto; padding: 2px 0; scrollbar-width: none;
   -ms-overflow-style: none; scroll-behavior: smooth;
-  /* Fade the trailing edge so it reads as scrollable. */
   -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%); }
 .fg-hist__scroll::-webkit-scrollbar { display: none; }

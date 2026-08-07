@@ -25,17 +25,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-// Import from the `/types` subpath, NOT the package root: the root export
-// re-exports the provably-fair module, which imports node:crypto and would
-// break the browser bundle.
 import type { GameType } from '@frigat/shared/types';
 import { readStoredToken, subscribeToToken } from '@/lib/token';
 
-// ─────────────────────────────────────────────
-// Wire protocol (mirrors apps/server/src/types/engine.types.ts)
-// ─────────────────────────────────────────────
-
-/** Client → server action verbs. */
 export type ClientActionType =
   | 'BET'
   | 'CASHOUT'
@@ -51,7 +43,6 @@ export interface ClientMessage {
   payload: Record<string, unknown>;
 }
 
-/** Server → client event names. */
 export type ServerEventType =
   | 'BET_ACCEPTED'
   | 'GAME_RESULT'
@@ -76,7 +67,7 @@ export type SocketStatus =
   | 'connecting'
   | 'open'
   | 'reconnecting'
-  | 'closed' // gave up or intentionally closed
+  | 'closed'
   | 'unauthorized'; // server rejected the token (1008) — terminal
 
 export type MessageHandler<N extends { type: string } = ServerMessage> = (
@@ -152,7 +143,6 @@ export function useSocket(options: UseSocketOptions): UseSocketResult {
   const outboxRef = useRef<string[]>([]);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef(0);
-  /** Set during teardown/disconnect so the close handler skips reconnecting. */
   const intentionalCloseRef = useRef(false);
   const [reconnectNonce, setReconnectNonce] = useState(0);
 
@@ -203,7 +193,6 @@ export function useSocket(options: UseSocketOptions): UseSocketResult {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(raw);
     } else {
-      // Flushed on open. Bounded so a long outage can't grow without limit.
       outboxRef.current.push(raw);
       if (outboxRef.current.length > 64) outboxRef.current.shift();
     }
@@ -265,7 +254,7 @@ export function useSocket(options: UseSocketOptions): UseSocketResult {
         try {
           parsed = JSON.parse(String(event.data)) as ServerMessage;
         } catch {
-          return; // ignore non-JSON frames rather than killing the connection
+          return;
         }
         if (!parsed || typeof parsed.type !== 'string') return;
         if (parsed.type === 'ERROR') {
@@ -323,23 +312,6 @@ export function useSocket(options: UseSocketOptions): UseSocketResult {
     };
   }, [url, token, enabled, reconnectNonce, dispatch]);
 
-  // Memoised deliberately, and this matters more than it looks.
-  //
-  // Returning a fresh object literal here gave the handle a new identity on
-  // every render. Consumers subscribe in `useEffect(..., [socket])`, so every
-  // inbound frame ran this loop:
-  //
-  //   message arrives → consumer setState → provider re-renders →
-  //   new socket identity → every [socket] effect tears down and resubscribes
-  //
-  // That is unbounded listener churn proportional to socket traffic, and it
-  // also invalidated GameSocketProvider's context useMemo, cascading a fresh
-  // context value to every consumer on each frame. Chrome absorbed it; Safari,
-  // with tighter memory ceilings, ran out and reloaded the tab.
-  //
-  // Every field below is already stable (the callbacks are useCallback'd with
-  // empty deps), so this only changes identity when `status` or `error` really
-  // change.
   return useMemo(
     () => ({
       status,

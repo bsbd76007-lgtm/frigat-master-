@@ -1,25 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Floating bottom navigation dock
- *
- * A fixed capsule centred at the bottom of the viewport, with a single active
- * pill that slides between items.
- *
- * How the sliding highlight works: one absolutely-positioned element is
- * measured against the active button and transitioned, rather than each item
- * animating its own background. A per-item background cross-fades — it cannot
- * travel — and travel is what the design asks for. The measurement is redone
- * on resize and on language change, because a longer label ("Избранное" vs
- * "Favorites") moves every item after it.
- *
- * On what each item does: FRIGAT has no sportsbook, no live-dealer feed and no
- * favourites column on the user, and /casino, /sports and /live do not exist
- * as routes. Rather than ship six links to 404s, each item filters the game
- * grid to a real category and lands on an empty state that says so. Casino is
- * the whole catalogue; Menu opens the wallet.
- */
-
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -34,7 +14,6 @@ interface BottomDockProps {
   category?: GameCategory;
   onCategoryChange?: (next: GameCategory) => void;
 }
-
 
 export function BottomDock({ category, onCategoryChange }: BottomDockProps) {
   const { t, locale } = useLanguage();
@@ -64,8 +43,6 @@ export function BottomDock({ category, onCategoryChange }: BottomDockProps) {
     setPill({ left: el.offsetLeft, width: el.offsetWidth });
   }, [activeIndex]);
 
-  // Layout effect so the pill is placed in the same frame the active item
-  // changes; a passive effect lets it paint at the old position first.
   useLayoutEffect(() => {
     measure();
   }, [measure, locale]);
@@ -90,22 +67,6 @@ export function BottomDock({ category, onCategoryChange }: BottomDockProps) {
   };
 
   return (
-    // Hidden state is a class, not an inline transform: the dock's base
-    // transform differs per breakpoint (translateX(-50%) on desktop, `none`
-    // under 640px where it stretches edge to edge), so a hardcoded
-    // `translate(-50%, …)` would shove it half its width off-screen on a
-    // phone.
-    //
-    // `inert` keeps the offscreen dock out of the tab order and away from
-    // assistive tech — `pointer-events: none` stops the mouse but leaves six
-    // buttons keyboard-focusable behind the fold.
-    //
-    // The cast is load-bearing on React 18: its DOM layer drops `inert={true}`
-    // instead of emitting the attribute, so the boolean form silently does
-    // nothing (measured — the buttons stayed focusable). The empty string is
-    // the form the HTML spec defines and the one that actually blocks focus.
-    // @types/react declares the prop as `boolean`, hence the cast; it can go
-    // once this upgrades to React 19, which handles the boolean itself.
     <nav
       className={visible ? 'dock2' : 'dock2 dock2--hidden'}
       aria-label={t('dock.aria')}
@@ -136,8 +97,6 @@ export function BottomDock({ category, onCategoryChange }: BottomDockProps) {
                 }}
                 className={active ? 'dock2__item dock2__item--on' : 'dock2__item'}
                 aria-current={active ? 'page' : undefined}
-                // The label is hidden on narrow viewports, so the button needs
-                // an accessible name that survives that.
                 aria-label={label}
                 onClick={() => activate(item)}
               >

@@ -46,14 +46,12 @@ export function AdminHeader({
   const [light, setLight] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  // ── Theme ──
-  // Stamped on <html> so the CSS can key off it exactly like the player app,
-  // rather than this component owning colour values directly.
   useEffect(() => {
     let stored: string | null = null;
     try {
       stored = window.localStorage.getItem(THEME_KEY);
     } catch {
+      /* no-op */
     }
     const isLight = stored === 'light';
     setLight(isLight);
@@ -70,6 +68,7 @@ export function AdminHeader({
       try {
         window.localStorage.setItem(THEME_KEY, next ? 'light' : 'dark');
       } catch {
+        /* no-op */
       }
       return next;
     });
@@ -104,6 +103,7 @@ export function AdminHeader({
         });
         setAlerts(next);
       } catch {
+        /* no-op */
       }
     };
 

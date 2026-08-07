@@ -1,11 +1,3 @@
-/**
- * FRIGAT — Withdrawal approvals
- *
- * Queue of PENDING withdrawal requests, oldest first. Funds are reserved at
- * request time (see ledger.requestWithdrawal), so approving settles the row and
- * rejecting refunds the player.
- */
-
 import { cookies } from 'next/headers';
 
 import { WithdrawalQueue, type WithdrawalRow } from '@/app/admin/withdrawals/WithdrawalQueue';

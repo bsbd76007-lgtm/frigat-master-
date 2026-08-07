@@ -19,7 +19,6 @@ export const dynamic = 'force-dynamic';
 
 const API_BASE = process.env.API_URL ?? 'http://localhost:4000';
 
-/** Only these upstream paths are reachable — prevents the proxy becoming an SSRF hole. */
 const ALLOWED = [
   /^users$/,
   /^users\/[A-Za-z0-9_-]+$/,

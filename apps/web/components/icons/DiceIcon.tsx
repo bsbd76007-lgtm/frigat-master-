@@ -1,11 +1,3 @@
-/**
- * FRIGAT — Dice icon
- *
- * An isometric die: three visible faces, each with its own shading, and pips
- * flattened into the plane of the face they sit on so the cube reads as solid
- * rather than as three flat panels.
- */
-
 import { useId } from 'react';
 import type { GameIconProps } from '@/components/icons/types';
 

@@ -1,21 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Bet details
- *
- * Opens from a row in the live feed: who placed it, when, what it paid, and the
- * fairness record needed to re-derive the outcome.
- *
- * The row already carries enough to draw the whole dialog except the seeds, so
- * it renders immediately from the row and fills the fairness block in when
- * /api/bets/:id answers. That keeps the dialog instant on click instead of
- * showing a spinner over data the feed is already holding.
- *
- * Live socket rows have a synthesised id (`live-…`) rather than a GameSession
- * id, so there is nothing to fetch for them — the fairness section says the
- * record is still settling rather than showing an error.
- */
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
@@ -74,6 +58,7 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
         if (active && body) setDetail(body);
       })
       .catch(() => {
+        /* no-op */
       });
     return () => {
       active = false;
@@ -121,6 +106,7 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
         window.setTimeout(() => setHasCopied(false), 1600);
       })
       .catch(() => {
+        /* no-op */
       });
   }, [betId]);
 

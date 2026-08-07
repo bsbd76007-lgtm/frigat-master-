@@ -1,11 +1,3 @@
-/**
- * FRIGAT — Dice Engine
- * Roll ∈ [0, 100). Player picks a target and direction.
- *   UNDER: win if roll < target   → winChance = target
- *   OVER:  win if roll > target   → winChance = 100 - target
- * Fair multiplier = 100 / winChance, reduced by the house edge.
- */
-
 import { calculateOutcome } from '@frigat/shared';
 import { HOUSE_EDGE } from '../config/game.config';
 import type { EngineResult, SeedContext } from '../types/engine.types';
@@ -13,7 +5,7 @@ import type { EngineResult, SeedContext } from '../types/engine.types';
 export type DiceDirection = 'OVER' | 'UNDER';
 
 export interface DiceParams {
-  target: number; // exclusive bound in (0, 100)
+  target: number;
   direction: DiceDirection;
 }
 
@@ -30,7 +22,7 @@ export function play(params: DiceParams, seed: SeedContext): EngineResult {
   }
 
   const u = calculateOutcome(seed.serverSeed, seed.clientSeed, seed.nonce);
-  const roll = u * 100; // [0, 100)
+  const roll = u * 100;
 
   const win = direction === 'UNDER' ? roll < target : roll > target;
   const winChance = direction === 'UNDER' ? target : 100 - target;

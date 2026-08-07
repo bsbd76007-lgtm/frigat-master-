@@ -1,16 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Dashboard navbar
- *
- * Lifted out of the dashboard layout so the header has one home now that it
- * carries the language dropdown as well as navigation, balance, connection
- * state and the provably-fair trigger.
- *
- * Every label comes from the locale files; the game slugs stay in the URLs
- * untranslated, so a shared link keeps working across languages.
- */
-
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -49,8 +38,6 @@ export function Navbar() {
     setWalletOpen(true);
   };
 
-  // Lets the hero banner's "Deposit Now" CTA reach the wallet dialog, which
-  // lives here rather than on the page that renders the banner.
   useEffect(
     () =>
       subscribeToPanels((panel) => {
@@ -64,6 +51,7 @@ export function Navbar() {
     try {
       await fetch('/api/session', { method: 'DELETE' });
     } catch {
+      /* no-op */
     }
     router.replace('/login');
   };

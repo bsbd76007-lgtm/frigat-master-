@@ -1,13 +1,3 @@
-/**
- * FRIGAT — Game coin
- *
- * A golden disc inside concentric segmented rings.
- *
- * The soft-focus finish comes from a blurred copy of the rings sitting under
- * the crisp ones, rather than a blur over the whole coin — blurring everything
- * would lose the segmentation the design is built on.
- */
-
 import { useId } from 'react';
 
 export interface GameCoinSVGProps {
@@ -16,7 +6,6 @@ export interface GameCoinSVGProps {
   className?: string;
 }
 
-/** Ticks around a ring, as one path so a ring is a single node. */
 function segments(cx: number, cy: number, r: number, count: number, len: number) {
   let d = '';
   for (let i = 0; i < count; i += 1) {

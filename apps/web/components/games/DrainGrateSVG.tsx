@@ -1,13 +1,3 @@
-/**
- * FRIGAT — Drainage grate
- *
- * A rectangular road drain in dark purple-grey, with parallel vertical bars.
- *
- * The bars are drawn as gaps over a dark recess rather than as raised strips:
- * a grate reads as holes in the road, so the darkest parts have to be the
- * openings, not the metal.
- */
-
 import { useId } from 'react';
 
 export interface DrainGrateSVGProps {

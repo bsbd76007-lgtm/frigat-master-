@@ -1,19 +1,3 @@
-/**
- * FRIGAT — Minimal QR code encoder
- *
- * Produces the module matrix for a QR symbol, which DepositModal renders as
- * SVG rects. Written in-repo rather than pulled from npm: a deposit address is
- * the one string on the site where a corrupted render costs a player real
- * money, so this stays auditable and dependency-free.
- *
- * Scope is deliberately narrow — byte mode, error correction level M, mask 0,
- * versions 1–10 (up to 213 bytes). Crypto addresses and `?amount=` payment URIs
- * sit well inside that. Anything longer throws rather than silently truncating.
- *
- * Verified end-to-end against a third-party decoder (jsQR) for every payload
- * length from 1 to 213 bytes, i.e. every version this module can emit.
- */
-
 const EXP = new Uint8Array(512);
 const LOG = new Uint8Array(256);
 (() => {
@@ -131,7 +115,7 @@ export function encodeQr(text: string): QrMatrix {
     for (let i = length - 1; i >= 0; i -= 1) bits.push((value >> i) & 1);
   };
 
-  pushBits(0b0100, 4); // byte mode
+  pushBits(0b0100, 4);
   pushBits(data.length, version < 10 ? 8 : 16);
   for (const byte of data) pushBits(byte, 8);
 
@@ -145,7 +129,6 @@ export function encodeQr(text: string): QrMatrix {
     for (let j = 0; j < 8; j += 1) byte = (byte << 1) | bits[i + j];
     codewords.push(byte);
   }
-  // Alternating pad bytes, per the spec.
   const PAD = [0xec, 0x11];
   for (let i = 0; codewords.length < dataCodewords; i += 1) {
     codewords.push(PAD[i % 2]);
@@ -237,10 +220,6 @@ export function encodeQr(text: string): QrMatrix {
     if (modules[size - 1 - i][8] === null) setModule(size - 1 - i, 8, false);
   }
 
-  // Version information — mandatory from version 7. Two 3×6 copies, one above
-  // the bottom-left finder and one left of the top-right. A decoder reads the
-  // version from here rather than inferring it from the symbol size, so
-  // omitting it makes a large symbol unreadable.
   if (version >= 7) {
     const info = VERSION_INFO[version];
     for (let i = 0; i < 18; i += 1) {
@@ -252,17 +231,12 @@ export function encodeQr(text: string): QrMatrix {
     }
   }
 
-  // ── Data placement: two columns at a time, right to left, boustrophedon ──
-  //
-  // Mask 0 — (row + col) % 2 === 0 — is applied inline as each module is
-  // written, rather than as a second pass. Only function patterns are exempt,
-  // and those are already non-null here so they are skipped.
   const mask = 0;
   let bitIndex = 0;
   const totalBits = interleaved.length * 8;
 
   for (let col = size - 1; col > 0; col -= 2) {
-    if (col === 6) col -= 1; // skip the vertical timing column
+    if (col === 6) col -= 1;
     for (let i = 0; i < size; i += 1) {
       const upward = ((size - 1 - col) & 2) === 0;
       const row = upward ? size - 1 - i : i;
@@ -282,11 +256,6 @@ export function encodeQr(text: string): QrMatrix {
     }
   }
 
-  // ── Format information (EC level M + mask 0) ──
-  //
-  // The 15-bit field is numbered bit 14 (MSB) down to bit 0, and each bit is
-  // written twice so the symbol survives damage to one corner. `i` below is the
-  // spec's bit number, not a left-to-right index.
   const format = FORMAT_M[mask];
   for (let i = 0; i < 15; i += 1) {
     const bit = ((format >> i) & 1) === 1;

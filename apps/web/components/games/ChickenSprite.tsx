@@ -1,23 +1,3 @@
-/**
- * FRIGAT — Chicken sprite
- *
- * The white chicken character, as scalable SVG. Used two ways:
- *
- *  - As a React component, anywhere in the DOM (cards, results, empty states).
- *  - As `chickenSpriteMarkup()`, a plain string the canvas rasterises once into
- *    an <img> and blits with drawImage each frame.
- *
- * The second export exists because a canvas has no DOM inside it — it is a
- * bitmap surface behind a 2D context, so `<foreignObject>` has nothing to
- * attach to and React cannot render into it. Encoding the same markup as an
- * image is the supported way to get vector artwork onto a canvas, and it is
- * also the faster one: the SVG is parsed once rather than re-rasterised on
- * every frame.
- *
- * Both come from one markup builder, so the DOM copy and the canvas copy
- * cannot drift apart.
- */
-
 import { useId } from 'react';
 
 export interface ChickenSpriteProps {
@@ -27,7 +7,6 @@ export interface ChickenSpriteProps {
   className?: string;
 }
 
-/** Palette, kept in one place so the dead variant is a swap rather than a fork. */
 function palette(dead: boolean) {
   return {
     bodyLight: dead ? '#d7dbe0' : '#ffffff',
@@ -42,14 +21,6 @@ function palette(dead: boolean) {
   };
 }
 
-/**
- * The sprite as raw SVG markup on a 64×64 viewBox.
- *
- * `uid` namespaces the gradient ids. Two sprites on one page would otherwise
- * declare the same `<linearGradient id>`, and SVG resolves a duplicate
- * reference to the first match in the document — the second would silently
- * borrow the first one's fill.
- */
 export function chickenSpriteMarkup(
   uid: string,
   dead = false,
@@ -128,13 +99,6 @@ export function ChickenSprite({
   );
 }
 
-/**
- * The sprite as a data: URI, for `new Image()` in a canvas.
- *
- * Percent-encoded rather than base64 — shorter for markup this size, and it
- * stays readable when debugging. `#` must be escaped or it starts a URL
- * fragment and truncates the sprite at the first colour.
- */
 export function chickenSpriteDataUri(dead = false): string {
   const svg = chickenSpriteMarkup(dead ? 'ko' : 'ok', dead, true);
   return `data:image/svg+xml,${svg

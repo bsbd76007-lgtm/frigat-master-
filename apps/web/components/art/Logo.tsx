@@ -1,25 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Header logo plate
- *
- * A brass oval nameplate with rivets and gear wheels behind it, drawn as
- * inline SVG. No image file: it stays crisp at any size and on any DPI, costs
- * no extra request on the first paint, and the one place the brand colours
- * live is this file.
- *
- * Gradient and filter ids are namespaced with `useId()`. Two logos on the same
- * page — header and footer, say — would otherwise declare the same
- * `<linearGradient id>` twice, and SVG resolves a duplicate reference to the
- * first match in the document, so the second would silently borrow the first's
- * fill.
- *
- * The wordmark is `<text>` rather than outlined paths: it stays selectable and
- * searchable, and `<title>` gives assistive tech a real name. A serif face is
- * requested by family with a generic fallback, since a webfont here would
- * block the first paint of the header.
- */
-
 import { useId } from 'react';
 
 interface LogoProps {
@@ -140,11 +120,6 @@ export function Logo({ height = 34, title = 'FRIGAT', className }: LogoProps) {
   );
 }
 
-/**
- * One gear: a hub plus `teeth` spokes radiating from it. Built from a path
- * string rather than repeated <rect> elements so each wheel is a single node —
- * four gears at nine teeth would otherwise be three dozen nodes in the header.
- */
 function Gear({
   cx,
   cy,

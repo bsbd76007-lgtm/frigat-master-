@@ -37,11 +37,6 @@ type Status =
 
 type Notice = { tone: 'ok' | 'err'; text: string } | null;
 
-/**
- * Built from the browser's own origin rather than a hardcoded host, so the
- * copied link keeps working on any deployment. Empty during SSR, which is why
- * the field renders only once mounted.
- */
 function referralLink(code: string): string {
   if (typeof window === 'undefined') return '';
   return `${window.location.origin}/register?ref=${encodeURIComponent(code)}`;
@@ -90,8 +85,6 @@ export default function ReferralsPage() {
     try {
       await navigator.clipboard.writeText(link);
     } catch {
-      // Clipboard API needs a secure context and permission; on refusal fall
-      // back to selecting the field so the user can copy it by hand.
       const field = document.getElementById('ref-link') as HTMLInputElement | null;
       field?.select();
       setNotice({ tone: 'err', text: 'Copy was blocked — the link is selected, press ⌘/Ctrl+C.' });
@@ -133,8 +126,6 @@ export default function ReferralsPage() {
         tone: 'ok',
         text: `Transferred ${formatDecimalString(String(body.claimed), 2)} to your main balance.`,
       });
-      // Refresh the summary; the header balance updates from the socket's own
-      // BALANCE frame, so it is not driven from here.
       await load();
     } catch {
       setNotice({ tone: 'err', text: 'Could not reach the FRIGAT server.' });

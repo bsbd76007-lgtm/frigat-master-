@@ -1,31 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Theme provider
- *
- * Three themes — dark, dim and light — expressed purely as CSS variable sets
- * in globals.css. This provider owns which one is active: it stamps the name
- * onto <html> as both `data-theme="…"` (what the stylesheet selects on) and a
- * bare class (`.dark`/`.dim`/`.light`, for anything that prefers class-based
- * targeting), persists the choice to localStorage, and hands the rest of the
- * tree a setter through context.
- *
- * Deliberately hand-rolled rather than next-themes: the dependency would earn
- * its weight if we needed system-preference syncing across frameworks, but the
- * whole behaviour here is ~60 lines and this app is already one client tree
- * under the root layout — the same reason LanguageProvider is homegrown.
- *
- * Two details worth keeping:
- *
- * 1. `THEME_SCRIPT` runs before first paint (see app/layout.tsx) so the stored
- *    theme is on <html> by the time the first pixels land. Without it every
- *    reload flashes dark before the effect catches up.
- * 2. Because of that script, React must not render anything theme-dependent
- *    during SSR — the server cannot know the stored value. The toggle's active
- *    state therefore stays neutral until `ready` flips after mount, which is
- *    the same hydration-safety trick LanguageProvider uses for the locale.
- */
-
 import {
   createContext,
   useCallback,
@@ -48,22 +22,11 @@ function isTheme(value: unknown): value is Theme {
   return THEMES.includes(value as Theme);
 }
 
-/**
- * Inlined into <head> and run synchronously before the body paints. Kept as a
- * single expression string — it is injected via dangerouslySetInnerHTML, so it
- * must stay free of anything a bundler would need to transform, and free of
- * characters that would need escaping inside a <script>.
- */
 export const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');if(t!=='dark'&&t!=='dim'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'${DEFAULT_THEME}';}var e=document.documentElement;e.dataset.theme=t;e.classList.remove('dark','dim','light');e.classList.add(t);}catch(_){}})();`;
 
 export interface ThemeContextValue {
   theme: Theme;
   setTheme: (next: Theme) => void;
-  /**
-   * False until the stored theme has been read after mount. Consumers that
-   * render differently per theme should treat this as "don't commit yet" so
-   * server and client markup agree on the first pass.
-   */
   ready: boolean;
 }
 
@@ -88,6 +51,7 @@ export function ThemeProvider({
         resolved = document.documentElement.dataset.theme as Theme;
       }
     } catch {
+      /* no-op */
     }
     setThemeState(resolved);
     setReady(true);
@@ -107,6 +71,7 @@ export function ThemeProvider({
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {
+      /* no-op */
     }
   }, []);
 

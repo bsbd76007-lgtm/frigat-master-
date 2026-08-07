@@ -1,23 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Hero banner carousel
- *
- * Auto-advancing promo banner for the top of the dashboard home. Framer Motion
- * drives the transition so an interrupted slide animates out from where it
- * actually is rather than snapping — the usual failure of a CSS-only slider
- * when someone clicks the chevrons faster than the interval.
- *
- * Autoplay stops whenever the user is plausibly reading or interacting: hover,
- * keyboard focus inside the banner, a backgrounded tab, or a stated preference
- * for reduced motion. A banner that keeps moving under a pointer is how people
- * mis-click into a promo they did not want.
- *
- * Backgrounds are plain CSS `background` values, so the default slides ship as
- * gradients and cost no network request. Pass `url(...)` in the same field for
- * artwork once it exists.
- */
-
 import { useCallback, useEffect, useId, useState } from 'react';
 import Link from 'next/link';
 
@@ -31,17 +13,11 @@ import {
 
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { HERO_ART } from '@/components/hero/HeroArt';
-/**
- * In-app surfaces that are modals or drawers rather than routes. A slide
- * pointing at one of these renders a button that opens it, instead of a link
- * to a URL that does not exist.
- */
 export type HeroAction = 'deposit' | 'chat' | 'fairness';
 
 export interface HeroCta {
   labelKey: string;
   href?: string;
-  /** Opens an in-app panel instead of navigating. Takes precedence over href. */
   action?: HeroAction;
 }
 
@@ -53,29 +29,17 @@ export interface HeroSlide {
   cta: HeroCta;
   secondaryCta?: HeroCta;
   background: string;
-  /**
-   * Optional wash painted over `background`. All eight slides share one dark
-   * metallic base, so this faint per-slide radial is what keeps consecutive
-   * slides from looking identical mid-transition.
-   */
   tint?: string;
   accent?: string;
   art?: 'car' | 'vault';
 }
 
-/**
- * Slides hold translation keys rather than copy: promo text is the most
- * language-sensitive thing on the page, and a banner still reading English
- * under an Armenian header is the first thing anyone notices.
- */
 export const DEFAULT_SLIDES: HeroSlide[] = [
   {
     id: 'welcome-bonus',
     eyebrowKey: 'hero.welcomeBonus.eyebrow',
     titleKey: 'hero.welcomeBonus.title',
     subtitleKey: 'hero.welcomeBonus.subtitle',
-    // Opens the cashier rather than linking: the deposit dialog is owned by
-    // the navbar, so the banner asks for it by name.
     cta: { labelKey: 'hero.welcomeBonus.cta', action: 'deposit' },
     secondaryCta: { labelKey: 'hero.welcomeBonus.secondaryCta', href: '/vip' },
     background: 'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
@@ -89,9 +53,6 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     eyebrowKey: 'hero.joyPoints.eyebrow',
     titleKey: 'hero.joyPoints.title',
     subtitleKey: 'hero.joyPoints.subtitle',
-    // P-Points are not built yet (Slice 3), so this points at the VIP club —
-    // the nearest live surface that explains tiers and rakeback. Repoint it
-    // when the loyalty page ships.
     cta: { labelKey: 'hero.joyPoints.cta', href: '/vip' },
     background: 'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
@@ -216,12 +177,6 @@ function Chevron({ direction }: { direction: 'left' | 'right' }) {
   );
 }
 
-/**
- * Renders a CTA as a link or, for a modal-backed surface, as a button.
- *
- * A CTA with neither `href` nor `action` renders nothing rather than a dead
- * link — an inert promo button is a worse outcome than an absent one.
- */
 function HeroCtaButton({
   cta,
   className,
@@ -265,8 +220,6 @@ export function HeroCarousel({
   onAction?: (action: HeroAction) => void;
 }) {
   const [index, setIndex] = useState(0);
-  // +1 advancing, -1 going back. Framer reads it as `custom` so a slide always
-  // leaves towards the side the user came from.
   const [direction, setDirection] = useState(1);
   const [interacting, setInteracting] = useState(false);
   const [tabHidden, setTabHidden] = useState(false);
@@ -294,8 +247,6 @@ export function HeroCarousel({
     [index]
   );
 
-  // A backgrounded tab would otherwise burn through every slide unseen and
-  // land the user somewhere arbitrary when they return.
   useEffect(() => {
     const onVisibility = () => setTabHidden(document.hidden);
     onVisibility();
@@ -305,8 +256,6 @@ export function HeroCarousel({
 
   const paused = interacting || tabHidden || Boolean(reduceMotion);
 
-  // Keyed on `index`, so the clock restarts after a manual move instead of
-  // firing part-way through the slide the user just chose.
   useEffect(() => {
     if (paused || count < 2 || interval <= 0) return;
     const timer = window.setTimeout(() => go(1), interval);
@@ -355,7 +304,6 @@ export function HeroCarousel({
           <motion.article
             key={slide.id}
             className="hero__slide"
-            // Tint first so it layers over the metallic base beneath it.
             style={{
               background: slide.tint
                 ? `${slide.tint}, ${slide.background}`

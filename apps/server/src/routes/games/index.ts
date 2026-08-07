@@ -1,8 +1,3 @@
-/**
- * FRIGAT — Game config routes aggregator.
- * One import in index.ts registers every game-specific REST route.
- */
-
 import type { FastifyInstance } from 'fastify';
 import { registerLimboRoutes } from './limbo.routes';
 import { registerKenoRoutes } from './keno.routes';

@@ -17,15 +17,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, verifySession } from '@/lib/adminAuth';
 
-/**
- * Routes the guard must never touch. Everything here is either how a visitor
- * *obtains* a session or how the client asks whether it has one — guarding any
- * of them redirects an anonymous visitor to a page that is itself guarded, and
- * the browser loops.
- *
- * The matcher below already excludes them; this check is the belt to that
- * braces, so widening the matcher later cannot silently close the front door.
- */
 const PUBLIC_ROUTES = [
   '/login',
   '/register',
@@ -63,16 +54,6 @@ function redirectToLogin(request: NextRequest, reason: string) {
 }
 
 export async function middleware(request: NextRequest) {
-  // Local development: stand down entirely. The Edge runtime cannot see
-  // localStorage, so a dev session that exists only there reads as anonymous
-  // here and gets redirected — the loop this whole file kept reintroducing.
-  // Authorisation in dev is left to AdminGate on the client and, where it
-  // actually counts, `requireAdmin` on the Fastify API.
-  //
-  // NODE_ENV is 'production' for `next build`/`next start`, so this branch
-  // cannot be reached by a deployed instance. It is still a real reduction in
-  // defence in depth locally: with it, `next dev` serves the admin markup to
-  // anyone. The API refuses their data requests regardless.
   if (process.env.NODE_ENV === 'development') return NextResponse.next();
 
   if (isPublic(request.nextUrl.pathname)) return NextResponse.next();

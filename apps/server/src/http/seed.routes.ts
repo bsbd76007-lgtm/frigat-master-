@@ -34,7 +34,6 @@ export function registerSeedRoutes(app: FastifyInstance) {
     };
   });
 
-  // ── Rotate into a fresh pair ───────────────
   app.post<{ Body: { clientSeed?: string } }>(
     '/api/seeds/rotate',
     async (req, reply) => {
@@ -53,7 +52,6 @@ export function registerSeedRoutes(app: FastifyInstance) {
           clientSeed: active.clientSeed,
           hashedServerSeed: active.hashedServerSeed,
           nonce: active.nonce,
-          // The retired pair, now verifiable end to end.
           serverSeed: revealed?.serverSeed ?? null,
           previousHashedServerSeed: revealed?.hashedServerSeed ?? null,
           previousClientSeed: revealed?.clientSeed ?? null,

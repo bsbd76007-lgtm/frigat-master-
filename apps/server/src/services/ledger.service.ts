@@ -64,7 +64,7 @@ export interface ProcessBetInput {
 export interface ProcessBetResult {
   transactionId: string;
   walletId: string;
-  balance: string; // new balance after debit
+  balance: string;
 }
 
 /**
@@ -77,7 +77,6 @@ export async function processBet(
   const currency = input.currency ?? 'USD';
   const amount = toAmount(input.amount, 'bet amount');
 
-  // Maintenance mode + per-game caps, read from the runtime risk config.
   await assertWagerAllowed(input.gameType, amount);
 
   const result = await prisma.$transaction(async (tx) => {
@@ -103,7 +102,6 @@ export async function processBet(
     });
 
     if (debited.count !== 1) {
-      // Predicate failed → insufficient funds. Transaction rolls back cleanly.
       throw new InsufficientFundsError();
     }
 
@@ -140,7 +138,7 @@ export async function processBet(
   // self-corrects on the player's next wager.
   if (input.gameType !== 'STREAK_RESTORE') {
     void recordPlay(input.userId).catch(() => {
-      /* streak accounting is not worth failing a settled wager over */
+  /* no-op */
     });
   }
 
@@ -272,14 +270,6 @@ export interface TransferBetweenUsersResult {
   toBalance: string;
 }
 
-/**
- * Credits daily streak cashback.
- *
- * Separate from `awardBonus` only in the transaction type it writes:
- * BONUS_CASHBACK is what the once-a-day guard in streak.routes matches on, and
- * keeping it distinct from DEPOSIT stops bonus credits inflating deposit
- * reporting with money that never entered the platform.
- */
 export async function creditCashback(
   input: AwardBonusInput
 ): Promise<AwardBonusResult> {
@@ -385,12 +375,7 @@ export async function transferBetweenUsers(
   });
 }
 
-// ─────────────────────────────────────────────
-// RevShare referral engine
-// ─────────────────────────────────────────────
-
 export interface SettleAffiliateRewardInput {
-  /** The player whose bet just settled (the downline). */
   userId: string;
   /** Originating BET transaction id — the idempotency key for this reward. */
   betId: string;
@@ -406,9 +391,7 @@ export interface AffiliateRewardResult {
   referrerId: string;
   /** Reward credited, 8dp decimal string. */
   amount: string;
-  /** Referrer's affiliateBalance after the credit. */
   affiliateBalance: string;
-  /** True when this betId had already paid out and nothing changed. */
   replayed: boolean;
 }
 
@@ -439,7 +422,7 @@ export async function settleAffiliateReward(
   }
 
   const netLoss = stake.minus(payout);
-  if (netLoss.lessThanOrEqualTo(0)) return null; // won or broke even
+  if (netLoss.lessThanOrEqualTo(0)) return null;
 
   const idempotencyKey = `affiliate:${input.betId}`;
 
@@ -477,7 +460,6 @@ export async function settleAffiliateReward(
       where: { id: referrerId },
       select: { revSharePercentage: true },
     });
-    // Referrer deleted between the bet and its settlement — nothing to pay.
     if (!referrer) return null;
 
     const pct = referrer.revSharePercentage;
@@ -489,7 +471,7 @@ export async function settleAffiliateReward(
       .mul(pct)
       .dividedBy(100)
       .toDecimalPlaces(8, Prisma.Decimal.ROUND_DOWN);
-    if (reward.lessThanOrEqualTo(0)) return null; // dust — below 1e-8
+    if (reward.lessThanOrEqualTo(0)) return null;
 
     // Created on demand: a referrer who has never funded an account still has
     // earnings to collect, and must not lose them for want of a wallet row.
@@ -529,10 +511,6 @@ export async function settleAffiliateReward(
   try {
     return await attempt();
   } catch (err) {
-    // Two settlements of the same bet raced: both read no existing row, both
-    // inserted, and Postgres rejected the loser on the unique txHash index.
-    // The reward *was* credited exactly once, so retry to read it back rather
-    // than surfacing a constraint error for a correctly-handled duplicate.
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === 'P2002'
@@ -554,9 +532,7 @@ export interface ClaimAffiliateResult {
   transactionId: string;
   /** Amount swept, 8dp decimal string. */
   claimed: string;
-  /** Wagerable balance after the sweep. */
   balance: string;
-  /** Always '0' — the sweep is all-or-nothing. */
   affiliateBalance: string;
 }
 
@@ -592,7 +568,6 @@ export async function claimAffiliateEarnings(input: {
     const amount = wallet.affiliateBalance;
     if (amount.lessThanOrEqualTo(0)) throw new NothingToClaimError();
 
-    // Guarded: only sweeps if the full amount is still sitting there.
     const swept = await tx.wallet.updateMany({
       where: { id: wallet.id, affiliateBalance: { gte: amount } },
       data: {
@@ -626,7 +601,6 @@ export async function claimAffiliateEarnings(input: {
   });
 }
 
-/** Convenience read used by socket handlers to sync balance to the client. */
 export async function getBalance(
   userId: string,
   currency = 'USD'
@@ -638,10 +612,6 @@ export async function getBalance(
   if (!wallet) throw new WalletNotFoundError();
   return wallet.balance.toString();
 }
-
-// ─────────────────────────────────────────────
-// Administrative adjustments
-// ─────────────────────────────────────────────
 
 export interface AdjustBalanceInput {
   userId: string;
@@ -664,7 +634,6 @@ export interface AdjustBalanceInput {
 export interface AdjustBalanceResult {
   transactionId: string;
   balance: string;
-  /** True when the key had already been applied and nothing changed. */
   replayed: boolean;
 }
 
@@ -700,7 +669,6 @@ export async function adjustBalance(
       };
     }
 
-    // Create the wallet on demand so a credit can bootstrap a new account.
     const wallet = await tx.wallet.upsert({
       where: { userId_currency: { userId: input.userId, currency } },
       update: {},
@@ -740,7 +708,6 @@ export async function adjustBalance(
       select: { balance: true },
     });
 
-    // Same transaction as the balance change: both land, or neither does.
     await auditWithin(tx, {
       adminId: input.audit.adminId,
       action: 'BALANCE_ADJUSTED',
@@ -762,10 +729,6 @@ export async function adjustBalance(
   });
 }
 
-// ─────────────────────────────────────────────
-// Withdrawals
-// ─────────────────────────────────────────────
-
 export class WithdrawalStateError extends Error {
   constructor(message: string) {
     super(message);
@@ -773,13 +736,6 @@ export class WithdrawalStateError extends Error {
   }
 }
 
-/**
- * Player-initiated withdrawal request.
- *
- * Funds are debited (reserved) at request time, not at approval. That is what
- * makes "Reject & Refund" coherent — and it stops a player wagering money that
- * is already queued to leave the platform.
- */
 export async function requestWithdrawal(input: {
   userId: string;
   amount: string;
@@ -826,14 +782,6 @@ export async function requestWithdrawal(input: {
   });
 }
 
-/**
- * Approves a pending withdrawal. Funds already left the wallet at request time,
- * so this only settles the ledger row — no second debit.
- *
- * The status transition is a guarded updateMany on `status: PENDING`. Two admins
- * clicking Approve at the same moment therefore produce exactly one settlement;
- * the loser sees a WithdrawalStateError rather than double-paying.
- */
 export async function approveWithdrawal(input: {
   transactionId: string;
   auditWithin: (
@@ -870,11 +818,6 @@ export async function approveWithdrawal(input: {
   });
 }
 
-/**
- * Rejects a pending withdrawal and returns the reserved funds to the wallet.
- *
- * Same guarded transition as approval, so a double-click cannot refund twice.
- */
 export async function rejectWithdrawal(input: {
   transactionId: string;
   auditWithin: (
@@ -900,15 +843,12 @@ export async function rejectWithdrawal(input: {
       select: { amount: true, walletId: true, wallet: { select: { userId: true } } },
     });
 
-    // Return the reserved funds in the same transaction as the status change.
     const wallet = await tx.wallet.update({
       where: { id: row.walletId },
       data: { balance: { increment: row.amount } },
       select: { balance: true },
     });
 
-    // Paired ledger row so the refund is visible in the transaction history
-    // rather than appearing as an unexplained balance jump.
     await tx.transaction.create({
       data: {
         walletId: row.walletId,

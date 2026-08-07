@@ -1,13 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Sign in
- *
- * Exchanges email + password at the API for a session JWT, stores it, and
- * sends the player to the tables. This is also where the admin middleware
- * lands unauthenticated visitors, so it honours its `?error=` and `?next=`.
- */
-
 import { Suspense, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -55,14 +47,10 @@ function LoginForm() {
           ? ADMIN_DESTINATION
           : safeDestination(null);
 
-      // A full page load, not router.replace: the client router would carry the
-      // anonymous RSC cache and the signed-out component state into the next
-      // page, and the middleware would not re-run against the cookie that was
-      // just set. `replace` keeps the back button off this now-stale form.
       window.location.replace(destination);
     } catch (err) {
       setError(err instanceof AuthError ? err.message : 'Something went wrong. Try again.');
-      setBusy(false); // stays disabled on success while the route changes
+      setBusy(false);
     }
   };
 

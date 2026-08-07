@@ -23,20 +23,10 @@
 
 import { drainGrateDataUri } from '@/components/games/DrainGrateSVG';
 
-/** Lanes drawn. Matches VISIBLE_LANES in ChickenLanes. */
 const LANES = 6;
 
-/**
- * Built once at module scope: the markup is constant, so rebuilding it per
- * render would hand the browser a new `url(...)` each time and defeat its
- * image cache.
- */
 const GRATE_URI = drainGrateDataUri(false);
 
-/**
- * Deterministic 0..1 from an integer, via a cheap integer hash (xorshift-ish).
- * Only needs to look unpatterned across six lanes, so a full PRNG is overkill.
- */
 function hash01(n: number): number {
   let x = (n + 1) * 2654435761;
   x ^= x >>> 15;
@@ -53,12 +43,6 @@ interface Hatch {
   rotate: number;
 }
 
-/**
- * One or two hatches per lane, placed from the lane's own hash.
- *
- * Kept clear of the vertical centre band where the payout column sits, so the
- * decor never sits behind the figures a player is reading.
- */
 function hatchesFor(lane: number): Hatch[] {
   const a = hash01(lane);
   const b = hash01(lane * 31 + 7);
@@ -74,8 +58,6 @@ function hatchesFor(lane: number): Hatch[] {
     },
   ];
 
-  // Roughly half the lanes get a second one, so the road is uneven rather
-  // than regularly dotted.
   if (c > 0.45) {
     hatches.push({
       top: 68 + b * 24,

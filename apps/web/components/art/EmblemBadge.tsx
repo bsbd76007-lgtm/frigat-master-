@@ -1,20 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Glowing emblem badge
- *
- * A small rounded-square mark with a single glowing letter. Used as the
- * category tag on game cards and as the source for the browser-tab favicon.
- *
- * Like the logo, ids are namespaced with `useId()`: a grid of eight cards
- * renders eight of these, and duplicate `<linearGradient id>` values would all
- * resolve to whichever one the document happened to parse first.
- *
- * The favicon needs this same artwork as a plain string, but `metadata` is
- * evaluated on the server where a client module's exports are not callable —
- * so that version lives in lib/emblem.ts. Changes here must be mirrored there.
- */
-
 import { useId } from 'react';
 
 interface EmblemBadgeProps {

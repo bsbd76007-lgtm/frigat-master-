@@ -27,7 +27,6 @@ import {
   sanitizeDecimalInput,
 } from '@/lib/decimal';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
-/** Matches BET_LIMITS in apps/server/src/config/game.config.ts. */
 export const DEFAULT_MIN_BET = '0.10';
 export const DEFAULT_MAX_BET = '10000.00';
 
@@ -45,7 +44,6 @@ export interface BetControlsProps {
   cashoutAmount?: string | null;
   cashoutMultiplier?: number | null;
   disabled?: boolean;
-  /** In-flight request — keeps layout stable while awaiting the server. */
   busy?: boolean;
   betLabel?: string;
   locale?: string;

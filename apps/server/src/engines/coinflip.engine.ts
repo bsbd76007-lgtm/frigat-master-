@@ -1,9 +1,3 @@
-/**
- * FRIGAT — Coinflip Engine
- * outcome < 0.5 → HEADS, else TAILS. Player wins if their chosen side lands.
- * Fair payout is 2×; house edge reduces it to ~1.98×.
- */
-
 import { calculateOutcome } from '@frigat/shared';
 import { HOUSE_EDGE } from '../config/game.config';
 import type { EngineResult, SeedContext } from '../types/engine.types';

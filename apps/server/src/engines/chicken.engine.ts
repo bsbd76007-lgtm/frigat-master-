@@ -38,10 +38,6 @@ import type { SeedContext } from '../types/engine.types';
 
 const EDGE = HOUSE_EDGE.CHICKEN;
 
-/**
- * Per-lane hazard rate. Higher risk pays faster but ends sooner; every tier
- * carries the same house edge, so the choice is variance, not value.
- */
 export const DIFFICULTY = {
   EASY: 0.15,
   MEDIUM: 0.25,
@@ -54,14 +50,8 @@ export function isDifficulty(value: unknown): value is Difficulty {
   return typeof value === 'string' && value in DIFFICULTY;
 }
 
-/**
- * Lanes in a crossing. A cap exists because the multiplier grows without
- * bound: at HARD, lane 40 already pays more than the platform could settle.
- * Reaching the far side is a forced cash-out.
- */
 export const LANE_COUNT = 24;
 
-/** True when the chicken is hit stepping into `lane` (0-indexed). */
 export function isBlocked(
   lane: number,
   difficulty: Difficulty,
@@ -74,11 +64,6 @@ export function isBlocked(
     DIFFICULTY[difficulty];
 }
 
-/**
- * The whole road, for settlement records and for the client to render once the
- * round is over. Computed from the seed alone, so it is identical whether it
- * is derived at bet time or by a player verifying afterwards.
- */
 export function generateRoad(
   difficulty: Difficulty,
   seed: SeedContext
@@ -90,7 +75,6 @@ export function generateRoad(
   return road;
 }
 
-/** Payout multiplier after `crossed` successful lanes (0 crossed → 1.0). */
 export function multiplierAfter(
   difficulty: Difficulty,
   crossed: number
@@ -105,7 +89,6 @@ export function multiplierAfter(
   return Math.floor(fair * (1 - EDGE) * 100) / 100;
 }
 
-/** Every multiplier for the progression bar, without re-deriving on the client. */
 export function multiplierTable(difficulty: Difficulty): number[] {
   return Array.from({ length: LANE_COUNT }, (_, i) =>
     multiplierAfter(difficulty, i + 1)

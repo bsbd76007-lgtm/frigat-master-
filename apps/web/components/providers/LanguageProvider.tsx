@@ -1,23 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Language provider
- *
- * A deliberately small i18n layer: five bundled locale files, a React context
- * holding the active one, and a `t()` that walks a dot path. No routing
- * segments and no extra dependency — the whole app is one client tree under
- * the root layout, so a context switch re-renders every translated string
- * (header, game cards, carousel) in a single pass.
- *
- * The choice is persisted to localStorage so it survives a reload, and mirrored
- * onto <html lang>/<html dir> so Persian renders right-to-left and screen
- * readers announce the correct language.
- *
- * The first paint is always English: reading localStorage during render would
- * make the server and client markup disagree. The stored locale is applied in
- * an effect right after mount instead.
- */
-
 import {
   createContext,
   useCallback,
@@ -108,13 +90,12 @@ export function LanguageProvider({
 }) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
 
-  // Restore the stored preference once, after hydration has matched the
-  // server's English markup.
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (isLocale(stored)) setLocaleState(stored);
     } catch {
+      /* no-op */
     }
   }, []);
 
@@ -129,6 +110,7 @@ export function LanguageProvider({
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {
+      /* no-op */
     }
   }, []);
 

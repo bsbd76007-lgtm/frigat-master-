@@ -1,11 +1,3 @@
-/**
- * FRIGAT — User management
- *
- * Server component: reads the admin session cookie and calls the Fastify admin
- * API directly, so the list is fetched without the token ever entering the
- * browser. Mutations go back through /api/admin/* from the drawer.
- */
-
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 

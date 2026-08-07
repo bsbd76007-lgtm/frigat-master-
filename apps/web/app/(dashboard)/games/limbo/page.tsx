@@ -1,28 +1,12 @@
 'use client';
 
-/**
- * Limbo — pick a target multiplier, the server draws an "achieved" one the
- * same way Crash draws a crash point, and the bet wins iff the draw clears
- * the target. See apps/server/src/engines/limbo.engine.ts for the exact
- * formula and why it keeps the house edge constant at every target.
- *
- * The readout animates from 1.00x up to the achieved value in *log* space —
- * targets span five orders of magnitude (1.01x to 1,000,000x), and a linear
- * count-up would either crawl through the small end or blow past it in a
- * single frame. The animation is purely cosmetic: the server has already
- * settled the bet by the time GAME_RESULT arrives, this just paces how the
- * number is revealed.
- */
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
-/** Mirrors LIMBO in @frigat/shared for the client-side quote only. */
 const MIN_TARGET = 1.01;
 const MAX_TARGET = 1_000_000;
-/** Mirrors HOUSE_EDGE.LIMBO. */
 const LIMBO_EDGE = 0.01;
 
 const QUICK_TARGETS = [1.5, 2, 5, 10, 100];
@@ -34,7 +18,7 @@ function formatMultiplier(n: number): string {
 }
 
 function rolloutValue(target: number, t: number): number {
-  const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+  const eased = 1 - Math.pow(1 - t, 3);
   const logTarget = Math.log(Math.max(target, 1.0001));
   return Math.exp(logTarget * eased);
 }

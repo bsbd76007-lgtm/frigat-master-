@@ -39,7 +39,6 @@ import {
   WalletNotFoundError,
 } from '../services/payment.service';
 
-/** Ceiling on a single sandbox credit — a typo should not mint a fortune. */
 const MOCK_MAX_AMOUNT = 10_000;
 
 /** Positive decimal with at most 8 fraction digits, matching Decimal(18, 8). */
@@ -49,11 +48,6 @@ function isValidAmount(value: unknown): value is string {
   return typeof value === 'string' && AMOUNT_PATTERN.test(value) && Number(value) > 0;
 }
 
-/**
- * Conservative address shape check. This is a typo guard, not validation of a
- * specific chain's checksum — the provider is the authority on whether an
- * address is spendable, and it rejects bad ones.
- */
 function isPlausibleAddress(value: unknown): value is string {
   return (
     typeof value === 'string' &&
@@ -64,7 +58,6 @@ function isPlausibleAddress(value: unknown): value is string {
 }
 
 export function registerPaymentRoutes(app: FastifyInstance) {
-  // ── Deposit ──
   app.post<{
     Body: { amount?: string; currency?: string; network?: string };
   }>('/api/payments/deposit', async (req, reply) => {
@@ -100,7 +93,6 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     }
   });
 
-  // ── Withdraw ──
   app.post<{
     Body: { amount?: string; currency?: string; address?: string; network?: string };
   }>('/api/payments/withdraw', async (req, reply) => {
@@ -157,7 +149,6 @@ export function registerPaymentRoutes(app: FastifyInstance) {
       try {
         const result = await handleWebhook(body);
 
-        // Live balance update for a player sitting on the deposit modal.
         if (result.credited) {
           pushBalanceToUser(result.credited.userId, result.credited.balance);
           req.log.info(
@@ -201,14 +192,11 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     );
   }
 
-  // Lets the cashier UI decide whether to offer the sandbox toggle at all,
-  // rather than showing a button that 404s in production.
   app.get('/api/payments/config', async () => ({
     sandbox: config.mockPaymentsEnabled,
     currencies: SUPPORTED_CURRENCIES,
   }));
 
-  // ── History ──
   app.get('/api/payments/history', async (req, reply) => {
     const identity = identityFromRequest(req);
     if (!identity) return reply.code(401).send({ error: 'unauthorized' });
@@ -222,14 +210,6 @@ export function registerPaymentRoutes(app: FastifyInstance) {
   });
 }
 
-/**
- * Sandbox deposit/withdraw endpoints, mounted only when
- * config.mockPaymentsEnabled is true.
- *
- * Still player-authenticated: a caller may only move their *own* balance. The
- * sandbox exists to skip the payment gateway, not the identity check — without
- * a JWT these would let anyone on the dev network credit any account.
- */
 function registerMockRoutes(app: FastifyInstance) {
   app.post<{ Body: { amount?: string; currency?: string } }>(
     '/api/payments/mock-deposit',
@@ -237,7 +217,6 @@ function registerMockRoutes(app: FastifyInstance) {
       const identity = identityFromRequest(req);
       if (!identity) return reply.code(401).send({ error: 'unauthorized' });
 
-      // Defaults to the $50 the deposit modal's test button offers.
       const amount = req.body?.amount ?? '50';
       const currency = req.body?.currency;
 
@@ -260,8 +239,6 @@ function registerMockRoutes(app: FastifyInstance) {
           currency,
         });
 
-        // Mirrors the real webhook: push the new balance so every open tab
-        // updates, not just the one that clicked.
         pushBalanceToUser(identity.userId, result.balance);
         req.log.info(
           { userId: identity.userId, amount: result.amount },
@@ -312,7 +289,6 @@ function registerMockRoutes(app: FastifyInstance) {
   );
 }
 
-/** Maps service-layer errors onto status codes, shared by both money routes. */
 function replyForPaymentError(
   err: unknown,
   reply: FastifyReply,
@@ -332,8 +308,6 @@ function replyForPaymentError(
     return reply.code(503).send({ error: 'payments_unavailable' });
   }
   if (err instanceof PaymentProviderError) {
-    // 502: we are healthy, the upstream is not. The provider's own copy is
-    // passed through so the player sees why (e.g. "amount too small").
     req.log.error({ err }, 'cryptomus request failed');
     return reply.code(502).send({ error: 'provider_error', detail: err.message });
   }

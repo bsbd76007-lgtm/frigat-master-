@@ -26,8 +26,6 @@ import {
 } from '../services/bonus.service';
 
 export function registerVipRoutes(app: FastifyInstance) {
-  // Static config for the UI: tier ladder and wheel layout. Public — the
-  // segment weights are part of the offer and hiding them helps nobody.
   app.get('/api/vip/config', async () => ({
     tiers: VIP_TIERS,
     wheel: WHEEL_SEGMENTS.map((segment) => ({
@@ -52,8 +50,6 @@ export function registerVipRoutes(app: FastifyInstance) {
 
     try {
       const result = await claimRakeback({ userId: identity.userId, currency });
-      // Credits made outside a bet do not otherwise reach the client, so the
-      // header would keep showing a stale balance until the next wager.
       pushBalanceToUser(identity.userId, result.balance);
       return result;
     } catch (err) {
@@ -67,7 +63,6 @@ export function registerVipRoutes(app: FastifyInstance) {
     }
   });
 
-  /** Shared by /api/bonus/spin and the older /api/vip/daily-wheel path. */
   const handleSpin = async (req: FastifyRequest, reply: FastifyReply) => {
     const identity = identityFromRequest(req);
     if (!identity) return reply.code(401).send({ error: 'unauthorized' });
@@ -96,6 +91,5 @@ export function registerVipRoutes(app: FastifyInstance) {
   };
 
   app.post('/api/bonus/spin', handleSpin);
-  // Kept so an already-deployed client does not break on this change.
   app.post('/api/vip/daily-wheel', handleSpin);
 }

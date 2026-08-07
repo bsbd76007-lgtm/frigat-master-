@@ -1,10 +1,3 @@
-/**
- * FRIGAT — Game icons
- *
- * `GAME_ICONS` keys off the same slugs the routes use, so a card can look up
- * its icon from the game list without a switch statement.
- */
-
 import type { ComponentType } from 'react';
 
 import type { GameIconProps } from '@/components/icons/types';

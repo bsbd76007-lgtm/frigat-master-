@@ -1,55 +1,31 @@
-/**
- * FRIGAT — Shared Game Constants
- *
- * Values the client must render and the server must enforce. They live here so
- * there is exactly ONE definition: a UI that advertises a payout the ledger
- * would not honour is a correctness bug, not a cosmetic one.
- *
- * Deliberately excluded: HOUSE_EDGE and ROULETTE_PAYOUTS. Those are settlement
- * policy, consumed only by the engines, and nothing in the browser needs them.
- *
- * This module is import-safe in a browser bundle — no node built-ins.
- */
-
 /** Global bet bounds (decimal strings; enforced server-side by the ledger). */
 export const BET_LIMITS = {
   min: '0.10',
   max: '10000.00',
 } as const;
 
-// ── Mines ────────────────────────────────
 export const MINES = {
-  gridSize: 25, // 5x5
+  gridSize: 25,
   minMines: 1,
   maxMines: 24,
 } as const;
 
-// ── Crash ────────────────────────────────
 export const CRASH = {
   bettingWindowMs: 5000,
   tickMs: 100,
-  /** Multiplier growth rate per second (exponential): m(t) = e^(rate·t). */
   growthRatePerSec: 0.06,
   maxMultiplier: 1_000_000,
 } as const;
 
-// ── Roulette (European, single zero) ─────
 export const ROULETTE_RED: ReadonlySet<number> = new Set([
   1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
 ]);
 
-/**
- * Physical pocket sequence of a single-zero wheel, clockwise from 0.
- * Wheel geometry, not a payout rule — the engine's `floor(u · 37)` picks a
- * pocket *number*; this maps that number to its seat on the wheel.
- */
 export const ROULETTE_WHEEL_ORDER: readonly number[] = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24,
   16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26,
 ];
 
-// ── Plinko payout tables (multiplier per bucket, left→right) ──
-// Buckets = rows + 1. Symmetric.
 export const PLINKO_TABLES: Record<
   'LOW' | 'MEDIUM' | 'HIGH',
   Record<number, number[]>
@@ -83,21 +59,11 @@ export function pocketColor(pocket: number): RoulettePocketColor {
   return ROULETTE_RED.has(pocket) ? 'RED' : 'BLACK';
 }
 
-// ── Limbo ────────────────────────────────
-// Achieved multiplier is drawn the same way Crash draws a crash point
-// ((1 - edge) / (1 - u)); a bet wins if that draw clears its own chosen
-// target. See apps/server/src/engines/limbo.engine.ts.
 export const LIMBO = {
   minMultiplier: 1.01,
   maxMultiplier: 1_000_000,
 } as const;
 
-// ── Keno ─────────────────────────────────
-// 40-tile board, 10 numbers drawn, up to 10 picks. KENO_PAYTABLE[picks][hits]
-// is the gross payout multiplier (0 = no win at that hit count); every table
-// row is calibrated so its hypergeometric expected value lands at the same
-// ~98% RTP (2% house edge, HOUSE_EDGE.KENO) regardless of how many numbers
-// were picked — see the derivation note in engines/keno.engine.ts.
 export const KENO_TILE_COUNT = 40;
 export const KENO_DRAW_COUNT = 10;
 export const KENO_MAX_PICKS = 10;

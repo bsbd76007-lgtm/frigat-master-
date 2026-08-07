@@ -14,15 +14,6 @@ export interface StreakState {
 
 const VISIBLE_STOPS = 5;
 
-/**
- * Pops in after the first bet of the day, showing the streak so far and the
- * next milestone.
- *
- * Every figure comes from `GET /api/streak/me`, which reads the same columns
- * the server writes when a bet settles. Nothing is projected forward — a bar
- * that counted a day the server has not recorded would promise a cashback tier
- * the player has not reached.
- */
 export function StreakProgressBar() {
   const [state, setState] = useState<StreakState | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -33,15 +24,12 @@ export function StreakProgressBar() {
       .then((res) => (res.ok ? res.json() : null))
       .then((body: (StreakState & { restoreAvailable?: boolean }) | null) => {
         if (!active || !body || body.currentStreak < 1) return;
-        // A pending restore offer owns the screen. Showing the day-1 bar behind
-        // its overlay says "your streak is fine" underneath a dialog saying it
-        // ended, and the bar shows through the backdrop blur.
         if (body.restoreAvailable) return;
         setState(body);
         setIsVisible(true);
       })
       .catch(() => {
-        /* the bar is ambient; a failed read simply shows nothing */
+        /* no-op */
       });
     return () => {
       active = false;
@@ -53,8 +41,6 @@ export function StreakProgressBar() {
   const { currentStreak, nextMilestone, milestones } = state;
   const target = nextMilestone ?? currentStreak;
 
-  // The road shows the run-up to the next milestone rather than all 100 days,
-  // so a day-2 player sees a reachable goal instead of a nearly-empty bar.
   const previousMilestone =
     [...milestones].reverse().find((m) => m <= currentStreak) ?? 0;
   const span = Math.max(1, target - previousMilestone);

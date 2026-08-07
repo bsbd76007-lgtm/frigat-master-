@@ -36,8 +36,6 @@ export async function GET() {
 
   const response = NextResponse.json({ user: null, reason: result.status });
 
-  // Drop a cookie we just refused, so the browser stops presenting it on every
-  // subsequent request.
   if (result.status === 'invalid') response.cookies.delete(SESSION_COOKIE);
 
   return response;
@@ -83,7 +81,7 @@ export async function POST(request: Request) {
     name: SESSION_COOKIE,
     value: token,
     httpOnly: true,
-    sameSite: 'lax', // survives the top-level redirect back from /login
+    sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     // Track the token's own lifetime so the cookie cannot outlive the JWT.

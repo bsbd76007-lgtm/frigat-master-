@@ -17,7 +17,7 @@ import { createHash, createHmac, randomBytes } from 'crypto';
 
 /** Number of hex characters used for float derivation (52 bits). */
 const OUTCOME_HEX_CHARS = 13;
-const OUTCOME_DIVISOR = Math.pow(2, 52); // 16^13
+const OUTCOME_DIVISOR = Math.pow(2, 52);
 
 /**
  * Generates a cryptographically secure random 32-byte server seed.
@@ -27,11 +27,6 @@ export function generateServerSeed(): string {
   return randomBytes(32).toString('hex');
 }
 
-/**
- * Produces the public commitment hash of a server seed.
- * Published to the player BEFORE betting begins.
- * @returns 64-character SHA256 hex digest.
- */
 export function hashServerSeed(serverSeed: string): string {
   return createHash('sha256').update(serverSeed, 'utf8').digest('hex');
 }

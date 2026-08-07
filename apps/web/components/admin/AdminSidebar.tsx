@@ -1,16 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Admin sidebar (TailAdmin-style)
- *
- * Grouped, collapsible navigation. Collapsed state is persisted to
- * localStorage so it survives a page change — a sidebar that silently
- * re-expands on every navigation is worse than one that does not collapse.
- *
- * Read after mount rather than during render: localStorage does not exist on
- * the server, and disagreeing with the server's HTML is a hydration mismatch.
- */
-
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -112,6 +101,7 @@ export function AdminSidebar({ adminId }: { adminId?: string | null }) {
     try {
       setCollapsed(window.localStorage.getItem(COLLAPSE_KEY) === '1');
     } catch {
+      /* no-op */
     }
   }, []);
 
@@ -121,6 +111,7 @@ export function AdminSidebar({ adminId }: { adminId?: string | null }) {
       try {
         window.localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
       } catch {
+        /* no-op */
       }
       return next;
     });
@@ -172,8 +163,6 @@ export function AdminSidebar({ adminId }: { adminId?: string | null }) {
                   href={item.href}
                   className="adm-side__link"
                   aria-current={active ? 'page' : undefined}
-                  // The label is otherwise invisible when collapsed, so the
-                  // native tooltip is the only way to identify an icon.
                   title={collapsed ? item.label : undefined}
                 >
                   <span className="adm-side__icon" aria-hidden="true">

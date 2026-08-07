@@ -1,14 +1,5 @@
 'use client';
 
-/**
- * Risk configuration form.
- *
- * These values are enforced live: per-game caps in ledger.processBet, the win
- * ceiling at payout, and maintenance mode on every wager. The server caches
- * them for a few seconds, so a save takes effect almost immediately rather
- * than needing a deploy.
- */
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 

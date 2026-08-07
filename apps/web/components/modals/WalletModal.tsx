@@ -1,29 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Wallet dialog shell
- *
- * Owns the overlay, the centred panel, the title/tab/close header, and the
- * focus and keyboard behaviour. DepositModal and WithdrawModal render their
- * form bodies inside it, so the chrome exists once and the two tabs cannot
- * drift apart visually.
- *
- * Centring: the overlay is a fixed flex container over the whole viewport, so
- * the panel is centred against the screen rather than the document — it does
- * not shift when the page behind it is scrolled. `align-items: center` plus a
- * `max-height` and internal scrolling is what keeps a tall panel from being
- * clipped at the top: with `align-items: flex-start` a panel taller than the
- * viewport would overflow upward past the navbar with no way to reach it.
- *
- * Rendered through a portal onto <body>, and that is load-bearing rather than
- * tidiness. The trigger lives in the navbar, which is `position: sticky` —
- * that establishes a containing block, so a `position: fixed` overlay nested
- * inside it resolves against the *header* instead of the viewport. The panel
- * then centres on a 56px-tall strip and lands at a negative `y`, clipped off
- * the top of the screen with its tabs unreachable. The portal escapes that
- * containing block entirely.
- */
-
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -50,9 +26,6 @@ export function WalletModal({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
-  // `document` does not exist during the server render, so the portal target
-  // is resolved after mount. Until then this renders nothing, which is correct:
-  // a dialog has no server-rendered content worth hydrating.
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => setIsMounted(true), []);
 
@@ -65,9 +38,6 @@ export function WalletModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  // Locking the body prevents the page behind from scrolling under the
-  // overlay, which on iOS Safari otherwise drags the whole document around
-  // while the player is trying to scroll the panel itself.
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;

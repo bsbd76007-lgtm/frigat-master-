@@ -1,20 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Roulette Visualizer (European, single zero)
- *
- * Draws the 37-pocket wheel in true physical order, spins it, flies the ball
- * around the track, and settles it into the winning pocket.
- *
- * The landing is choreographed backwards from the server's result: the wheel's
- * final angle is solved so that `pocket` sits under the marker when the
- * easing completes. The animation therefore always agrees with the settled
- * GameSession — it never picks a pocket of its own.
- *
- * While `pocket` is null the wheel free-spins, so the UI can start moving the
- * instant a bet is accepted and only commit once GAME_RESULT lands.
- */
-
 import { useEffect, useMemo, useRef } from 'react';
 
 import {
@@ -28,7 +13,6 @@ import {
   usePrefersReducedMotion,
   type CanvasFrame,
 } from '@/lib/useCanvasRenderer';
-/** Wheel geometry and colour rule, shared with the server. */
 export const WHEEL_ORDER = ROULETTE_WHEEL_ORDER;
 export { pocketColor };
 export type { RoulettePocketColor };
@@ -37,7 +21,6 @@ export type RoulettePhase = 'IDLE' | 'SPINNING' | 'RESULT';
 
 export interface RouletteCanvasProps {
   phase: RoulettePhase;
-  /** Winning pocket 0–36 from the server; null keeps the wheel free-spinning. */
   pocket: number | null;
   spinDurationMs?: number;
   onSpinComplete?: (pocket: number) => void;
@@ -62,17 +45,10 @@ const COLORS = {
 const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 export const SEGMENT = (Math.PI * 2) / WHEEL_ORDER.length;
 export const MARKER_ANGLE = -Math.PI / 2;
-const IDLE_RATE = 0.00022; // radians per ms
+const IDLE_RATE = 0.00022;
 const BALL_ORBITS = 6;
 const WHEEL_SPINS = 4;
 
-/**
- * Final wheel angle that seats `pocket` directly under the marker, unwrapped
- * forwards from `fromAngle` and padded with whole extra revolutions.
- *
- * Exported because this is the one piece of geometry that must agree with the
- * server's result — everything else on this canvas is decoration.
- */
 export function wheelAngleForPocket(
   pocket: number,
   fromAngle = 0,
@@ -120,7 +96,6 @@ export function RouletteCanvas({
 
   const duration = reducedMotion ? 1 : Math.max(1, spinDurationMs);
 
-  // Solve the landing the moment the server names a pocket.
   useEffect(() => {
     if (pocket === null || phase === 'IDLE') {
       landingRef.current = null;

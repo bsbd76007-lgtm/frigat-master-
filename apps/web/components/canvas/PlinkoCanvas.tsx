@@ -1,22 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Plinko Visualizer
- *
- * Draws the triangular peg field, the bucket row, and an animated ball for each
- * drop. Level `i` carries `i + 1` pegs, so `rows` decisions produce `rows + 1`
- * buckets — the same Galton geometry the engine models.
- *
- * The ball follows the server's `path` (the `Array<'L' | 'R'>` in
- * plinko resultData) exactly, so the animation always terminates in the bucket
- * the ledger already paid out. No client-side physics decides where it lands;
- * the bounce is purely presentational easing between fixed waypoints.
- *
- * `multipliers` is required and must come from the server's PLINKO_TABLES.
- * Hard-coding a copy here would let the displayed payouts drift from the ones
- * actually settled — unacceptable for a gambling UI.
- */
-
 import { useEffect, useMemo, useRef } from 'react';
 import {
   useCanvasRenderer,
@@ -26,7 +9,6 @@ import {
 
 export interface PlinkoDrop {
   id: string;
-  /** Server-derived left/right decisions, one per row. */
   path: Array<'L' | 'R'>;
   bucket?: number;
   multiplier?: number;
@@ -34,7 +16,6 @@ export interface PlinkoDrop {
 
 export interface PlinkoCanvasProps {
   rows: number;
-  /** Bucket payout table from the server; length must be `rows + 1`. */
   multipliers: number[];
   drops: PlinkoDrop[];
   onDropComplete?: (drop: PlinkoDrop) => void;
@@ -55,7 +36,6 @@ const COLORS = {
 const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 const LANDED_FLASH_MS = 700;
 
-/** Bucket colour by payout tier; mirrors GameHistoryBar's banding. */
 function bucketColor(multiplier: number): string {
   if (!Number.isFinite(multiplier) || multiplier <= 0) return '#f0616d';
   if (multiplier < 1) return '#f09261';
@@ -64,7 +44,6 @@ function bucketColor(multiplier: number): string {
   return '#f5b83d';
 }
 
-/** Landing bucket = number of right-moves in the server path. */
 export function bucketOf(drop: PlinkoDrop): number {
   if (typeof drop.bucket === 'number') return drop.bucket;
   return drop.path.reduce((count, step) => count + (step === 'R' ? 1 : 0), 0);
@@ -87,7 +66,7 @@ export function PlinkoCanvas({
   const reducedMotion = usePrefersReducedMotion();
 
   const runtimeRef = useRef(new Map<string, DropRuntime>());
-  const landedRef = useRef(new Map<number, number>()); // bucket -> landed timestamp
+  const landedRef = useRef(new Map<number, number>());
   const onCompleteRef = useRef(onDropComplete);
   onCompleteRef.current = onDropComplete;
 
@@ -189,7 +168,6 @@ export function PlinkoCanvas({
           const segment = Math.floor(progress);
           const t = progress - segment;
 
-          // Waypoints are fixed by the server path; easing only shapes travel.
           let rightCount = 0;
           for (let i = 0; i < Math.min(segment, steps); i += 1) {
             if (drop.path[i] === 'R') rightCount += 1;
@@ -213,7 +191,7 @@ export function PlinkoCanvas({
             const fromY = nodeY(segment);
             const toY = nodeY(segment + 1);
 
-            const easeX = t * t * (3 - 2 * t); // smoothstep
+            const easeX = t * t * (3 - 2 * t);
             x = fromX + (toX - fromX) * easeX;
             y = fromY + (toY - fromY) * (t * t) - Math.sin(t * Math.PI) * rowGap * 0.14;
           }
@@ -234,7 +212,6 @@ export function PlinkoCanvas({
           ctx.shadowBlur = 0;
         }
 
-        // Expire finished bucket flashes so the map cannot grow unbounded.
         for (const [bucket, at] of [...landedRef.current.entries()]) {
           if (performance.now() - at > LANDED_FLASH_MS) {
             landedRef.current.delete(bucket);

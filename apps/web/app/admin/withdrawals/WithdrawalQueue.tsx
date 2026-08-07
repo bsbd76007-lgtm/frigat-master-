@@ -1,15 +1,5 @@
 'use client';
 
-/**
- * Withdrawal approval queue.
- *
- * Funds were already reserved when the player requested the withdrawal, so
- * approving only settles the ledger row while rejecting returns the money.
- * Both actions are guarded server-side on `status = PENDING`, so a stale tab
- * or a second click gets a 409 rather than paying twice — the UI surfaces that
- * plainly instead of pretending it succeeded.
- */
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 

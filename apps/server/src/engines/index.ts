@@ -1,9 +1,3 @@
-/**
- * FRIGAT — Engine registry.
- * Instant (one-shot) engines expose a resolver matching (params, seed) → EngineResult.
- * Interactive engines (crash, mines) expose their own primitives.
- */
-
 import * as dice from './dice.engine';
 import * as coinflip from './coinflip.engine';
 import * as roulette from './roulette.engine';

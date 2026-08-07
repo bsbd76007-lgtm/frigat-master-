@@ -1,17 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Language dropdown
- *
- * Flag + three-letter code in the header; the full list drops beneath it.
- * Built as a real menu rather than a <select> so the flags render consistently
- * across platforms — a native option list ignores most styling and, on
- * Windows, ignores the flag glyphs too.
- *
- * Keyboard: Escape closes, arrows move between items, Home/End jump. A click
- * anywhere outside dismisses it.
- */
-
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { LOCALES, useLanguage, type Locale } from '@/components/providers/LanguageProvider';
@@ -45,8 +33,6 @@ export function LanguageSwitcher() {
     }
   }, []);
 
-  // Pointerdown rather than click: a click listener would also catch the very
-  // press that opened the menu on some browsers' event ordering.
   useEffect(() => {
     if (!isOpen) return;
     const onPointerDown = (event: PointerEvent) => {

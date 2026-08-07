@@ -1,15 +1,5 @@
 'use client';
 
-/**
- * Roulette — European single-zero wheel.
- *
- * One position per spin. The engine computes an *effective* multiplier as
- * totalReturn / totalStake across `params.bets`, while the ledger debits
- * `payload.amount`. Sending a single bet whose amount equals the stake keeps
- * those two in agreement; splitting a stake across positions would need the
- * amounts to sum to `amount`, so the UI deliberately offers one at a time.
- */
-
 import { useEffect, useState } from 'react';
 
 import {

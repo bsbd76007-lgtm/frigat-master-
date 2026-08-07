@@ -33,15 +33,9 @@ import {
 
 const D = Prisma.Decimal;
 
-/** Assets a player may deposit or withdraw. */
 export const SUPPORTED_CURRENCIES = ['USDT', 'BTC', 'ETH', 'LTC'] as const;
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
-/**
- * Default chain per asset. USDT exists on several networks and Cryptomus needs
- * to be told which, otherwise it picks for us and the player is shown an
- * address on a chain they may not be able to send from.
- */
 const DEFAULT_NETWORK: Record<SupportedCurrency, string | undefined> = {
   USDT: 'tron',
   BTC: undefined,
@@ -49,11 +43,6 @@ const DEFAULT_NETWORK: Record<SupportedCurrency, string | undefined> = {
   LTC: undefined,
 };
 
-/**
- * Currency the wallet is denominated in. Deposits are invoiced in crypto but
- * the ledger runs a single USD balance, so the credited figure is the amount
- * Cryptomus reports in this currency.
- */
 const LEDGER_CURRENCY = 'USD';
 
 export function isSupportedCurrency(value: unknown): value is SupportedCurrency {
@@ -63,10 +52,6 @@ export function isSupportedCurrency(value: unknown): value is SupportedCurrency 
   );
 }
 
-// ─────────────────────────────────────────────
-// Errors
-// ─────────────────────────────────────────────
-
 export class PaymentConfigError extends Error {
   constructor() {
     super('Cryptomus credentials are not configured');
@@ -74,7 +59,6 @@ export class PaymentConfigError extends Error {
   }
 }
 
-/** The provider answered, but with an error or an unusable body. */
 export class PaymentProviderError extends Error {
   constructor(
     message: string,
@@ -98,30 +82,12 @@ export {
   WalletNotFoundError,
 } from './ledger.service';
 
-// ─────────────────────────────────────────────
-// Signing & transport
-// ─────────────────────────────────────────────
-
-/**
- * Cryptomus' signature: md5(base64(json_body) + api_key).
- *
- * The body must be signed byte-for-byte as it is sent — re-serializing with
- * different key order or spacing produces a different base64 string and thus a
- * signature the provider rejects. Callers therefore pass the exact string.
- */
 function signPayload(rawBody: string, apiKey: string): string {
   return createHash('md5')
     .update(Buffer.from(rawBody).toString('base64') + apiKey)
     .digest('hex');
 }
 
-/**
- * Constant-time signature comparison.
- *
- * `timingSafeEqual` throws on a length mismatch, so lengths are checked first —
- * that check is safe to do variably, since the expected length is fixed and
- * public (32 hex chars).
- */
 function signaturesMatch(expected: string, received: string): boolean {
   const a = Buffer.from(expected, 'utf8');
   const b = Buffer.from(received, 'utf8');
@@ -136,12 +102,6 @@ interface CryptomusEnvelope<T> {
   errors?: Record<string, unknown>;
 }
 
-/**
- * POSTs a signed request to Cryptomus.
- *
- * `keyKind` selects which secret signs the call: payouts authenticate with the
- * payout key, everything else with the payment key.
- */
 async function cryptomusRequest<T>(
   path: string,
   body: Record<string, unknown>,
@@ -192,8 +152,6 @@ async function cryptomusRequest<T>(
     );
   }
 
-  // Cryptomus signals success with state 0 and carries its own error copy in
-  // `message`, independent of the HTTP status.
   if (!response.ok || envelope.state !== 0 || !envelope.result) {
     throw new PaymentProviderError(
       envelope.message ?? `payment provider rejected the request (${response.status})`,
@@ -203,10 +161,6 @@ async function cryptomusRequest<T>(
 
   return envelope.result;
 }
-
-// ─────────────────────────────────────────────
-// Status mapping
-// ─────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, CryptoPaymentStatus> = {
   paid: 'PAID',
@@ -233,26 +187,13 @@ function mapStatus(raw: unknown): CryptoPaymentStatus {
   return STATUS_MAP[raw.toLowerCase()] ?? 'PENDING';
 }
 
-/**
- * Statuses that mean money has actually landed.
- *
- * `PAID_OVER` (player sent more than invoiced) counts — the surplus is real
- * money and is credited from the received amount. `WRONG_AMOUNT` deliberately
- * does not: it is an underpayment awaiting a decision, and crediting it would
- * pay out more than arrived.
- */
 function isSettled(status: CryptoPaymentStatus): boolean {
   return status === 'PAID' || status === 'PAID_OVER' || status === 'CONFIRMED';
 }
 
-/** Terminal payout failures, which must return the reserved funds. */
 function isPayoutFailure(status: CryptoPaymentStatus): boolean {
   return status === 'FAILED' || status === 'CANCELLED' || status === 'EXPIRED';
 }
-
-// ─────────────────────────────────────────────
-// Deposits
-// ─────────────────────────────────────────────
 
 export interface CreateDepositInput {
   userId: string;
@@ -285,12 +226,6 @@ interface CryptomusInvoice {
   expired_at?: number | null;
 }
 
-/**
- * Opens a Cryptomus invoice and records it as a PENDING Payment.
- *
- * Nothing is credited here — the wallet moves only when a signed webhook (or a
- * status poll) confirms the money arrived.
- */
 export async function createDeposit(
   input: CreateDepositInput
 ): Promise<CreateDepositResult> {
@@ -307,7 +242,6 @@ export async function createDeposit(
   if (!account) throw new WalletNotFoundError();
   if (account.frozen) throw new AccountFrozenError();
 
-  // Our own reference, echoed back on every webhook for this invoice.
   const orderId = `dep_${input.userId}_${Date.now().toString(36)}`;
   const network = input.network ?? DEFAULT_NETWORK[input.currency];
 
@@ -347,7 +281,6 @@ export async function createDeposit(
   };
 }
 
-/** Deposits belonging to one player, newest first. */
 export async function listDeposits(userId: string, take = 20) {
   const rows = await prisma.payment.findMany({
     where: { userId },
@@ -373,13 +306,8 @@ export async function listDeposits(userId: string, take = 20) {
   }));
 }
 
-// ─────────────────────────────────────────────
-// Webhook
-// ─────────────────────────────────────────────
-
 export interface WebhookResult {
   handled: boolean;
-  /** Set when this webhook credited a wallet, for the socket balance push. */
   credited?: {
     userId: string;
     balance: string;
@@ -387,15 +315,6 @@ export interface WebhookResult {
   };
 }
 
-/**
- * Verifies a webhook's MD5 signature.
- *
- * The `sign` field is removed before hashing because the provider computed the
- * signature over a body that did not yet contain it. Everything else must be
- * re-serialized exactly as received, which is why this takes the parsed body
- * rather than a raw string: Cryptomus signs the JSON *it* generated, and PHP's
- * json_encode escapes forward slashes — hence the `\/` fixup below.
- */
 export function verifyWebhookSignature(body: Record<string, unknown>): boolean {
   const { sign, ...rest } = body as { sign?: unknown } & Record<string, unknown>;
   if (typeof sign !== 'string' || sign.length === 0) return false;
@@ -407,14 +326,6 @@ export function verifyWebhookSignature(body: Record<string, unknown>): boolean {
   return signaturesMatch(signPayload(serialized, apiKey), sign);
 }
 
-/**
- * Applies a verified webhook.
- *
- * Deposit crediting is idempotent: the ledger credit and the status flip happen
- * in one $transaction, guarded by `transactionId: null`. If two webhook
- * deliveries race, exactly one wins the guarded update and the other credits
- * nothing.
- */
 export async function handleWebhook(
   body: Record<string, unknown>
 ): Promise<WebhookResult> {
@@ -426,7 +337,6 @@ export async function handleWebhook(
   const status = mapStatus(body.status);
   const txHash = typeof body.txid === 'string' ? body.txid : null;
 
-  // `type: 'payout'` marks a withdrawal callback; invoices carry no such field.
   if (body.type === 'payout') {
     return handlePayoutWebhook(uuid, status, txHash);
   }
@@ -449,9 +359,6 @@ async function handleDepositWebhook(
   // stops redelivering, but do not create a payment we never opened.
   if (!payment) return { handled: false };
 
-  // Credit from what actually arrived, not what was invoiced. `merchant_amount`
-  // is net of the provider's fee and is what we are actually paid; it is
-  // preferred over `payment_amount` for that reason.
   const receivedRaw =
     (typeof body.merchant_amount === 'string' && body.merchant_amount) ||
     (typeof body.payment_amount === 'string' && body.payment_amount) ||
@@ -463,12 +370,11 @@ async function handleDepositWebhook(
       const parsed = new D(receivedRaw);
       if (parsed.isFinite() && parsed.greaterThan(0)) received = parsed;
     } catch {
-      received = null; // fall back to the invoiced amount below
+      received = null;
     }
   }
 
   if (!isSettled(status) || payment.transactionId) {
-    // Not money yet, or already credited — record the state and stop.
     await prisma.payment.update({
       where: { id: payment.id },
       data: {
@@ -520,8 +426,6 @@ async function handleDepositWebhook(
         type: TransactionType.DEPOSIT,
         amount: creditAmount,
         status: 'COMPLETED',
-        // The on-chain hash where we have one; otherwise the invoice uuid, so
-        // the unique constraint still blocks a duplicate credit.
         txHash: txHash ?? `cryptomus:${uuid}`,
       },
       select: { id: true },
@@ -535,7 +439,7 @@ async function handleDepositWebhook(
     return { balance: updated.balance.toString() };
   });
 
-  if (!outcome) return { handled: true }; // lost the race; already credited
+  if (!outcome) return { handled: true };
 
   return {
     handled: true,
@@ -563,9 +467,6 @@ async function handlePayoutWebhook(
     data: { status, ...(txHash ? { txHash } : {}) },
   });
 
-  // A failed payout must give the reserved funds back. rejectWithdrawal is
-  // itself guarded on the ledger row still being PENDING, so a redelivered
-  // failure webhook cannot refund twice.
   if (isPayoutFailure(status) && !isPayoutFailure(withdrawal.status)) {
     try {
       await rejectWithdrawal({
@@ -573,16 +474,12 @@ async function handlePayoutWebhook(
         auditWithin: async () => undefined,
       });
     } catch {
-      // Already settled by an admin or an earlier delivery — nothing to undo.
+      /* no-op */
     }
   }
 
   return { handled: true };
 }
-
-// ─────────────────────────────────────────────
-// Withdrawals
-// ─────────────────────────────────────────────
 
 export interface CreateWithdrawalInput {
   userId: string;
@@ -598,7 +495,6 @@ export interface CreateWithdrawalResult {
   amount: string;
   currency: string;
   address: string;
-  /** Balance after the funds were reserved. */
   balance: string;
 }
 
@@ -608,16 +504,6 @@ interface CryptomusPayout {
   txid?: string | null;
 }
 
-/**
- * Requests a payout.
- *
- * Order matters: funds are reserved *first* through the ledger, and only then
- * is the provider called. Calling the provider first would let a player with
- * one balance fire concurrent payouts that all pass a read-only balance check.
- *
- * If the provider call fails, the reservation is released by rejecting the
- * ledger row — the player gets their balance back rather than a silent hold.
- */
 export async function createWithdrawal(
   input: CreateWithdrawalInput
 ): Promise<CreateWithdrawalResult> {
@@ -700,22 +586,6 @@ export async function createWithdrawal(
   };
 }
 
-// ─────────────────────────────────────────────
-// Sandbox (development only)
-// ─────────────────────────────────────────────
-
-/**
- * Simulates a settled deposit with no gateway involved.
- *
- * Deliberately reuses the same ledger primitives as the real webhook path — a
- * Payment row plus a paired DEPOSIT Transaction — so sandbox money is
- * indistinguishable from real money to every downstream consumer (history,
- * reconciliation, the affiliate engine). A shortcut that only bumped
- * `Wallet.balance` would produce a balance the ledger cannot explain.
- *
- * Callers MUST gate this on config.mockPaymentsEnabled; it credits real
- * balances and performs no payment verification whatsoever.
- */
 export async function mockDeposit(input: {
   userId: string;
   amount: string;
@@ -788,15 +658,6 @@ export async function mockDeposit(input: {
   });
 }
 
-/**
- * Simulates a completed payout: debits the balance and settles immediately,
- * skipping the PENDING hold a real withdrawal sits in until the provider pays.
- *
- * Uses the ledger's guarded debit, so an over-balance sandbox withdrawal fails
- * exactly as a real one would rather than driving the balance negative.
- *
- * Callers MUST gate this on config.mockPaymentsEnabled.
- */
 export async function mockWithdraw(input: {
   userId: string;
   amount: string;
@@ -848,7 +709,6 @@ export async function mockWithdraw(input: {
   };
 }
 
-/** Withdrawals belonging to one player, newest first. */
 export async function listWithdrawals(userId: string, take = 20) {
   const rows = await prisma.withdrawal.findMany({
     where: { userId },

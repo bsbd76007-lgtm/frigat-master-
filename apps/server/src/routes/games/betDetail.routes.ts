@@ -70,7 +70,6 @@ export function registerBetDetailRoutes(app: FastifyInstance) {
       multiplier: bet.multiplier,
       timestamp: bet.createdAt.getTime(),
       fairness: {
-        // The commitment. Published before the bet, so always safe to show.
         hashedServerSeed: hashServerSeed(bet.serverSeed),
         serverSeed: revealed ? bet.serverSeed : null,
         revealed,

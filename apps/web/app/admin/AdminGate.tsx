@@ -68,15 +68,12 @@ function decodeToken(token: string | null): GateUser | null {
 }
 
 export function AdminGate({
-  /** What the server made of the cookie, when it could read one. */
   serverUser,
   children,
 }: {
   serverUser: GateUser | null;
   children: ReactNode;
 }) {
-  // An admin the server already recognised renders immediately — no fetch, no
-  // flash of "checking" on every admin navigation.
   const [phase, setPhase] = useState<Phase>(() =>
     serverUser?.role === 'ADMIN'
       ? { state: 'allowed', user: serverUser }

@@ -1,16 +1,3 @@
-/**
- * FRIGAT — Hero slide artwork
- *
- * Decorative SVG panels drawn on the right of a hero slide.
- *
- * Inline SVG rather than raster images: no extra network request on the first
- * screen a player sees, no blur on HiDPI, and each piece can take the slide's
- * accent colour as a prop so the art and the copy stay in the same palette.
- *
- * Everything here is `aria-hidden` — the slide's heading and subtitle carry
- * the meaning, and a screen reader announcing "vintage car" adds nothing.
- */
-
 interface ArtProps {
   accent: string;
 }

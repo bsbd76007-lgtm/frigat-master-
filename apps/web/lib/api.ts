@@ -21,7 +21,6 @@
 
 import { API_URL, readStoredToken } from '@/lib/token';
 
-/** A non-2xx response, carrying the server's own error copy where it gave any. */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -58,10 +57,6 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   });
 }
 
-/**
- * `apiFetch` plus JSON parsing. Throws `ApiError` on a non-2xx, preferring the
- * server's `detail`/`error` copy over a bare status code.
- */
 export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await apiFetch(path, init);
   const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;

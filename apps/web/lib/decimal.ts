@@ -72,7 +72,6 @@ export function maxDecimal(a: string, b: string): string {
   return compareDecimal(a, b) >= 0 ? a : b;
 }
 
-/** Clamps a value into [min, max]. */
 export function clampDecimal(value: string, min: string, max: string): string {
   if (compareDecimal(value, min) < 0) return normalizeDecimal(min)!;
   if (compareDecimal(value, max) > 0) return normalizeDecimal(max)!;

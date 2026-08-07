@@ -44,7 +44,6 @@ export default function ChickenPage() {
   const [hitLane, setHitLane] = useState<number | null>(null);
   const [outcome, setOutcome] = useState<'bust' | 'cashout' | null>(null);
   const [busy, setBusy] = useState(false);
-  /** Server-rejected action, shown to the player instead of failing silently. */
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,11 +63,8 @@ export default function ChickenPage() {
         if (typeof data.laneCount === 'number') setLaneCount(data.laneCount);
       }),
 
-      // A reload wipes the page's copy of a round the server still holds open.
-      // Without this the player sees the idle screen, can only send BET, and
-      // every BET is rejected with GAME_IN_PROGRESS — locked out with the stake
-      // already taken. Asking on every connect costs one frame.
       subscribe('RESUME_NONE', () => {
+        /* no live round to restore — the idle screen is already correct */
       }),
 
       subscribe('ERROR', (data) => {
@@ -103,17 +99,11 @@ export default function ChickenPage() {
     return () => off.forEach((fn) => fn());
   }, [subscribe]);
 
-  // Ask the server whether this player already has a round open. Runs on every
-  // (re)connect, because that is exactly when the client's copy of the round
-  // may be missing or stale.
   useEffect(() => {
     if (!socket.isOpen) return;
     send('RESUME', 'CHICKEN');
   }, [socket.isOpen, send]);
 
-  // Keyboard: forward advances, and is the same action as the on-screen
-  // button. Ignored while a step is in flight so a held key cannot queue up
-  // several lanes against one server round-trip.
   useEffect(() => {
     if (!active) return;
     const onKey = (event: KeyboardEvent) => {
@@ -241,8 +231,6 @@ export default function ChickenPage() {
             currency={balance.currency}
             onBet={start}
             onCashout={cashout}
-            // Cashing out needs at least one lane behind you — the server
-            // rejects it otherwise, so the button should not offer it.
             canCashout={active && crossed > 0}
             cashoutAmount={potentialPayout}
             cashoutMultiplier={active && crossed > 0 ? multiplier : null}

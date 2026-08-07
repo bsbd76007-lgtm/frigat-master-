@@ -21,7 +21,6 @@ import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { apiJson, ApiError } from '@/lib/api';
 import { API_URL } from '@/lib/token';
 import { formatDecimalString } from '@/lib/decimal';
-/** Mirrors WHEEL_SEGMENTS in apps/server/src/services/bonus.service.ts. */
 const SEGMENTS = [
   { prize: '1', color: '#334155' },
   { prize: '5', color: '#1e3a5f' },
@@ -31,7 +30,6 @@ const SEGMENTS = [
 ] as const;
 
 const SLICE_DEG = 360 / SEGMENTS.length;
-/** Full turns before landing, so the wheel reads as spun rather than nudged. */
 const SPIN_TURNS = 6;
 const SPIN_MS = 4200;
 
@@ -87,7 +85,6 @@ export default function DailyWheelModal({
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<string | null>(null);
 
-  // Cleared on unmount so a landing scheduled mid-close cannot setState after.
   const landingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -121,8 +118,6 @@ export default function DailyWheelModal({
     void loadStatus();
   }, [open, loadStatus]);
 
-  // Ticks the countdown once a second while it is showing. Stops itself the
-  // moment the wheel becomes available, rather than polling forever.
   useEffect(() => {
     if (!open || available || !nextAt) {
       setCountdown(null);

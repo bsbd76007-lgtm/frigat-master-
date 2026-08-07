@@ -17,8 +17,6 @@ const MIN_PASSWORD = 8;
 
 function RegisterForm() {
   const router = useRouter();
-  // Affiliate attribution rides in on the URL. An unknown code is ignored by
-  // the API rather than blocking the sign-up, so nothing is validated here.
   const ref = useSearchParams().get('ref');
 
   const [email, setEmail] = useState('');

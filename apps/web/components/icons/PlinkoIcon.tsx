@@ -1,10 +1,3 @@
-/**
- * FRIGAT — Plinko icon
- *
- * The peg pyramid with a ball dropping into it and the payout bins beneath.
- * Pegs are generated rather than hand-placed so the triangle stays exact.
- */
-
 import { useId } from 'react';
 import type { GameIconProps } from '@/components/icons/types';
 

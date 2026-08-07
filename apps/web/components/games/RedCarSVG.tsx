@@ -1,17 +1,3 @@
-/**
- * FRIGAT — Red car (top-down)
- *
- * The obstacle vehicle for Chicken Road, drawn from directly overhead.
- *
- * Like ChickenSprite, this exports both a React component and a data: URI so
- * the canvas can blit it — a canvas has no DOM inside it, so `<foreignObject>`
- * has nothing to attach to and React cannot render into it. One markup builder
- * feeds both, so the two copies cannot drift.
- *
- * Drawn nose-up on a 64×112 viewBox. The canvas rotates it for southbound
- * lanes rather than keeping a second mirrored asset.
- */
-
 import { useId } from 'react';
 
 export interface RedCarSVGProps {

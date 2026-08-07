@@ -12,17 +12,6 @@ interface StreakSummary {
   restoreAvailable: boolean;
 }
 
-/**
- * Offers a paid reinstatement of a broken streak.
- *
- * Shown only while `restoreAvailable` is true — the server measures a two-day
- * window from the break, so the offer expires instead of becoming a permanent
- * upsell. The price is read from the server, never computed here.
- *
- * Deliberately plain about what it costs: the charge is real money off a real
- * balance, so the button states the amount rather than saying "Restore now"
- * and revealing the price after the click.
- */
 export function RestoreStreakModal() {
   const [summary, setSummary] = useState<StreakSummary | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -42,7 +31,7 @@ export function RestoreStreakModal() {
         setIsOpen(true);
       })
       .catch(() => {
-        /* no offer is the safe default */
+        /* no-op */
       });
     return () => {
       active = false;

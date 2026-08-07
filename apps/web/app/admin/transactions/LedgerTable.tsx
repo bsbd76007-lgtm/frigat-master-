@@ -1,13 +1,5 @@
 'use client';
 
-/**
- * Filter controls + ledger table.
- *
- * "Real-time" here is polling: the game server broadcasts only to player
- * sockets and has no admin event channel, so the honest implementation is a
- * refresh on an interval, which the operator can pause.
- */
-
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 

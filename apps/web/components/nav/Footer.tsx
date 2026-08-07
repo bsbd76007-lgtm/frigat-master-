@@ -1,19 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Site footer
- *
- * A scannable sitemap grid: five link columns over a bottom bar carrying the
- * copyright, the social row and the language picker. It lives in the root
- * layout so it renders under every page — including /login and /admin, which
- * sit outside the dashboard shell — and therefore must not reach for anything
- * from GameSocketProvider. Every entry here is a plain link for that reason;
- * the in-app fairness modal stays the header's job.
- *
- * Labels come from the locale files. Game slugs stay untranslated in the URLs,
- * matching the header, so a shared link survives a language switch.
- */
-
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -81,8 +67,6 @@ const COLUMNS: readonly FooterColumn[] = [
   },
 ] as const;
 
-/* Single-path glyphs so the row stays one small inline payload — no sprite
-   fetch, and they inherit colour from the link on hover. */
 const SOCIALS = [
   {
     name: 'Telegram',
@@ -114,12 +98,6 @@ function SocialIcon({ path }: { path: string }) {
   );
 }
 
-/**
- * The build year, replaced with the visitor's own once mounted. Computing it
- * during render would let a server in one timezone disagree with a browser in
- * another across New Year and break hydration — the same reason the locale is
- * restored in an effect rather than read during render.
- */
 function useCurrentYear() {
   const [year, setYear] = useState(2026);
   useEffect(() => setYear(new Date().getFullYear()), []);

@@ -1,11 +1,3 @@
-/**
- * FRIGAT — Player wallet routes
- *
- * The other half of the admin approval queue: without a way to request a
- * withdrawal, nothing can ever reach it. Funds are reserved (debited) here at
- * request time, which is what makes an admin "Reject & Refund" coherent.
- */
-
 import type { FastifyInstance } from 'fastify';
 import { identityFromRequest } from './auth';
 import {

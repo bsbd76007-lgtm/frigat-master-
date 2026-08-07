@@ -1,9 +1,3 @@
-/**
- * FRIGAT — Engine self-test (no DB required).
- * Run: npm run test  (from apps/server)  →  tsx src/engines/__selftest__.ts
- * Verifies determinism, output ranges, and payout invariants.
- */
-
 import assert from 'assert';
 import {
   generateServerSeed,
@@ -75,7 +69,6 @@ check('UNDER win pays ~ (100/chance)*(1-edge)', () => {
   // find a nonce that rolls low
   let r = dice.play({ target: 50, direction: 'UNDER' }, ctx(0));
   assert.ok(typeof r.multiplier === 'number');
-  // multiplier bound: at target 50, chance 50 → ~1.98
   const win = dice.play({ target: 99, direction: 'UNDER' }, ctx(0));
   if (win.win) assert.ok(win.multiplier > 0 && win.multiplier < 1.02);
 });
@@ -130,7 +123,7 @@ check('raw instant-bust probability ≈ house edge (1%)', () => {
   const N = 20000;
   for (let n = 0; n < N; n++) {
     const u = calculateOutcome('x'.repeat(64), 'c', n);
-    const raw = 0.99 / (1 - u); // (1 - edge)/(1 - u)
+    const raw = 0.99 / (1 - u);
     if (raw < 1) rawBusts++;
   }
   const rate = rawBusts / N;
@@ -204,7 +197,7 @@ check('win rate at target T tracks (1-edge)/T', () => {
     if (limbo.play({ targetMultiplier: target }, ctx(n)).win) wins++;
   }
   const rate = wins / N;
-  const expected = 0.99 / target; // (1 - HOUSE_EDGE.LIMBO) / target
+  const expected = 0.99 / target;
   assert.ok(Math.abs(rate - expected) < 0.01, `win rate ${rate}, expected ~${expected}`);
 });
 
@@ -233,8 +226,6 @@ check('rejects too many picks, duplicates, and out-of-range picks', () => {
   assert.throws(() => keno.play({ picks: [] }, ctx()));
 });
 check('every paytable row is calibrated to ~98% RTP', () => {
-  // Exact hypergeometric expectation, not simulation — checks the constant
-  // itself rather than the engine's use of it.
   const N = 40;
   const K = 10;
   function comb(n: number, k: number): number {
@@ -255,9 +246,6 @@ check('every paytable row is calibrated to ~98% RTP', () => {
     assert.ok(Math.abs(ev - 0.98) < 0.005, `picks=${picks} RTP=${ev}`);
   }
 });
-
-
-// ── Chicken Road ─────────────────────────────────────────────────────────────
 
 check('chicken: road is deterministic for a seed', () => {
   const a = chicken.generateRoad('MEDIUM', ctx(7));

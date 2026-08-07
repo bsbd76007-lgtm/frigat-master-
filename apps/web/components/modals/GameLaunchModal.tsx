@@ -38,7 +38,6 @@ import { openPanel } from '@/lib/appPanels';
 import type { CatalogueEntry, GameCategory } from '@/lib/gameCatalogue';
 interface GameLaunchModalProps {
   entry: CatalogueEntry | null;
-  /** The pill the player came from, so the badge names their own context. */
   category: GameCategory;
   onClose: () => void;
 }
@@ -64,9 +63,6 @@ export function GameLaunchModal({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
-  // `document` does not exist during the server render, so the portal target is
-  // resolved after mount. A dialog has no server-rendered content worth
-  // hydrating, so rendering nothing until then is correct.
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => setIsMounted(true), []);
 

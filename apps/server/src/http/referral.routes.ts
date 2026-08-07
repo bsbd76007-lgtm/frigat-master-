@@ -20,7 +20,6 @@ import {
 } from '../services/ledger.service';
 
 export function registerReferralRoutes(app: FastifyInstance) {
-  // ── Own referral summary ───────────────────
   app.get<{ Querystring: { currency?: string } }>(
     '/api/referrals/me',
     async (req, reply) => {
@@ -43,9 +42,6 @@ export function registerReferralRoutes(app: FastifyInstance) {
           },
         }),
         prisma.user.count({ where: { referredById: userId } }),
-        // "Active depositor" = a downline account with at least one settled
-        // DEPOSIT. Note this also counts admin balance credits, which are
-        // recorded as DEPOSIT rows by design (see adjustBalance).
         prisma.user.count({
           where: {
             referredById: userId,
@@ -61,8 +57,6 @@ export function registerReferralRoutes(app: FastifyInstance) {
             },
           },
         }),
-        // Lifetime gross, so the UI can show what was already swept as well as
-        // what is still sitting unclaimed.
         prisma.transaction.aggregate({
           _sum: { amount: true },
           where: {
@@ -86,7 +80,6 @@ export function registerReferralRoutes(app: FastifyInstance) {
     }
   );
 
-  // ── Sweep earnings into the wagerable balance ──
   app.post<{ Body: { currency?: string } }>(
     '/api/referrals/claim',
     async (req, reply) => {

@@ -1,19 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Loading skeletons
- *
- * Placeholders that hold the exact shape of the content still loading, so the
- * page does not jump when real data lands. Both variants below are sized from
- * the same measurements as the components they stand in for — a skeleton that
- * is the wrong height is worse than none, since it swaps one layout shift for
- * two.
- *
- * The shimmer is a moving highlight over a flat block. It is decorative, so
- * every skeleton is `aria-hidden` and the live region announcing "loading" is
- * left to the component that owns the data.
- */
-
 interface ShimmerSkeletonProps {
   width?: string;
   height?: string;
@@ -36,13 +22,6 @@ export function ShimmerSkeleton({
   );
 }
 
-/**
- * Stand-in for the game grid.
- *
- * Renders inside the same `.grid` container as the real tiles so the column
- * count, gap and tile footprint are identical — the skeleton and the content
- * occupy the same space at every breakpoint because they share one rule.
- */
 export function GameGridSkeleton({ count = 9 }: { count?: number }) {
   return (
     <div className="grid" aria-hidden="true">
@@ -66,8 +45,6 @@ export function FeedSkeleton({ count = 6 }: { count?: number }) {
             <span className="shimmer feed-skel__icon" />
             <span
               className="shimmer feed-skel__name"
-              // Varied widths so the column reads as a list of different game
-              // names rather than a stack of identical bars.
               style={{ width: `${58 + ((i * 23) % 46)}px` }}
             />
           </span>

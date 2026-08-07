@@ -302,7 +302,7 @@ frigat/
 
 ---
 
-## 🔒 Security Notes
+##  Security Notes
 
 - **Server-authoritative outcomes.** No client input decides a result. The road,
   the crash point and the mine layout exist before the first frame renders.

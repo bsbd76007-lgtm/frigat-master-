@@ -19,32 +19,26 @@ import { prisma } from '../config/prisma';
 
 const ARGON2_OPTS: argon2.Options = {
   type: argon2.argon2id,
-  memoryCost: 65536, // 64 MiB
+  memoryCost: 65536,
   timeCost: 3,
   parallelism: 4,
 };
 
-/**
- * Verified against when the email is unknown, so a miss costs the same as a
- * wrong password. Without it, response time alone enumerates registered users.
- */
 const DUMMY_HASH_PROMISE = argon2.hash('frigat-nonexistent-account', ARGON2_OPTS);
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MIN_PASSWORD = 8;
-const MAX_PASSWORD = 200; // argon2 is happy to hash megabytes; don't let it
+const MAX_PASSWORD = 200;
 
 interface CredentialsBody {
   email?: unknown;
   password?: unknown;
 }
 
-/** `?ref=<referralCode>` — the recruiting affiliate's code. */
 interface RegisterQuery {
   ref?: unknown;
 }
 
-/** Referral codes are cuids; anything else can't match and isn't worth a query. */
 const REFERRAL_CODE_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
 interface ParsedCredentials {
@@ -66,20 +60,10 @@ function parseCredentials(body: CredentialsBody | undefined): ParsedCredentials 
 function signToken(userId: string, role: Role): string {
   return jwt.sign({ userId, role }, config.jwtSecret, {
     algorithm: 'HS256',
-    // Cast: the value is env-supplied, so its `"12h"`-style literal type can
-    // only be checked at runtime — jwt.sign throws on anything unparseable.
     expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'],
     subject: userId,
   });
 }
-
-// ─────────────────────────────────────────────
-// Throttling
-//
-// In-process and therefore per-instance — enough to make online guessing
-// expensive, not a substitute for a shared limiter once this runs on more than
-// one node. Keyed by IP so one client cannot spray many accounts either.
-// ─────────────────────────────────────────────
 
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 20;
@@ -92,7 +76,6 @@ function throttled(req: FastifyRequest, scope: string): boolean {
 
   if (!entry || now >= entry.resetAt) {
     attempts.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    // Opportunistic sweep: the map only grows while requests keep arriving.
     if (attempts.size > 10_000) {
       for (const [k, v] of attempts) if (now >= v.resetAt) attempts.delete(k);
     }
@@ -103,12 +86,9 @@ function throttled(req: FastifyRequest, scope: string): boolean {
   return entry.count > MAX_ATTEMPTS;
 }
 
-/** A successful sign-in shouldn't count against the window. */
 function clearThrottle(req: FastifyRequest, scope: string) {
   attempts.delete(`${scope}:${req.ip}`);
 }
-
-// ─────────────────────────────────────────────
 
 export function registerAuthRoutes(app: FastifyInstance) {
   /**
@@ -130,9 +110,6 @@ export function registerAuthRoutes(app: FastifyInstance) {
       });
     }
 
-    // Referral attribution. An unknown, malformed or expired code is ignored
-    // rather than rejected: a stale affiliate link is the referrer's problem,
-    // and refusing the sign-up would cost a real registration over it.
     const ref = typeof req.query?.ref === 'string' ? req.query.ref.trim() : '';
     let referredById: string | null = null;
     if (ref && REFERRAL_CODE_RE.test(ref)) {
@@ -148,8 +125,6 @@ export function registerAuthRoutes(app: FastifyInstance) {
 
     let user;
     try {
-      // One transaction: an account without a wallet cannot bet, so a half-
-      // finished registration would look like a working account and fail later.
       user = await prisma.$transaction(async (tx) => {
         const created = await tx.user.create({
           data: {
@@ -195,8 +170,6 @@ export function registerAuthRoutes(app: FastifyInstance) {
         email: user.email,
         role: user.role,
         createdAt: user.createdAt,
-        // The new account's own code, so the UI can show a share link
-        // immediately without a second round trip.
         referralCode: user.referralCode,
         referredBy: referredById,
       },
@@ -214,9 +187,6 @@ export function registerAuthRoutes(app: FastifyInstance) {
     }
 
     const credentials = parseCredentials(req.body);
-    // A malformed body gets the same answer as a wrong password: "which field
-    // was wrong" is information an attacker can use and a user already knows.
-    // The *reason* still goes to the log, where only operators can read it.
     const invalid = (reason: string, detail?: Record<string, unknown>) => {
       req.log.warn({ reason, ip: req.ip, ...detail }, 'sign-in rejected');
       return reply.code(401).send({
@@ -247,9 +217,6 @@ export function registerAuthRoutes(app: FastifyInstance) {
     try {
       ok = await argon2.verify(hash, credentials.password);
     } catch (err) {
-      // A malformed stored hash must fail closed, not throw a 500 that tells
-      // the caller this account exists — but an operator needs to see it, or a
-      // corrupted hash looks indistinguishable from a user typo forever.
       req.log.error(
         { err, email: credentials.email, userId: user?.id },
         'argon2 verify threw — stored hash is unreadable'

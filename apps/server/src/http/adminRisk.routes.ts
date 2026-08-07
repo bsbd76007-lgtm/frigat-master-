@@ -1,9 +1,3 @@
-/**
- * FRIGAT — Withdrawal approvals, risk controls and audit log routes.
- *
- * All ADMIN-gated and all mutations audited inside their own transaction.
- */
-
 import type { FastifyInstance } from 'fastify';
 import { Prisma, GameType, TransactionType } from '@prisma/client';
 import { prisma } from '../config/prisma';
@@ -26,7 +20,6 @@ function clampTake(raw: unknown, fallback = 25): number {
 }
 
 export function registerAdminRiskRoutes(app: FastifyInstance) {
-  // ── Pending withdrawal queue ───────────────
   app.get<{ Querystring: { status?: string; take?: string; skip?: string } }>(
     '/api/admin/withdrawals',
     { preHandler: requireAdmin },
@@ -46,7 +39,7 @@ export function registerAdminRiskRoutes(app: FastifyInstance) {
       const [rows, total, pendingTotal] = await Promise.all([
         prisma.transaction.findMany({
           where,
-          orderBy: { createdAt: 'asc' }, // oldest first: a queue, not a feed
+          orderBy: { createdAt: 'asc' },
           take,
           skip,
           select: {
@@ -93,7 +86,6 @@ export function registerAdminRiskRoutes(app: FastifyInstance) {
     }
   );
 
-  // ── Approve / reject ───────────────────────
   app.post<{ Params: { id: string }; Body: { action?: string; reason?: string } }>(
     '/api/admin/withdrawals/:id',
     { preHandler: requireAdmin },
@@ -146,7 +138,6 @@ export function registerAdminRiskRoutes(app: FastifyInstance) {
     }
   );
 
-  // ── Risk configuration ─────────────────────
   app.get('/api/admin/risk', { preHandler: requireAdmin }, async () => readRiskConfig());
 
   app.put<{
@@ -178,7 +169,6 @@ export function registerAdminRiskRoutes(app: FastifyInstance) {
             .send({ error: `${limit.gameType}.${field} must be a decimal string` });
         }
       }
-      // A max below the min would make the game unplayable rather than limited.
       if (new Prisma.Decimal(limit.minBet!).greaterThan(new Prisma.Decimal(limit.maxBet!))) {
         return reply
           .code(400)

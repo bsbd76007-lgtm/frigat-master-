@@ -25,7 +25,6 @@ function clampTake(raw: unknown): number {
   return Math.min(Math.floor(n), 100);
 }
 
-/** Sums a wallet list into one display balance (single-currency for now). */
 function totalBalance(wallets: Array<{ balance: Prisma.Decimal }>): string {
   return wallets
     .reduce((sum, w) => sum.plus(w.balance), new Prisma.Decimal(0))
@@ -33,7 +32,6 @@ function totalBalance(wallets: Array<{ balance: Prisma.Decimal }>): string {
 }
 
 export function registerAdminUserRoutes(app: FastifyInstance) {
-  // ── List / search users ────────────────────
   app.get<{ Querystring: { q?: string; take?: string; skip?: string; frozen?: string } }>(
     '/api/admin/users',
     { preHandler: requireAdmin },
@@ -100,7 +98,6 @@ export function registerAdminUserRoutes(app: FastifyInstance) {
     }
   );
 
-  // ── Single user detail ─────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/admin/users/:id',
     { preHandler: requireAdmin },
@@ -141,7 +138,6 @@ export function registerAdminUserRoutes(app: FastifyInstance) {
     }
   );
 
-  // ── Manual balance adjustment ──────────────
   app.post<{
     Params: { id: string };
     Body: { amount?: string; direction?: string; reason?: string; idempotencyKey?: string };
@@ -158,7 +154,6 @@ export function registerAdminUserRoutes(app: FastifyInstance) {
       if (typeof amount !== 'string' || !/^\d+(\.\d{1,8})?$/.test(amount)) {
         return reply.code(400).send({ error: 'amount must be a positive decimal string' });
       }
-      // A reason is mandatory: it is the only record of *why* money moved.
       if (typeof reason !== 'string' || reason.trim().length < 3) {
         return reply.code(400).send({ error: 'reason is required (min 3 characters)' });
       }
@@ -199,7 +194,6 @@ export function registerAdminUserRoutes(app: FastifyInstance) {
     }
   );
 
-  // ── Role change ────────────────────────────
   app.patch<{ Params: { id: string }; Body: { role?: string; reason?: string } }>(
     '/api/admin/users/:id/role',
     { preHandler: requireAdmin },
@@ -210,7 +204,6 @@ export function registerAdminUserRoutes(app: FastifyInstance) {
       if (role !== Role.USER && role !== Role.ADMIN) {
         return reply.code(400).send({ error: 'role must be USER or ADMIN' });
       }
-      // Self-demotion can strip the last admin out of the console entirely.
       if (req.params.id === adminId && role === Role.USER) {
         return reply.code(409).send({ error: 'cannot demote your own account' });
       }
@@ -247,10 +240,6 @@ export function registerAdminUserRoutes(app: FastifyInstance) {
     }
   );
 
-  // ── RevShare percentage ────────────────────
-  //
-  // The affiliate's cut of their downline's net losses. Per-user so a proven
-  // arbitrageur can be moved off the 25% default without changing it globally.
   app.patch<{ Params: { id: string }; Body: { revSharePercentage?: string; reason?: string } }>(
     '/api/admin/users/:id/revshare',
     { preHandler: requireAdmin },
@@ -370,7 +359,6 @@ export function registerAdminUserRoutes(app: FastifyInstance) {
     }
   );
 
-  // ── Transaction ledger ─────────────────────
   app.get<{
     Querystring: { q?: string; type?: string; status?: string; take?: string; skip?: string };
   }>(

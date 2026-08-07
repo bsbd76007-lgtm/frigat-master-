@@ -1,19 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Dashboard home
- *
- * The promo banner, a filterable game grid, and the jackpot/winners dock.
- *
- * A client component: names and blurbs come from the language context, so the
- * grid has to re-render when the header's flag dropdown changes. The cards draw
- * their icons from components/icons rather than emoji — those rendered as
- * whatever glyph the platform happened to ship, which is not a look we control.
- *
- * This route replaces the redirect that used to send '/' straight to
- * /games/crash — two pages cannot resolve to the same path.
- */
-
 import { useState } from 'react';
 
 import { HeroCarousel } from '@/components/hero/HeroCarousel';

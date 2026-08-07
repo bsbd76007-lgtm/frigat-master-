@@ -35,8 +35,6 @@ function toHex(buffer: ArrayBuffer): string {
 }
 
 function subtle(): SubtleCrypto {
-  // Absent on http:// origins other than localhost — surfacing that plainly
-  // beats a confusing "cannot read property digest of undefined".
   const cryptoObj = globalThis.crypto;
   if (!cryptoObj?.subtle) {
     throw new Error(
@@ -69,10 +67,6 @@ function floatFromHex(hex: string): number {
   return parseInt(hex.slice(0, OUTCOME_HEX_CHARS), 16) / OUTCOME_DIVISOR;
 }
 
-/**
- * The single-draw uniform. Mirrors `calculateOutcome` in
- * packages/shared/src/provably-fair.
- */
 export async function calculateOutcome(
   serverSeed: string,
   clientSeed: string,
@@ -134,7 +128,6 @@ export async function verifyCommitment(
 // pins them: if the server's edge or cap moves and this does not, it fails.
 // ─────────────────────────────────────────────
 
-/** House edge per game, matching HOUSE_EDGE on the server. */
 const EDGE = {
   CRASH: 0.01,
   LIMBO: 0.01,
@@ -143,7 +136,6 @@ const EDGE = {
 const CRASH_MAX_MULTIPLIER = 1_000_000;
 const LIMBO_MAX_MULTIPLIER = 1_000_000;
 
-/** Crash point for a round. Mirrors `computeCrashPoint`. */
 export async function verifyCrash(
   serverSeed: string,
   clientSeed: string,
@@ -155,7 +147,6 @@ export async function verifyCrash(
   return Math.max(1, Math.floor(clamped * 100) / 100);
 }
 
-/** Roulette pocket, 0–36. Mirrors the roulette engine's draw. */
 export async function verifyRoulette(
   serverSeed: string,
   clientSeed: string,
@@ -165,7 +156,6 @@ export async function verifyRoulette(
   return Math.floor(u * 37);
 }
 
-/** Mine tile indices for a layout, sorted. Mirrors `generateLayout`. */
 export async function verifyMines(
   serverSeed: string,
   clientSeed: string,
@@ -192,7 +182,6 @@ export async function verifyDice(
   return u * 100;
 }
 
-/** Limbo multiplier. Mirrors the limbo engine, cap included. */
 export async function verifyLimbo(
   serverSeed: string,
   clientSeed: string,
@@ -204,7 +193,6 @@ export async function verifyLimbo(
   return Math.floor(achieved * 100) / 100;
 }
 
-/** Coinflip side. Mirrors the coinflip engine. */
 export async function verifyCoinflip(
   serverSeed: string,
   clientSeed: string,

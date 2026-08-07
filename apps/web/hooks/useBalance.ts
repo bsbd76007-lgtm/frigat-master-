@@ -48,10 +48,6 @@ export interface UseBalanceResult {
   reset: () => void;
 }
 
-/**
- * @param socket the handle returned by `useSocket` (only `subscribe` is used,
- *               so a mock `{ subscribe }` works fine in tests).
- */
 export function useBalance(
   socket: Pick<UseSocketResult, 'subscribe'>,
   options: UseBalanceOptions = {}
@@ -70,8 +66,6 @@ export function useBalance(
 
   const { subscribe } = socket;
 
-  // Held in a ref so the subscription effect doesn't resubscribe on every
-  // balance change (which would drop frames during the gap).
   const balanceRef = useRef<string | null>(initialBalance);
   balanceRef.current = balance;
 
@@ -81,7 +75,7 @@ export function useBalance(
       if (typeof next !== 'string' || !isDecimalString(next)) return;
 
       setHasSynced(true);
-      if (next === balanceRef.current) return; // no-op update; skip the re-render
+      if (next === balanceRef.current) return;
 
       setPreviousBalance(balanceRef.current);
       balanceRef.current = next;

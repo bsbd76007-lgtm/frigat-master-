@@ -27,7 +27,7 @@ const EDGE = HOUSE_EDGE.MINES;
 const T = MINES.gridSize;
 
 export interface MinesLayout {
-  minePositions: number[]; // sorted tile indices [0, 25)
+  minePositions: number[];
   minesCount: number;
 }
 
@@ -55,7 +55,6 @@ export function isMine(layout: MinesLayout, tile: number): boolean {
   return layout.minePositions.includes(tile);
 }
 
-/** Payout multiplier after `safeRevealed` successful reveals (0 reveals → 1.0). */
 export function multiplierAfter(minesCount: number, safeRevealed: number): number {
   const safeTiles = T - minesCount;
   if (safeRevealed < 0 || safeRevealed > safeTiles) {

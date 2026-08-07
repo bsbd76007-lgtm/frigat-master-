@@ -43,6 +43,7 @@ export function writeStoredToken(token: string | null): void {
     else window.localStorage.removeItem(TOKEN_STORAGE_KEY);
     window.localStorage.removeItem(LEGACY_TOKEN_KEY);
   } catch {
+    /* no-op */
   }
   window.dispatchEvent(new CustomEvent(LOCAL_CHANGE_EVENT));
 }

@@ -33,14 +33,6 @@ export function betProfit(bet: Pick<LiveBet, 'betAmount' | 'payout'>): string {
   return fromUnits(toUnits(bet.payout) - toUnits(bet.betAmount));
 }
 
-/**
- * A round counts as a win when it returned more than it cost.
- *
- * Deliberately keyed off profit rather than `multiplier >= 1`: a cashed-out
- * Chicken round at exactly 1.00× returns the stake and is not a win, and a
- * partial payout below the stake is a loss no matter what multiplier the
- * engine recorded.
- */
 export function isWin(bet: Pick<LiveBet, 'betAmount' | 'payout'>): boolean {
   return toUnits(bet.payout) > toUnits(bet.betAmount);
 }

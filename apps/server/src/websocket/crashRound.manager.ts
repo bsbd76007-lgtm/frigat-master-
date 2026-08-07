@@ -1,17 +1,3 @@
-/**
- * FRIGAT — Crash Round Manager
- *
- * Drives the shared crash round lifecycle and broadcasts to all subscribers:
- *
- *   BETTING  → publishes hashedServerSeed (commitment), accepts bets
- *   RUNNING  → emits multiplier ticks every CRASH.tickMs
- *   CRASHED  → reveals serverSeed, settles unsettled bets as losses
- *
- * Cashouts are settled by the socket router while state === RUNNING and the
- * live multiplier < crashPoint. The manager itself only owns timing + the
- * per-round provable seed; money movement goes through the ledger service.
- */
-
 import { generateServerSeed, hashServerSeed } from '@frigat/shared';
 import { randomUUID } from 'crypto';
 import { CRASH } from '../config/game.config';
@@ -29,7 +15,7 @@ interface RoundState {
   phase: CrashPhase;
   seed: SeedContext;
   crashPoint: number;
-  startedAt: number; // ms epoch when RUNNING began
+  startedAt: number;
   currentMultiplier: number;
 }
 
@@ -38,7 +24,6 @@ type Broadcaster = (event: string, data: Record<string, unknown>) => void;
 export class CrashRoundManager {
   private round: RoundState | null = null;
   private timer: NodeJS.Timeout | null = null;
-  /** Pending phase-transition timeout, tracked so stop() can cancel it. */
   private phaseTimer: NodeJS.Timeout | null = null;
   private broadcast: Broadcaster;
   private onCrash: (round: {
@@ -90,7 +75,7 @@ export class CrashRoundManager {
 
   private beginBettingPhase() {
     const serverSeed = generateServerSeed();
-    const clientSeed = `round`; // public per-round salt; roundId disambiguates
+    const clientSeed = `round`;
     const roundId = randomUUID();
     const seed: SeedContext = {
       serverSeed,
@@ -179,7 +164,6 @@ export class CrashRoundManager {
       seed: this.round.seed,
     });
 
-    // Loop into the next round after a short intermission.
     this.phaseTimer = setTimeout(() => this.beginBettingPhase(), 3000);
   }
 }

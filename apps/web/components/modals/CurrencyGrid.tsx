@@ -1,26 +1,7 @@
 'use client';
 
-/**
- * FRIGAT — Asset picker
- *
- * Four selectable pill cards, shared by both wallet tabs so the deposit and
- * withdraw sides can never offer a different asset list.
- *
- * Rendered as a radiogroup rather than four independent buttons: the choice is
- * one-of-four, and arrow-key navigation is what a screen-reader user expects
- * from that.
- */
-
 import { API_URL } from '@/lib/token';
 
-/**
- * Absolute URL for a payment endpoint.
- *
- * apiFetch leaves a leading-slash path same-origin, which reaches the Next app
- * rather than the Fastify API — only /api/admin/* and /api/session are proxied
- * through Next. Payment routes therefore have to be addressed absolutely, and
- * routing them through one helper keeps that from being re-learned per call.
- */
 export function paymentEndpoint(path: string): string {
   return `${API_URL}${path}`;
 }

@@ -1,17 +1,3 @@
-/**
- * FRIGAT — Daily wheel & VIP service
- *
- * Two player-facing reward mechanics, both of which mint balance and therefore
- * both of which settle through ledger.service rather than touching a wallet
- * directly.
- *
- * The eligibility guard on the wheel is the interesting part: a naive
- * "read lastSpinAt, check it, then award" is a TOCTOU race — two requests that
- * both read a stale timestamp both pass the check and both pay out. The claim
- * here is a guarded updateMany that only matches rows whose timestamp is still
- * old, so exactly one concurrent request can win it.
- */
-
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { awardBonus } from './ledger.service';
@@ -20,17 +6,6 @@ const D = Prisma.Decimal;
 
 export const WHEEL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
-/**
- * Wheel segments and their weights.
- *
- * Weights are relative, not percentages — they are normalised at draw time, so
- * adding a segment does not require rebalancing every other number.
- *
- * Expected value is $7.75 per spin (45%·1 + 30%·5 + 18%·10 + 6%·50 + 1%·100).
- * That is the daily per-active-user cost of this faucet and the number to
- * revisit when editing weights — at a 24h cooldown it is ~$2.8k/year per user
- * who claims every day, so it wants a deliberate decision rather than a drift.
- */
 export const WHEEL_SEGMENTS = [
   { prize: '1', weight: 45 },
   { prize: '5', weight: 30 },
@@ -41,13 +16,6 @@ export const WHEEL_SEGMENTS = [
 
 const TOTAL_WEIGHT = WHEEL_SEGMENTS.reduce((sum, s) => sum + s.weight, 0);
 
-/**
- * VIP tiers, keyed on lifetime wagered volume.
- *
- * `rakeback` is the share of accrued house edge a tier may reclaim. Bronze
- * starts at 0 so an unranked player is not offered a claim that computes to
- * nothing.
- */
 export const VIP_TIERS = [
   { name: 'Unranked', threshold: '0', rakeback: 0 },
   { name: 'Bronze', threshold: '1000', rakeback: 0.05 },
@@ -73,7 +41,6 @@ export class NothingToClaimError extends Error {
   }
 }
 
-/** Picks a segment by weight. `random` is injectable so tests are determinate. */
 export function drawSegment(random: number = Math.random()): {
   prize: string;
   index: number;
@@ -89,7 +56,6 @@ export function drawSegment(random: number = Math.random()): {
       return { prize: WHEEL_SEGMENTS[i].prize, index: i };
     }
   }
-  // Unreachable while weights are positive; falls back to the commonest prize.
   return { prize: WHEEL_SEGMENTS[0].prize, index: 0 };
 }
 
@@ -111,7 +77,6 @@ export function nextTierFor(
   return null;
 }
 
-/** When this player may next spin, or null if they may spin now. */
 export function nextSpinAt(lastSpinAt: Date | null): Date | null {
   if (!lastSpinAt) return null;
   const next = new Date(lastSpinAt.getTime() + WHEEL_COOLDOWN_MS);
@@ -120,20 +85,11 @@ export function nextSpinAt(lastSpinAt: Date | null): Date | null {
 
 export interface SpinResult {
   prize: string;
-  /** Index of the winning segment, so the UI can land the wheel on it. */
   segmentIndex: number;
   balance: string;
   nextAvailableAt: string;
 }
 
-/**
- * Claims the daily spin and credits the prize.
- *
- * Claiming happens before the award: the guarded update below is what makes a
- * double-spin impossible, so it must succeed before any money moves. If the
- * credit then failed, the player loses one spin rather than the platform
- * paying twice — the safer side of that trade.
- */
 export async function spinDailyWheel(input: {
   userId: string;
   currency?: string;
@@ -166,7 +122,6 @@ export async function spinDailyWheel(input: {
     data: { lastDailyWheelSpinAt: now },
   });
   if (claimed.count !== 1) {
-    // Lost the race — re-read to report an accurate next-available time.
     const fresh = await prisma.user.findUnique({
       where: { id: input.userId },
       select: { lastDailyWheelSpinAt: true },
@@ -193,7 +148,6 @@ export interface VipStatus {
   rakebackRate: number;
   totalWagered: string;
   nextTier: { name: TierName; threshold: string; remaining: string } | null;
-  /** 0–1 progress toward the next tier; 1 at the top tier. */
   progress: number;
   claimable: string;
   balance: string;
@@ -202,15 +156,6 @@ export interface VipStatus {
   dailyWheelNextAvailableAt: string | null;
 }
 
-/**
- * Lifetime wagered, accrued house edge, and what is currently claimable.
- *
- * Rakeback is computed on edge the platform actually kept — stakes minus
- * payouts — not on raw volume. Paying a share of volume would mean a player
- * who broke even still generated a payout, which is a bonus, not rakeback.
- * Rewards already claimed are netted out so the same edge cannot be claimed
- * twice.
- */
 export async function getVipStatus(input: {
   userId: string;
   currency?: string;
@@ -252,8 +197,6 @@ export async function getVipStatus(input: {
     entitlement.minus(alreadyClaimed)
   ).toDecimalPlaces(8, Prisma.Decimal.ROUND_DOWN);
 
-  // Progress across the current band, so the bar fills smoothly rather than
-  // resetting to zero the moment a tier is reached.
   let progress = 1;
   if (next) {
     const floor = new D(tier.threshold);
@@ -289,13 +232,6 @@ export async function getVipStatus(input: {
   };
 }
 
-/**
- * Credits the claimable rakeback and records the claim.
- *
- * The RakebackClaim row is what stops the same edge being claimed repeatedly:
- * `getVipStatus` subtracts the sum of past claims from the entitlement, so
- * claiming twice in a row yields nothing the second time.
- */
 export async function claimRakeback(input: {
   userId: string;
   currency?: string;
@@ -306,8 +242,6 @@ export async function claimRakeback(input: {
 
   if (amount.lessThanOrEqualTo(0)) throw new NothingToClaimError();
 
-  // Recorded first: if the credit fails the claim row is rolled back with it,
-  // and if the process dies between them the player can retry.
   const result = await prisma.$transaction(async (tx) => {
     await tx.rakebackClaim.create({
       data: { userId: input.userId, amount, currency },

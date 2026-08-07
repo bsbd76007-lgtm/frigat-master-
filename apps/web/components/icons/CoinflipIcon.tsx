@@ -1,10 +1,3 @@
-/**
- * FRIGAT — Coinflip icon
- *
- * A gold coin caught mid-toss: the face tilted on its vertical axis so the
- * milled edge shows, with a second coin ghosted behind it for the arc.
- */
-
 import { useId } from 'react';
 import type { GameIconProps } from '@/components/icons/types';
 

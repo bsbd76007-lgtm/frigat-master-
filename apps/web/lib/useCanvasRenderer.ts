@@ -1,19 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Canvas render loop
- *
- * Shared plumbing for the game visualizers: HiDPI backing-store sizing, a
- * ResizeObserver-driven layout, and a requestAnimationFrame loop that is always
- * cancelled on unmount.
- *
- * The draw callback is held in a ref, so callers can close over fresh props
- * every render without restarting the loop or needing useCallback.
- *
- * Coordinates handed to `draw` are CSS pixels — the device-pixel-ratio scale is
- * applied to the context before each frame.
- */
-
 import { useEffect, useRef, useState, type RefObject } from 'react';
 
 export interface CanvasFrame {
@@ -60,7 +46,6 @@ export function useCanvasRenderer(
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    // jsdom and headless environments return null — bail rather than throw.
     if (!ctx) return;
 
     let rafId = 0;

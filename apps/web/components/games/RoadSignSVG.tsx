@@ -1,13 +1,3 @@
-/**
- * FRIGAT — Road sign
- *
- * Yellow diamond warning sign on a post, with a left-curve arrow.
- *
- * The "distressed" look is a soft displacement filter over the sign face
- * rather than hand-drawn nicks: it survives any scale, where baked-in chips
- * would either vanish when small or look like tears when large.
- */
-
 import { useId } from 'react';
 
 export interface RoadSignSVGProps {

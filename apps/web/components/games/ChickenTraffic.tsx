@@ -27,20 +27,11 @@
 import { useEffect, useRef } from 'react';
 import { redCarDataUri } from '@/components/games/RedCarSVG';
 
-/** Lanes drawn. Matches VISIBLE_LANES in ChickenLanes. */
 const LANES = 6;
 
 /** Car height in px; must match `.traffic__car` height in globals.css. */
 const CAR_H = 60;
 
-/**
- * Built once at module scope rather than per render.
- *
- * The markup is a pure function of nothing, so rebuilding the string on each
- * render was pure waste — and every rebuild produced a new `url(...)` value,
- * which asks the browser to re-resolve the same image six times. It was never
- * in the rAF loop, so this is tidiness rather than a fix for measured jank.
- */
 const CAR_URI = redCarDataUri();
 
 /**
@@ -65,10 +56,6 @@ const TRAFFIC: Lane[] = [
 export interface ChickenTrafficProps {
   crossed: number;
   active: boolean;
-  /**
-   * Lane the server ended the round in, or null. The car in this lane is
-   * driven to the impact point; it does not cause the loss.
-   */
   impactLane: number | null;
   windowStart: number;
 }
@@ -83,8 +70,6 @@ export function ChickenTraffic({
   const carsRef = useRef<HTMLDivElement[]>([]);
   const rafRef = useRef<number | null>(null);
 
-  // Live values read by the loop, so changing them does not restart it — a
-  // restart would jump every car back to its start position mid-slide.
   const stateRef = useRef({ crossed, active, impactLane, windowStart });
   stateRef.current = { crossed, active, impactLane, windowStart };
 
@@ -96,8 +81,6 @@ export function ChickenTraffic({
     const progress = TRAFFIC.map((t) => t.offset);
 
     const frame = (now: number) => {
-      // Seconds, and clamped: a backgrounded tab resumes with a huge delta,
-      // which would teleport every car across the board in one step.
       const delta = Math.min((now - last) / 1000, 0.05);
       last = now;
 
@@ -124,9 +107,6 @@ export function ChickenTraffic({
           progress[i] = (progress[i] + TRAFFIC[i].speed * delta) % 1;
         }
 
-        // Travel is measured against the LANE, not the car: a percentage
-        // transform resolves against the element's own height, which would
-        // make a 60px car sweep 60px instead of the column.
         const laneH = car.parentElement?.clientHeight ?? 0;
         const travel = laneH + CAR_H;
         const t = progress[i];

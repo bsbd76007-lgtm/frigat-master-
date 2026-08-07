@@ -1,14 +1,5 @@
 'use client';
 
-/**
- * Mines — 5×5 interactive grid.
- *
- * Multi-step game: BET opens a round (server debits and generates the layout),
- * REVEAL_TILE uncovers one tile, CASHOUT settles at the running multiplier.
- * Tile state is driven by STATE_UPDATE / GAME_RESULT, never guessed locally —
- * the layout is only revealed by the server when the round ends.
- */
-
 import { useEffect, useState } from 'react';
 
 import { MINES } from '@frigat/shared/constants';

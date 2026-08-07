@@ -1,26 +1,8 @@
-/**
- * FRIGAT — Keno Engine
- *
- * Board of KENO_TILE_COUNT tiles (0-indexed). The player picks 1–KENO_MAX_PICKS
- * of them; the server draws KENO_DRAW_COUNT numbers via the same provable
- * Fisher-Yates shuffle Plinko/Mines use for their multi-draw randomness
- * (provableShuffle — one shuffle of the full board, first KENO_DRAW_COUNT
- * entries are the draw) and pays out on however many of the player's picks
- * land in that draw.
- *
- * Payout is a table lookup — KENO_PAYTABLE[picks.length][hits] — not a
- * formula: unlike Dice or Limbo, Keno's odds come from a hypergeometric
- * distribution over the pick count, and the constant is pre-calibrated so
- * every picks-count has the same expected RTP. See the constant's own note
- * in packages/shared/src/constants/game.constants.ts for the derivation.
- */
-
 import { KENO_DRAW_COUNT, KENO_MAX_PICKS, KENO_PAYTABLE, KENO_TILE_COUNT } from '@frigat/shared';
 import { provableShuffle } from './provable';
 import type { EngineResult, SeedContext } from '../types/engine.types';
 
 export interface KenoParams {
-  /** 0-indexed tile numbers, 1..KENO_MAX_PICKS of them, no duplicates. */
   picks: number[];
 }
 

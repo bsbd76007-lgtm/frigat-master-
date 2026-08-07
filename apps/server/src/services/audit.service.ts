@@ -31,7 +31,6 @@ export interface AuditParams {
   details: Record<string, unknown>;
 }
 
-/** Raised when the acting admin's id does not exist as a User row. */
 export class UnknownAdminError extends Error {
   constructor(adminId: string) {
     super(`admin ${adminId} is not a known user; refusing to act unaudited`);
@@ -62,7 +61,6 @@ export async function auditWithin(
   });
 }
 
-/** Standalone write for actions that own no wider transaction. */
 export async function writeAudit(params: AuditParams) {
   return prisma.$transaction((tx) => auditWithin(tx, params));
 }

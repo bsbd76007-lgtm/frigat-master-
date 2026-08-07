@@ -1,12 +1,3 @@
-/**
- * FRIGAT — Interactive Game State Store
- *
- * Holds live server-authoritative state for multi-step games (mines rounds,
- * crash bets) between socket messages. In-memory for now; the shape is
- * intentionally Redis-friendly (per CLAUDE.md, production should back this
- * with Redis so state survives restarts and scales across instances).
- */
-
 import type { MinesLayout } from '../engines/mines.engine';
 import type { Difficulty } from '../engines/chicken.engine';
 import type { SeedContext } from '../types/engine.types';
@@ -17,9 +8,8 @@ export interface MinesState {
   betAmount: string;
   currency: string;
   layout: MinesLayout;
-  /** Fairness context the layout was generated from; persisted on settle. */
   seed: SeedContext;
-  revealed: number[]; // safe tiles revealed so far
+  revealed: number[];
   active: boolean;
 }
 
@@ -36,27 +26,24 @@ export interface ChickenState {
    */
   road: boolean[];
   seed: SeedContext;
-  /** Lanes successfully crossed so far. */
   crossed: number;
   active: boolean;
 }
 
-/** A single player's stake within a crash round. */
 export interface CrashBet {
   userId: string;
   betTransactionId: string;
   amount: string;
   currency: string;
-  cashedOutAt?: number; // multiplier at cashout, if any
+  cashedOutAt?: number;
   settled: boolean;
 }
 
 class GameStateStore {
-  private mines = new Map<string, MinesState>(); // key: userId (one active game per user)
-  private chicken = new Map<string, ChickenState>(); // key: userId
-  private crashBets = new Map<string, CrashBet>(); // key: userId within current round
+  private mines = new Map<string, MinesState>();
+  private chicken = new Map<string, ChickenState>();
+  private crashBets = new Map<string, CrashBet>();
 
-  // ── Mines ──
   setMines(state: MinesState) {
     this.mines.set(state.userId, state);
   }
@@ -67,7 +54,6 @@ class GameStateStore {
     this.mines.delete(userId);
   }
 
-  // ── Chicken Road ──
   setChicken(state: ChickenState) {
     this.chicken.set(state.userId, state);
   }
@@ -78,7 +64,6 @@ class GameStateStore {
     this.chicken.delete(userId);
   }
 
-  // ── Crash (current round) ──
   addCrashBet(bet: CrashBet) {
     this.crashBets.set(bet.userId, bet);
   }

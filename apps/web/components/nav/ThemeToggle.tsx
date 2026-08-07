@@ -1,23 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Theme toggle
- *
- * A three-stop capsule: moon (dark), eclipse (dim), sun (light). The active
- * stop is marked by a pill that slides between the three, driven by Framer
- * Motion's shared-layout animation — the pill is one element rendered inside
- * whichever button is active, and `layoutId` makes Framer tween it across the
- * DOM move rather than cross-fading three separate backgrounds.
- *
- * Built as a real radiogroup rather than three buttons so the whole control is
- * one tab stop and the arrow keys walk the options, which is what screen
- * readers and keyboard users expect from a segmented control.
- *
- * The pill stays hidden until ThemeProvider reports `ready`: the stored theme
- * is only known after mount, so committing to one during SSR would light the
- * wrong segment on the first paint and trip hydration.
- */
-
 import { useRef } from 'react';
 
 import { motion, useReducedMotion } from 'framer-motion';
@@ -75,8 +57,6 @@ export function ThemeToggle() {
   const { theme, setTheme, ready } = useTheme();
   const { t } = useLanguage();
   const itemsRef = useRef<(HTMLButtonElement | null)[]>([]);
-  // A layout animation ignores CSS media queries, so reduced motion has to be
-  // handled here: the pill jumps straight to the new segment instead.
   const reduceMotion = useReducedMotion();
 
   const onKeyDown = (event: React.KeyboardEvent, index: number) => {

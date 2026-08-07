@@ -1,12 +1,3 @@
-/**
- * FRIGAT — WebSocket JWT Authentication
- *
- * Verifies the bearer token presented at connection time. The token may arrive
- * either as `?token=<jwt>` in the upgrade URL or in the `Authorization:
- * Bearer <jwt>` header. On success the decoded identity is returned; on failure
- * the caller rejects the connection.
- */
-
 import jwt from 'jsonwebtoken';
 import type { IncomingMessage } from 'http';
 import { config } from '../config';
@@ -30,7 +21,6 @@ export class AuthError extends Error {
 }
 
 function extractToken(req: IncomingMessage): string | null {
-  // 1) Authorization header
   const header = req.headers['authorization'];
   if (header && header.startsWith('Bearer ')) {
     return header.slice(7).trim();
@@ -42,16 +32,12 @@ function extractToken(req: IncomingMessage): string | null {
     const q = url.searchParams.get('token');
     if (q) return q;
   } catch {
-    /* ignore malformed URL */
+    /* no-op */
   }
 
   return null;
 }
 
-/**
- * Verifies the connection's JWT. Throws AuthError on any failure.
- * Use during the WS connection handler to gate access.
- */
 export function authenticateConnection(req: IncomingMessage): AuthedIdentity {
   const token = extractToken(req);
   if (!token) throw new AuthError('Missing authentication token');

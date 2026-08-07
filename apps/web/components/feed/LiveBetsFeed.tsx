@@ -1,22 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Live bets feed
- *
- * Two columns: the game on the left, what it paid on the right. Rows arrive
- * from the LIVE_BET socket frame and are backfilled from settled rounds on
- * load, so the table is never empty and never fabricated — every row is a real
- * GameSession. Clicking one opens its fairness record.
- *
- * On currency badges: FRIGAT's wallet is a single USD balance and GameSession
- * carries no currency column. Per-row Tether / Bitcoin / Ethereum badges would
- * assert a multi-currency ledger that does not exist — and on a payout figure,
- * an invented currency misstates what a player actually won. With one currency
- * the leading '$' already says everything a badge would, so there is no badge:
- * a green '$' chip beside '$1.00' just prints the sign twice, in Tether's
- * brand colour, on a balance that is not Tether.
- */
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
@@ -38,11 +21,6 @@ export default function LiveBetsFeed() {
   const [bets, setBets] = useState<LiveBet[]>([]);
   const [selfUserId, setSelfUserId] = useState<string | null>(null);
   const [selected, setSelected] = useState<LiveBet | null>(null);
-  /**
-   * False until the backfill request settles either way. Gates the skeleton —
-   * distinguishing "still loading" from "hasLoaded, and genuinely empty", which
-   * a bare `bets.length === 0` cannot tell apart.
-   */
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
@@ -73,8 +51,6 @@ export default function LiveBetsFeed() {
     return unsubscribe;
   }, [socket]);
 
-  // Backfill from settled rounds so the table is not empty on load. Live frames
-  // prepend on top of these; `slice` keeps the list bounded either way.
   useEffect(() => {
     let active = true;
     apiFetch(`api/bets/recent?limit=${MAX_ROWS}`)
@@ -83,13 +59,12 @@ export default function LiveBetsFeed() {
         const rows = body.bets;
         if (!active || !Array.isArray(rows)) return;
         setBets((prev) => {
-          // A live frame may already have landed while this was in flight — it
-          // is newer than anything here, so it stays on top.
           const seen = new Set(prev.map((bet) => bet.id));
           return [...prev, ...rows.filter((bet) => !seen.has(bet.id))].slice(0, MAX_ROWS);
         });
       })
       .catch(() => {
+        /* no-op */
       })
       .finally(() => {
         // `finally`, not the success path: a failed backfill has also finished

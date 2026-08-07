@@ -1,18 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Withdraw tab
- *
- * Amount + destination address, checked against the live balance before the
- * request is sent.
- *
- * The client-side balance check is a courtesy, not a control: the server
- * reserves funds with a guarded decrement inside a transaction, so a stale
- * balance here can only produce a clean 409, never an overdraft.
- *
- * Renders the body only; the overlay, header and tabs belong to WalletModal.
- */
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
@@ -32,7 +19,6 @@ interface WithdrawalResult {
 
 const AMOUNT_PATTERN = /^\d{1,10}(\.\d{1,8})?$/;
 
-/** Mirrors the server's typo guard; the provider validates for real. */
 function addressLooksValid(value: string): boolean {
   return value.length >= 20 && value.length <= 128 && /^[a-zA-Z0-9:_-]+$/.test(value);
 }
@@ -69,8 +55,6 @@ export default function WithdrawModal({ open }: { open: boolean }) {
   const [result, setResult] = useState<WithdrawalResult | null>(null);
   const [sandbox, setSandbox] = useState(false);
 
-  // Errors surface on blur rather than on each keystroke: validating mid-word
-  // flashes "invalid address" at someone who is still typing one.
   const [touched, setTouched] = useState({ amount: false, address: false });
 
   useEffect(() => {
@@ -106,8 +90,6 @@ export default function WithdrawModal({ open }: { open: boolean }) {
     setLoading(true);
     setError(null);
 
-    // In sandbox mode the payout settles locally and the balance moves
-    // immediately; the request shape is otherwise identical.
     const path = paymentEndpoint(
       sandbox ? '/api/payments/mock-withdraw' : '/api/payments/withdraw'
     );

@@ -1,17 +1,3 @@
-/**
- * FRIGAT — Bottom dock icons
- *
- * Line icons drawn on a 24×24 grid, stroked with `currentColor` so each one
- * inherits the dock item's colour and its hover and active transitions for
- * free — no per-state fills to keep in sync.
- *
- * These are separate from `components/icons` (the game icons): those are
- * filled 48×48 illustrations with gradients, which do not read at 20px.
- *
- * All decorative — every dock item carries a visible text label on desktop and
- * an `aria-label` on mobile, so an icon announcing itself would double up.
- */
-
 import { useId } from 'react';
 
 interface DockIconProps {
@@ -51,13 +37,6 @@ export function FavoritesIcon({ size = 20 }: DockIconProps) {
   );
 }
 
-/**
- * Slot machine showing 777 — the casino tab.
- *
- * Filled rather than stroked: this sits inside the active pill where it needs
- * more weight than a line icon carries, and the digits are drawn as text so
- * they stay legible at 20px where three stroked glyphs would smear.
- */
 export function CasinoIcon({ size = 20 }: DockIconProps) {
   const glow = useId();
   return (

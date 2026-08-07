@@ -1,16 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Game page scaffold
- *
- * Common furniture for every game route: title, per-game history strip, the
- * visualizer stage, and the side panel holding options + BetControls. Keeping
- * it here means a page only contains what is actually game-specific.
- *
- * Clicking a history badge opens the fairness modal, so the proof for a round
- * is always one click from the result.
- */
-
 import type { ReactNode } from 'react';
 
 import type { GameType } from '@frigat/shared/types';

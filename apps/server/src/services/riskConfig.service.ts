@@ -1,15 +1,3 @@
-/**
- * FRIGAT — Runtime Risk Configuration
- *
- * Bet caps, per-game win ceilings and the maintenance switch, read from the
- * database so operators can change them without a deploy.
- *
- * These values are consulted on the hot path (every wager), so they are cached
- * for a short TTL and the cache is dropped immediately on write. The TTL is the
- * worst-case delay before a change takes effect; it is deliberately small
- * because a risk control that takes minutes to apply is not a control.
- */
-
 import { Prisma, type GameType } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { BET_LIMITS } from '../config/game.config';
@@ -21,7 +9,6 @@ export interface GameLimitView {
   gameType: GameType;
   minBet: string;
   maxBet: string;
-  /** "0" means uncapped. */
   maxWin: string;
 }
 
@@ -31,7 +18,6 @@ export interface RiskConfigView {
   updatedAt: string | null;
   updatedBy: string | null;
   limits: GameLimitView[];
-  /** Platform defaults applied when a game has no row. */
   defaults: { minBet: string; maxBet: string };
 }
 
@@ -44,7 +30,6 @@ interface CacheEntry {
 
 let cache: CacheEntry | null = null;
 
-/** Drops the cache so the next read reflects a just-written change. */
 export function invalidateRiskCache() {
   cache = null;
 }
@@ -85,10 +70,6 @@ export class BetLimitError extends Error {
   }
 }
 
-/**
- * Throws if wagering is currently disabled, or if the stake falls outside the
- * limits for this game. Called from processBet, the single money-out gate.
- */
 export async function assertWagerAllowed(
   gameType: string,
   amount: Prisma.Decimal
@@ -112,10 +93,6 @@ export async function assertWagerAllowed(
   }
 }
 
-/**
- * Applies the per-game maximum win to a computed payout.
- * Returns the payout unchanged when no cap is configured (maxWin = 0).
- */
 export async function capPayout(
   gameType: string,
   payout: Prisma.Decimal
@@ -134,10 +111,6 @@ export async function capPayout(
 export async function isMaintenanceMode(): Promise<boolean> {
   return (await load()).maintenanceMode;
 }
-
-// ─────────────────────────────────────────────
-// Admin reads / writes
-// ─────────────────────────────────────────────
 
 export async function readRiskConfig(): Promise<RiskConfigView> {
   const [config, limits] = await Promise.all([
@@ -220,8 +193,6 @@ export async function writeRiskConfig(params: {
     });
   });
 
-  // Only after the transaction commits — dropping it earlier could repopulate
-  // the cache from uncommitted state.
   invalidateRiskCache();
   return result;
 }

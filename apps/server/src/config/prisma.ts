@@ -1,10 +1,4 @@
-/**
- * FRIGAT — Prisma Client Singleton
- * Prevents connection-pool exhaustion from hot-reload in dev.
- */
-
 import { PrismaClient } from '@prisma/client';
-// Imported for its side effect: loads .env before the client reads DATABASE_URL.
 import { config } from './index';
 
 const globalForPrisma = globalThis as unknown as {

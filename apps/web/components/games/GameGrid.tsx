@@ -1,20 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Game grid
- *
- * Two shapes behind one component:
- *
- *  - On the "All Games" tab it renders titled rows (Originals / Top / New), so
- *    the page reads as a browsable catalogue rather than one flat wall.
- *  - On any other tab it renders that category's games as a single grid, since
- *    a section header repeating the filter you just clicked is noise.
- *
- * Rows with no games are dropped rather than shown empty; the flat view keeps
- * its empty state, because there the message is the only feedback that the
- * filter did anything.
- */
-
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { GameCard } from '@/components/games/GameCard';
 

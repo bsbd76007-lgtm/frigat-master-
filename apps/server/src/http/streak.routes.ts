@@ -1,16 +1,3 @@
-/**
- * FRIGAT — Daily streak routes
- *
- *   GET  /api/streak/me         current streak, milestone, restore offer
- *   GET  /api/streak/cashback   quote yesterday's cashback
- *   POST /api/streak/cashback   claim it
- *   POST /api/streak/restore    pay to reinstate a broken streak
- *
- * All maths lives in streak.service; these handlers only translate between HTTP
- * and that service, so the eligibility and idempotency guards cannot be
- * sidestepped by calling a different endpoint.
- */
-
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Prisma } from '@prisma/client';
 
@@ -143,17 +130,6 @@ export function registerStreakRoutes(app: FastifyInstance) {
   });
 }
 
-/**
- * Has a cashback bonus already landed today?
- *
- * Read from the ledger rather than a flag on User, so the guard and the credit
- * cannot disagree — the transaction row is written in the same transaction
- * that moves the money.
- *
- * `awardBonus` mints its own random txHash, so there is no marker string to
- * match on; the claim is identified by a BONUS_CASHBACK-typed row created
- * today. That is why the type exists rather than reusing DEPOSIT.
- */
 async function hasClaimedToday(userId: string): Promise<boolean> {
   const dayStart = utcDayStart(new Date());
 

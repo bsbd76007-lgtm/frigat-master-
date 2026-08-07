@@ -1,17 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Game tile
- *
- * Extracted from the dashboard page so the grid, any future search results and
- * the category rows all render the same card.
- *
- * The whole tile is one link target, with the overlay buttons layered above it
- * via z-index — a card where only the title is clickable is a card players
- * miss. The overlay is opaque rather than translucent: at 82% the name and
- * blurb underneath bled through and the buttons became hard to read.
- */
-
 import Link from 'next/link';
 
 import { GAME_ICONS } from '@/components/icons';
@@ -22,10 +10,6 @@ import { openPanel } from '@/lib/appPanels';
 import type { CatalogueEntry } from '@/lib/gameCatalogue';
 interface GameCardProps {
   entry: CatalogueEntry;
-  /**
-   * Opens the launcher. When absent the card stays a plain link to the game
-   * route, so the tile still works anywhere the launcher is not mounted.
-   */
   onLaunch?: (entry: CatalogueEntry) => void;
 }
 
@@ -35,12 +19,6 @@ export function GameCard({ entry, onLaunch }: GameCardProps) {
   const Icon = GAME_ICONS[slug];
   const href = `/games/${slug}`;
 
-  /**
-   * Opens the launcher instead of navigating — but only for a plain left
-   * click. A modified click (ctrl/cmd for a new tab, shift for a window,
-   * middle-click) is left to the browser, so the tile keeps behaving like the
-   * link it is.
-   */
   const intercept = (event: React.MouseEvent) => {
     if (!onLaunch) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

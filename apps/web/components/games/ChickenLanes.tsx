@@ -1,37 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Chicken Road lane board
- *
- * Six columns side by side. Each shows what a cash-out is worth once the
- * chicken has crossed that far, so the whole progression is legible before the
- * player commits to the next step.
- *
- * ── On the numbers ─────────────────────────────────────────────────────────
- * Every figure comes from the `multipliers` table the server sends on
- * BET_ACCEPTED, which is `chicken.multiplierTable(difficulty)` — the same
- * function that settles the round. Nothing here computes a payout.
- *
- * That matters because the progression is not a doubling. The engine pays
- * (1-p)^-n minus the house edge, so on EASY a $10 stake runs
- * $11.60 → $13.70 → $16.10 → $18.90 → $22.30 → $26.20. Rendering a tidier
- * curve would show a player a payout the server will not honour, on the exact
- * screen where they decide whether to risk the next lane.
- *
- * Before the round starts there is no table yet, so the columns show the base
- * stake — the value at zero lanes crossed, which is what the player currently
- * has at risk.
- *
- * ── Reading a column ───────────────────────────────────────────────────────
- *   crossed        — a banked lane; its payout is locked in behind the chicken
- *   next up        — where a STEP lands next, highlighted as the live target
- *   ahead          — potential, dimmed
- *   hit            — the lane that ended the round, red
- *
- * The board only ever renders state the server has confirmed. `hitLane`
- * arrives with GAME_RESULT; nothing here decides that a crossing failed.
- */
-
 import { ChickenSprite } from '@/components/games/ChickenSprite';
 import { ChickenTraffic } from '@/components/games/ChickenTraffic';
 import { ChickenRoadDecor } from '@/components/games/ChickenRoadDecor';
@@ -40,12 +8,9 @@ export const VISIBLE_LANES = 6;
 
 export interface ChickenLanesProps {
   crossed: number;
-  /** Payout multiplier per lane, from the server's table. */
   multipliers: number[];
-  /** Stake, so a column can show money rather than a bare multiple. */
   amount: string;
   active: boolean;
-  /** Lane the chicken was hit in, or null. Server-decided. */
   hitLane: number | null;
   outcome: 'bust' | 'cashout' | null;
 }
@@ -62,11 +27,6 @@ export function ChickenLanes({
 }: ChickenLanesProps) {
   const stake = Number(amount) || 0;
 
-  /**
-   * Window onto the road: keeps the chicken's next step in view once it walks
-   * past column six, rather than stranding it off the right edge. Clamped so
-   * the board never scrolls past the end of the multiplier table.
-   */
   const maxStart = Math.max(0, multipliers.length - VISIBLE_LANES);
   const start = Math.min(
     Math.max(0, crossed - Math.floor(VISIBLE_LANES / 2)),

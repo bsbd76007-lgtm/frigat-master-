@@ -80,19 +80,10 @@ export async function setClientSeed(userId: string, clientSeed: string) {
   return rotateSeed(userId, clientSeed);
 }
 
-/**
- * Rotates the active seed: deactivates the current pair (revealing its
- * serverSeed for verification) and activates a fresh one.
- *
- * Returns both halves of that trade: the new commitment the player bets
- * against, and the pair just retired — whose serverSeed is now safe to hand
- * over, since it can no longer decide a future outcome.
- */
 export async function rotateSeed(userId: string, clientSeed?: string) {
   const serverSeed = generateServerSeed();
 
   return prisma.$transaction(async (tx) => {
-    // Read before deactivating: this is the pair being revealed.
     const revealed = await tx.provableSeed.findFirst({
       where: { userId, active: true },
       select: { serverSeed: true, hashedServerSeed: true, clientSeed: true, nonce: true },

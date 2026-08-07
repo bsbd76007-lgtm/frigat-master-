@@ -46,38 +46,17 @@ export const config = {
 
   redisUrl: optional('REDIS_URL', 'redis://localhost:6379'),
 
-  /**
-   * Enables the sandbox payment endpoints, which credit and debit real wallet
-   * balances with no gateway involved.
-   *
-   * Hard-wired to `NODE_ENV !== 'production'` rather than its own env var: a
-   * flag that can be switched on in production is a flag that eventually will
-   * be, and this one mints money. The routes are not registered at all when
-   * this is false, so they 404 rather than merely refusing.
-   */
   mockPaymentsEnabled: optional('NODE_ENV', 'development') !== 'production',
 
-  /**
-   * Cryptomus payment gateway. Left empty in development so the server still
-   * boots without payment credentials — payment.service refuses to call out
-   * when they are missing rather than sending an unsigned request the provider
-   * would reject anyway.
-   *
-   * `payoutApiKey` is a *separate* key to the payment one in the Cryptomus
-   * dashboard; signing a payout with the payment key fails authentication.
-   */
   cryptomus: {
     merchantId: optional('CRYPTOMUS_MERCHANT_ID', ''),
     apiKey: optional('CRYPTOMUS_API_KEY', ''),
     payoutApiKey: optional('CRYPTOMUS_PAYOUT_API_KEY', ''),
     apiBase: optional('CRYPTOMUS_API_BASE', 'https://api.cryptomus.com/v1'),
-    /** Where Cryptomus POSTs status updates. Must be publicly reachable. */
     webhookUrl: optional('CRYPTOMUS_WEBHOOK_URL', ''),
-    /** Where the hosted checkout returns the player after paying. */
     returnUrl: optional('CRYPTOMUS_RETURN_URL', ''),
   },
 
-  /** Exact origins allowed to call the REST API from a browser. */
   webOrigins: optional('WEB_ORIGINS', 'http://localhost:3000')
     .split(',')
     .map((origin) => origin.trim())

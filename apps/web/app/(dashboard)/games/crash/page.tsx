@@ -1,18 +1,5 @@
 'use client';
 
-/**
- * Crash — shared round game.
- *
- * The round state machine is driven entirely by server broadcasts:
- *   CRASH_ROUND_START → BETTING (commitment hash published, bets accepted)
- *   STATE_UPDATE      → RUNNING
- *   CRASH_TICK        → live multiplier
- *   CRASH_ROUND_END   → CRASHED (server seed revealed)
- *
- * The server only accepts a bet during BETTING and a cashout during RUNNING,
- * so the primary action is gated the same way to avoid guaranteed rejections.
- */
-
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { CRASH } from '@frigat/shared/constants';
@@ -84,7 +71,6 @@ export default function CrashPage() {
     return () => off.forEach((fn) => fn());
   }, [subscribe]);
 
-  // Local countdown for the betting window (the server sends the length once).
   useEffect(() => {
     if (phase !== 'BETTING') return;
     const id = setInterval(() => {

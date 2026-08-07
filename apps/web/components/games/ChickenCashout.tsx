@@ -1,21 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Chicken Road cash-out button
- *
- * The glowing teal control from the reference: the live cash-out value in the
- * centre, the multiplier that earned it underneath.
- *
- * The figure is `stake × multiplier`, where the multiplier is the server's
- * running value from STEP_RESULT — not a locally-extrapolated one. What the
- * button shows is what CASHOUT settles at, so the number a player acts on is
- * the number they receive.
- *
- * Disabled until at least one lane is behind them, because the server rejects
- * a zero-lane cash-out; offering a button that is guaranteed to fail is worse
- * than not offering it.
- */
-
 interface ChickenCashoutProps {
   amount: string;
   multiplier: number;

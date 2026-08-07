@@ -35,16 +35,10 @@ interface DepositInvoice {
 
 const AMOUNT_PATTERN = /^\d{1,10}(\.\d{1,8})?$/;
 
-/** Fixed credit offered by the sandbox button. */
 const MOCK_DEPOSIT_AMOUNT = '50';
 
 const QUICK_AMOUNTS = ['10', '25', '50', '100'] as const;
 
-/**
- * BIP-21 style URI so a wallet app scanning the QR pre-fills the amount.
- * Only assets with a well-established scheme get one; everything else encodes
- * the bare address, which every wallet understands.
- */
 const URI_SCHEME: Partial<Record<CurrencyCode, string>> = {
   BTC: 'bitcoin',
   LTC: 'litecoin',
@@ -56,7 +50,6 @@ function paymentUri(currency: CurrencyCode, address: string, amount: string): st
 }
 
 function QrCode({ value, label }: { value: string; label: string }) {
-  // Encoding is pure and non-trivial, so it is memoised on the payload.
   const path = useMemo(() => {
     try {
       const matrix = encodeQr(value);
@@ -137,8 +130,6 @@ export default function DepositModal({ open }: { open: boolean }) {
         method: 'POST',
         body: JSON.stringify({ amount, currency }),
       });
-      // Take the baseline only once the invoice exists, so a balance change
-      // from ordinary play just before this cannot read as a deposit.
       baselineRef.current = balance.balance;
       setInvoice(result);
     } catch (err) {
@@ -152,12 +143,6 @@ export default function DepositModal({ open }: { open: boolean }) {
     }
   }, [amount, amountValid, currency, loading, balance.balance]);
 
-  /**
-   * Credits the wallet through the sandbox endpoint — no invoice, no gateway.
-   * The balance itself arrives over the socket like any other credit, so the
-   * header updates from the same authoritative frame; the local state here is
-   * only the confirmation toast.
-   */
   const simulateDeposit = useCallback(async () => {
     if (loading) return;
     setLoading(true);
@@ -190,6 +175,7 @@ export default function DepositModal({ open }: { open: boolean }) {
       setCopied(which);
       setTimeout(() => setCopied((prev) => (prev === which ? null : prev)), 1800);
     } catch {
+      /* no-op */
     }
   }, []);
 

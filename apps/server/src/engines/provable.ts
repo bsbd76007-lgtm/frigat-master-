@@ -18,7 +18,7 @@
 
 import { createHmac } from 'crypto';
 
-const OUTCOME_HEX_CHARS = 13; // 52 bits
+const OUTCOME_HEX_CHARS = 13;
 const OUTCOME_DIVISOR = Math.pow(2, 52);
 
 export function floatAt(

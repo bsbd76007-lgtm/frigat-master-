@@ -1,17 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Game analytics
- *
- * Per-game hold and win rate, so an operator can spot a game paying out more
- * than its configured edge should allow.
- *
- * Edge is flagged against the game's *configured* target rather than one
- * global number: Roulette's edge is structural (~2.7% from the single zero)
- * while Crash and Mines are configured at 1%, so a single threshold would
- * either cry wolf on one or stay silent on the other.
- */
-
 import { useCallback, useEffect, useState } from 'react';
 
 import { apiJson } from '@/lib/api';
@@ -29,7 +17,6 @@ interface GameRow {
   wins: number;
 }
 
-/** Configured edge per game, from apps/server/src/config/game.config.ts. */
 const TARGET_EDGE: Record<string, number> = {
   CRASH: 1,
   MINES: 1,
@@ -41,19 +28,14 @@ const TARGET_EDGE: Record<string, number> = {
   KENO: 2,
 };
 
-/**
- * Sample size below which realised edge is noise, not signal. Variance on a
- * handful of bets routinely swings hold by tens of percent, so flagging those
- * would bury a genuine anomaly in false positives.
- */
 const MIN_BETS_FOR_SIGNAL = 100;
 
 function edgeTone(row: GameRow): 'good' | 'warn' | 'bad' | 'idle' {
   if (row.bets < MIN_BETS_FOR_SIGNAL) return 'idle';
   const actual = Number(row.houseEdgePercent);
   const target = TARGET_EDGE[row.gameType] ?? 1;
-  if (actual < 0) return 'bad'; // paying out more than taken in
-  if (actual < target * 0.4) return 'warn'; // running well under target
+  if (actual < 0) return 'bad';
+  if (actual < target * 0.4) return 'warn';
   return 'good';
 }
 

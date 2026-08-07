@@ -1,14 +1,5 @@
 'use client';
 
-/**
- * Dice — roll ∈ [0, 100), pick a target and a direction.
- *
- * The win chance and payout preview reproduce the engine's formula exactly
- * (`multiplier = (100 / winChance) · (1 - edge)`, floored to 2dp) so the quote
- * on screen matches what settles. The 1% edge is the only value mirrored here;
- * HOUSE_EDGE is settlement policy and stays server-side.
- */
-
 import { useEffect, useMemo, useState } from 'react';
 
 import { BetControls } from '@/components/games/BetControls';
@@ -16,7 +7,6 @@ import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 type Direction = 'OVER' | 'UNDER';
 
-/** Mirrors HOUSE_EDGE.DICE for the client-side quote only. */
 const DICE_EDGE = 0.01;
 
 export default function DicePage() {

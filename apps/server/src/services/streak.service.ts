@@ -20,16 +20,8 @@ import { prisma } from '../config/prisma';
 
 const D = Prisma.Decimal;
 
-/** Milestones the progress bar counts toward. */
 export const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100] as const;
 
-/**
- * Cashback rate on the previous day's net losses, by streak length.
- *
- * Deliberately bounded: the top tier is 15%, which is generous but still
- * leaves the house edge intact. A rate that grows without limit would
- * eventually pay out more than the game earned.
- */
 const CASHBACK_TIERS = [
   { minStreak: 1, rate: 0.03 },
   { minStreak: 3, rate: 0.05 },
@@ -38,24 +30,19 @@ const CASHBACK_TIERS = [
   { minStreak: 30, rate: 0.15 },
 ] as const;
 
-/** Hard ceiling on a single day's cashback, in USD. */
 const CASHBACK_CAP = '500';
 
-/** Per-streak-day price of a restore, and the most it can ever cost. */
 const RESTORE_COST_PER_DAY = '2.50';
 const RESTORE_COST_CAP = '100';
 
-/** Days after a break during which a restore may still be bought. */
 const RESTORE_WINDOW_DAYS = 2;
 
-/** Midnight UTC on the day `at` falls in. */
 export function utcDayStart(at: Date): Date {
   return new Date(
     Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate())
   );
 }
 
-/** Whole days between two UTC day-starts. */
 export function daysBetween(from: Date, to: Date): number {
   return Math.round(
     (utcDayStart(to).getTime() - utcDayStart(from).getTime()) / 86_400_000
@@ -70,12 +57,6 @@ export function cashbackRate(streak: number): number {
   return rate;
 }
 
-/**
- * Price of reinstating a streak of `length` days.
- *
- * Scales with what was lost, since a longer streak is worth more to the
- * player — but capped, so a 100-day streak cannot produce an unbounded charge.
- */
 export function restoreCostFor(length: number): Prisma.Decimal {
   const raw = new D(RESTORE_COST_PER_DAY).mul(length);
   const cap = new D(RESTORE_COST_CAP);
@@ -86,21 +67,12 @@ export interface StreakState {
   currentStreak: number;
   longestStreak: number;
   lastPlayedDate: Date | null;
-  /** Set only while a broken streak is still inside the restore window. */
   restorableStreak: number;
   streakRestoreCost: string;
-  /** True when this call advanced the streak — the UI pops the bar on it. */
   advancedToday: boolean;
   nextMilestone: number | null;
 }
 
-/**
- * Records a settled bet against today's streak.
- *
- * Idempotent within a day: the second bet of the day finds `lastPlayedDate`
- * already at today and changes nothing, so a busy player does not race their
- * own streak upward.
- */
 export async function recordPlay(
   userId: string,
   now = new Date()
@@ -121,7 +93,6 @@ export async function recordPlay(
   const today = utcDayStart(now);
   const gap = user.lastPlayedDate ? daysBetween(user.lastPlayedDate, now) : null;
 
-  // Already counted today.
   if (gap === 0) {
     return toState(user, false);
   }
@@ -132,15 +103,8 @@ export async function recordPlay(
   let streakBrokenAt = user.streakBrokenAt;
 
   if (gap === 1) {
-    // Consecutive day.
     currentStreak = user.currentStreak + 1;
   } else {
-    // First bet ever, or a gap of two or more days. Either way today is day 1.
-    //
-    // The broken streak is remembered so a restore can be offered — but only
-    // when there was something worth restoring, and only priced once. Without
-    // this the offer would vanish the moment the player placed the bet that
-    // revealed the break.
     if (user.currentStreak > 0 && gap !== null && gap > 1) {
       restorableStreak = user.currentStreak;
       streakRestoreCost = restoreCostFor(user.currentStreak);
@@ -197,7 +161,6 @@ function toState(
   };
 }
 
-/** Reads streak state without recording play. */
 export async function getStreak(
   userId: string,
   now = new Date()
@@ -223,8 +186,6 @@ export async function getStreak(
     ? daysBetween(user.streakBrokenAt, now)
     : null;
 
-  // Offered only while the break is recent, so it expires rather than
-  // lingering as a permanent upsell.
   const restoreAvailable =
     user.restorableStreak > 0 &&
     sinceBreak !== null &&
@@ -234,7 +195,6 @@ export async function getStreak(
 }
 
 export interface CashbackQuote {
-  /** Net loss over the previous UTC day, floored at zero. */
   netLoss: string;
   rate: number;
   amount: string;
@@ -242,13 +202,6 @@ export interface CashbackQuote {
   eligible: boolean;
 }
 
-/**
- * Cashback owed on yesterday's net losses.
- *
- * Net, not gross: summing only losing rounds would pay a player who finished
- * the day ahead. A player with no net loss gets nothing, which is the whole
- * point of calling it cashback.
- */
 export async function quoteCashback(
   userId: string,
   now = new Date()

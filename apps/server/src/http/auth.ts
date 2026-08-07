@@ -28,23 +28,14 @@ declare module 'fastify' {
   }
 }
 
-/**
- * Cookie the web app stores the session JWT in — must stay in step with
- * SESSION_COOKIE in apps/web/lib/adminAuth.ts.
- */
 const SESSION_COOKIE = 'token';
 
-/** `Authorization: Bearer <jwt>`. Null when absent or malformed. */
 function bearerToken(req: FastifyRequest): string | null {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) return null;
   return header.slice(7).trim() || null;
 }
 
-/**
- * The session cookie, parsed off the raw header — no cookie plugin is
- * registered, and one dependency is not worth a single lookup.
- */
 function cookieToken(req: FastifyRequest): string | null {
   const header = req.headers.cookie;
   if (!header) return null;
@@ -57,23 +48,12 @@ function cookieToken(req: FastifyRequest): string | null {
     try {
       return decodeURIComponent(part.slice(eq + 1).trim()) || null;
     } catch {
-      return null; // malformed percent-encoding — treat as no cookie
+      return null;
     }
   }
   return null;
 }
 
-/**
- * Verifies the caller's JWT, taken from the Authorization header or, failing
- * that, the session cookie. Returns null on any failure.
- *
- * The header is preferred: it is the credential a client attaches deliberately,
- * whereas a cookie is attached by the browser on every request, including ones
- * a third-party page provoked. The cookie fallback exists because the admin UI
- * can reach this API with only that. It is not a CSRF hole in this shape — the
- * CORS allow-list refuses cross-origin reads, and every mutating admin route
- * takes a JSON body, which forces a preflight a forged form cannot satisfy.
- */
 export function identityFromRequest(req: FastifyRequest): AuthedIdentity | null {
   const token = bearerToken(req) ?? cookieToken(req);
   if (!token) return null;

@@ -1,22 +1,3 @@
-/**
- * FRIGAT — UI glyphs
- *
- * Small stroke icons for chrome: category pills, the language switcher.
- * Distinct from the game icons next door, which are filled, gradient-heavy
- * 48×48 illustrations for the tiles.
- *
- * ── Why these are hand-drawn rather than lucide-react ──────────────────────
- * These follow Lucide's drawing conventions exactly — 24×24 viewBox, 2px
- * round-capped strokes, `currentColor` — so they sit alongside Lucide art
- * without looking foreign. What they avoid is a runtime dependency for
- * thirteen glyphs, on a project that already ships its own SVG icon set and
- * has no other use for the package.
- *
- * `currentColor` is the load-bearing detail: the pills already flip their text
- * colour on `--fg-accent` when active, so the icon picks up the orange tint
- * from the button with no per-state wiring.
- */
-
 import type { SVGProps } from 'react';
 
 export interface UiIconProps extends Omit<SVGProps<SVGSVGElement>, 'children'> {
@@ -51,14 +32,6 @@ function Glyph({
   );
 }
 
-/**
- * All Games — a single die.
- *
- * Was a pair of overlapping dice, which at 15px collapsed into two anonymous
- * rounded squares with the pips indistinguishable. One larger die with three
- * well-spaced pips survives the size; the pips are drawn as short zero-length
- * strokes so the round cap renders them as dots that scale with the stroke.
- */
 export function DicesIcon(props: UiIconProps) {
   return (
     <Glyph {...props}>
@@ -76,14 +49,6 @@ export function FlameIcon(props: UiIconProps) {
   );
 }
 
-/**
- * Slots — a cabinet with a lever.
- *
- * Deliberately low-detail: the first draft had reels, a window divider and two
- * pips inside a 14px-wide box, which at pill size was an illegible smudge. The
- * cabinet outline, one reel line and the side lever are what actually identify
- * a slot machine at this scale.
- */
 export function SlotMachineIcon(props: UiIconProps) {
   return (
     <Glyph {...props}>

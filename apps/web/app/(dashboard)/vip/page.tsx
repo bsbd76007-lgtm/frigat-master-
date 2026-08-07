@@ -1,16 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — VIP dashboard
- *
- * Lifetime wagered volume, current tier and progress to the next, plus the
- * rakeback claim and the daily wheel.
- *
- * Every figure comes from GET /api/vip/me. Nothing is computed here: rakeback
- * entitlement nets off previous claims server-side, so a locally-derived
- * number would drift from what the claim endpoint actually pays.
- */
-
 import { useCallback, useEffect, useState } from 'react';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
@@ -32,7 +21,6 @@ interface VipStatus {
   dailyWheelNextAvailableAt: string | null;
 }
 
-/** Mirrors VIP_TIERS in apps/server/src/services/bonus.service.ts. */
 const TIERS = [
   { name: 'Unranked', threshold: 0, rakeback: '—' },
   { name: 'Bronze', threshold: 1_000, rakeback: '5%' },
@@ -83,7 +71,7 @@ export default function VipPage() {
         { method: 'POST', body: JSON.stringify({}) }
       );
       setClaimed(result.claimed);
-      await load(); // entitlement has moved; re-read rather than guess
+      await load();
     } catch (err) {
       setError(
         err instanceof ApiError && err.message === 'nothing_to_claim'
@@ -226,7 +214,7 @@ export default function VipPage() {
         open={wheelOpen}
         onClose={() => {
           setWheelOpen(false);
-          void load(); // a spin changes both balance and wheel availability
+          void load();
         }}
       />
     </div>

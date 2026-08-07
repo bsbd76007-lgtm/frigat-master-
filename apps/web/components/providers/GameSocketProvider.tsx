@@ -188,7 +188,6 @@ export function GameSocketProvider({
     return subscribe('GAME_RESULT', onResult);
   }, [subscribe]);
 
-  // Crash rounds are shared, so they are tracked even when no bet was placed.
   useEffect(() => {
     const onRoundEnd = (data: Record<string, unknown>) => {
       const crashPoint = readNumber(data.crashPoint);
@@ -240,7 +239,7 @@ export function GameSocketProvider({
       ) {
         throw new Error('Malformed seed response');
       }
-      if (seedEpoch.current !== epoch) return; // superseded while in flight
+      if (seedEpoch.current !== epoch) return;
       applySeed({
         clientSeed: body.clientSeed,
         hashedServerSeed: body.hashedServerSeed,
@@ -257,7 +256,7 @@ export function GameSocketProvider({
   // the nonce only advances client-side on games this tab actually played.
   useEffect(() => {
     if (!token) {
-      seedEpoch.current += 1; // discard anything still in flight for the old session
+      seedEpoch.current += 1;
       setSeed(null);
       setRevealedServerSeed(null);
       setRevealedHashedServerSeed(null);

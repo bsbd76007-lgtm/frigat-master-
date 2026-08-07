@@ -45,7 +45,6 @@ export interface ProvablyFairModalProps {
   hashedServerSeed: string;
   nonce: number;
   loading?: boolean;
-  /** Previous pair, revealed after rotation so the player can verify it. */
   previousServerSeed?: string | null;
   previousHashedServerSeed?: string | null;
   onRotateSeed: (clientSeed: string) => void | Promise<void>;
@@ -80,8 +79,6 @@ const CSS = `
 .fg-pf__key { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
   letter-spacing: .05em; text-transform: uppercase; color: var(--fg-muted); }
 .fg-pf__val { display: flex; align-items: center; gap: 8px; }
-/* Tooltip trigger. Sized as a small round glyph so it reads as "explain this"
-   without competing with the label it sits beside. */
 .fg-pf__hint { display: inline-grid; place-items: center; width: 14px; height: 14px;
   font-size: 9.5px; font-weight: 700; letter-spacing: 0; color: var(--fg-muted);
   background: var(--fg-line-2); border-radius: 50%; cursor: help; }
@@ -127,7 +124,6 @@ const CSS = `
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** Cryptographically random hex, mirroring the server's randomBytes(8). */
 function randomClientSeed(): string {
   const bytes = new Uint8Array(8);
   if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
@@ -223,7 +219,6 @@ export function ProvablyFairModal({
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const [nextSeed, setNextSeed] = useState(clientSeed);
   const [touched, setTouched] = useState(false);
-  /** Portals need a DOM; defer until isMounted so SSR markup matches. */
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => setIsMounted(true), []);
@@ -359,8 +354,6 @@ export function ProvablyFairModal({
     }
 
     try {
-      // Check the reveal against whichever commitment we can: the previous
-      // pair's hash after a rotation, otherwise the active one.
       const commitment = previousHashedServerSeed ?? hashedServerSeed;
       const matches = commitment
         ? await verifyCommitment(serverSeed, commitment)
@@ -432,8 +425,6 @@ export function ProvablyFairModal({
   return createPortal(
     <div
       className="fg-pf__backdrop"
-      // Only a click that both starts and ends on the backdrop dismisses, so a
-      // drag that ends outside the dialog doesn't close it accidentally.
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}

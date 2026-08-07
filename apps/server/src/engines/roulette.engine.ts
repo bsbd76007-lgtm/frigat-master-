@@ -1,18 +1,3 @@
-/**
- * FRIGAT — Roulette Engine (European, single zero: pockets 0–36)
- * Pocket = floor(outcome * 37). The single green zero supplies the house edge,
- * so no extra edge factor is applied to individual payouts.
- *
- * Supported bet positions:
- *   'straight:<0-36>'  35:1
- *   'red' | 'black'    1:1
- *   'odd' | 'even'     1:1
- *   'low'  (1-18)      1:1
- *   'high' (19-36)     1:1
- *   'dozen:1|2|3'      2:1
- *   'column:1|2|3'     2:1
- */
-
 import { calculateOutcome } from '@frigat/shared';
 import { ROULETTE_PAYOUTS, ROULETTE_RED } from '../config/game.config';
 import type { EngineResult, SeedContext } from '../types/engine.types';
@@ -31,7 +16,6 @@ function colorOf(pocket: number): 'GREEN' | 'RED' | 'BLACK' {
   return ROULETTE_RED.has(pocket) ? 'RED' : 'BLACK';
 }
 
-/** Gross payout multiplier for a bet on `position` given the winning pocket (0 if it loses). */
 function grossMultiplier(position: string, pocket: number): number {
   const [kind, arg] = position.split(':');
 
@@ -56,7 +40,7 @@ function grossMultiplier(position: string, pocket: number): number {
       return pocket >= lo && pocket <= lo + 11 ? ROULETTE_PAYOUTS.dozen : 0;
     }
     case 'column': {
-      const c = Number(arg); // 1,2,3 → pocket % 3 == c%3 pattern
+      const c = Number(arg);
       return pocket !== 0 && pocket % 3 === c % 3 ? ROULETTE_PAYOUTS.column : 0;
     }
     default:
@@ -69,7 +53,7 @@ export function spin(params: RouletteParams, seed: SeedContext): EngineResult {
   if (bets.length === 0) throw new Error('roulette: at least one bet required');
 
   const u = calculateOutcome(seed.serverSeed, seed.clientSeed, seed.nonce);
-  const pocket = Math.floor(u * 37); // 0..36
+  const pocket = Math.floor(u * 37);
 
   let totalStake = 0;
   let totalReturn = 0;

@@ -1,6 +1,5 @@
 'use client';
 
-
 import { API_URL, writeStoredToken } from '@/lib/token';
 
 export const DEFAULT_DESTINATION = '/games/crash';
@@ -22,7 +21,6 @@ interface AuthResponse {
   message?: string;
 }
 
-/** Thrown for anything the form should render inline rather than crash on. */
 export class AuthError extends Error {}
 
 const FALLBACK_COPY: Record<string, string> = {
@@ -40,7 +38,6 @@ const FALLBACK_COPY: Record<string, string> = {
 export async function authenticate(
   endpoint: 'login' | 'register',
   credentials: { email: string; password: string },
-  /** Referral code from `/register?ref=…`, forwarded so the API can attribute. */
   ref?: string | null
 ): Promise<AuthedUser> {
   const query = ref ? `?ref=${encodeURIComponent(ref)}` : '';
@@ -60,10 +57,10 @@ export async function authenticate(
   try {
     body = (await response.json()) as AuthResponse;
   } catch {
+    /* no-op */
   }
 
   if (!response.ok || !body.token || !body.user) {
-    // Prefer the server's own message — it is the one that knows *why*.
     throw new AuthError(
       body.message ??
         (body.error && FALLBACK_COPY[body.error]) ??
@@ -83,6 +80,7 @@ export async function authenticate(
       body: JSON.stringify({ token: body.token }),
     });
   } catch {
+    /* no-op */
   }
 
   return body.user;

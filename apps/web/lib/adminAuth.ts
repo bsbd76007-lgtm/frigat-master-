@@ -17,11 +17,6 @@
 
 import { jwtVerify } from 'jose';
 
-/**
- * httpOnly cookie holding the session JWT. Named to match the localStorage key
- * so there is one word for the credential everywhere; every reader goes through
- * this constant, so the name is changed here and nowhere else.
- */
 export const SESSION_COOKIE = 'token';
 
 export interface AdminClaims {
@@ -73,8 +68,6 @@ export async function verifySession(
       exp: typeof payload.exp === 'number' ? payload.exp : undefined,
     };
 
-    // Authenticated but not an administrator — distinct from "not logged in"
-    // so the UI can say so instead of bouncing through an endless login loop.
     if (claims.role !== 'ADMIN') return { status: 'forbidden', claims };
 
     return { status: 'valid', claims };

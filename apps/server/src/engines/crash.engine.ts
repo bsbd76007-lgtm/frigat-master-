@@ -32,17 +32,12 @@ export function computeCrashPoint(seed: SeedContext): number {
   return Math.max(1, Math.floor(clamped * 100) / 100);
 }
 
-/**
- * Multiplier at a given elapsed time (ms) since the round started running.
- * Exponential growth: m(t) = e^(growthRate · seconds).
- */
 export function multiplierAtElapsed(elapsedMs: number): number {
   const seconds = Math.max(0, elapsedMs) / 1000;
   const m = Math.exp(CRASH.growthRatePerSec * seconds);
   return Math.max(1, Math.floor(m * 100) / 100);
 }
 
-/** Inverse of multiplierAtElapsed — ms needed to reach a target multiplier. */
 export function elapsedForMultiplier(target: number): number {
   if (target <= 1) return 0;
   const seconds = Math.log(target) / CRASH.growthRatePerSec;

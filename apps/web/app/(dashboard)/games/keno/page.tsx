@@ -1,21 +1,5 @@
 'use client';
 
-/**
- * Keno — pick up to KENO_MAX_PICKS tiles on a KENO_TILE_COUNT board; the
- * server draws KENO_DRAW_COUNT of them and pays out on how many of the
- * player's picks landed in that draw (apps/server/src/engines/keno.engine.ts).
- *
- * Board size, draw size and the paytable are read from @frigat/shared —
- * the same constants the engine and its paytable-calibration self-test use —
- * so this page can never advertise a pick limit or payout the server would
- * refuse. See KENO_PAYTABLE's own doc comment in game.constants.ts for how
- * the numbers were derived.
- *
- * The ball-reveal animation is cosmetic: GAME_RESULT already carries the
- * full, settled draw. Revealing it one tile at a time (rather than all at
- * once) is what makes a Keno round read as a draw instead of a lookup.
- */
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -54,11 +38,6 @@ export default function KenoPage() {
           | { drawn?: number[]; hitCount?: number; picks?: number[] }
           | undefined;
         const drawnNumbers = Array.isArray(result?.drawn) ? result!.drawn! : [];
-        // Echoed back by the engine (resultData.picks) rather than read from
-        // local `picks` state — this handler is registered once on mount and
-        // deliberately excluded from re-subscribing on every pick change (see
-        // below), so `picks` here would otherwise be the stale empty array
-        // captured at that first render.
         const resultPickCount = Array.isArray(result?.picks) ? result!.picks!.length : 0;
 
         timersRef.current.forEach(clearTimeout);

@@ -1,17 +1,5 @@
 'use client';
 
-/**
- * FRIGAT — Dashboard shell
- *
- * Hosts the one socket connection for every game page (via GameSocketProvider)
- * and renders the persistent header — see components/Navbar.tsx, which owns
- * navigation, live balance, connection state, the language picker, and the
- * provably-fair trigger.
- *
- * The modal lives here rather than in each page so the seed stays inspectable
- * while switching games.
- */
-
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -112,7 +100,6 @@ function DashboardChrome({ children }: { children: ReactNode }) {
         previousHashedServerSeed={revealedHashedServerSeed}
         onRotateSeed={rotateSeed}
         rotating={rotating}
-        // A rotation failure is the more actionable of the two, so it wins.
         error={rotateError ?? seedError}
       />
     </>
