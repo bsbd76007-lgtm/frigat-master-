@@ -31,6 +31,10 @@ enum TransactionType {
   /// counting it as one would inflate deposit reporting with money that never
   /// entered the platform.
   AFFILIATE_CLAIM
+  /// Daily streak cashback. A distinct type rather than a DEPOSIT so the
+  /// once-a-day guard can identify a claim without a marker string, and so
+  /// bonus credits are not counted as money that entered the platform.
+  BONUS_CASHBACK
 }
 
 enum TransactionStatus {
@@ -98,6 +102,28 @@ model User {
   referrals  User[] @relation("Referrals")
 
   lastDailyWheelSpinAt DateTime?
+
+  // ── Daily play streak ──
+  /// Consecutive calendar days with at least one settled bet.
+  currentStreak Int @default(0)
+  /// High-water mark, kept for display after a break.
+  longestStreak Int @default(0)
+  /// Start of the last UTC day the player bet on. Date-only semantics: two bets
+  /// in one day must not advance the streak twice, and the comparison has to be
+  /// stable regardless of the hour a player bets at.
+  lastPlayedDate DateTime?
+  /// Price to reinstate a broken streak, priced when the break is detected.
+  /// Decimal, not Float: this is charged against a real balance, and a float
+  /// cannot hold a money value exactly.
+  streakRestoreCost Decimal @default(0) @db.Decimal(18, 8)
+  /// The streak a paid restore would bring back. Held separately so the offer
+  /// survives `currentStreak` being zeroed at the break.
+  restorableStreak Int @default(0)
+  /// When the break was recorded. The restore window is measured from here,
+  /// NOT from lastPlayedDate — recordPlay sets lastPlayedDate to today in the
+  /// same call that detects the break, so a window keyed off it would compute
+  /// a zero-day gap and the offer could never be shown.
+  streakBrokenAt DateTime?
 
   wallets        Wallet[]
   payments       Payment[]

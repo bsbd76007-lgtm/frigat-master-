@@ -19,6 +19,7 @@ import { registerAdminRiskRoutes } from './http/adminRisk.routes';
 import { registerWalletRoutes } from './http/wallet.routes';
 import { registerReferralRoutes } from './http/referral.routes';
 import { registerVipRoutes } from './http/vip.routes';
+import { registerStreakRoutes } from './http/streak.routes';
 import { registerSeedRoutes } from './http/seed.routes';
 import { registerAuthRoutes } from './routes/auth.routes';
 import { registerPaymentRoutes } from './routes/payment.routes';
@@ -82,6 +83,7 @@ async function bootstrap() {
   // Player-scoped affiliate dashboard (own code, downline stats, claim).
   registerReferralRoutes(app);
   registerVipRoutes(app);
+  registerStreakRoutes(app);
 
   // Player-scoped provably-fair seeds (read active pair, rotate).
   registerSeedRoutes(app);

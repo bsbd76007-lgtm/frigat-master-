@@ -14,6 +14,7 @@
 
 import { Prisma, TransactionType } from '@prisma/client';
 import { prisma } from '../config/prisma';
+import { recordPlay } from './streak.service';
 import { auditWithin } from './audit.service';
 import { assertWagerAllowed } from './riskConfig.service';
 
@@ -79,7 +80,7 @@ export async function processBet(
   // Maintenance mode + per-game caps, read from the runtime risk config.
   await assertWagerAllowed(input.gameType, amount);
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // Freeze is enforced here because this is the single gate every wager
     // passes through, whatever the game. Checking it in the socket layer alone
     // would leave a connection opened before the freeze able to keep betting.
@@ -127,6 +128,23 @@ export async function processBet(
       balance: updated.balance.toString(),
     };
   });
+
+  // Streak is recorded after the debit commits, and only for real wagers.
+  // STREAK_RESTORE routes through this same gate so it inherits the freeze and
+  // funds checks — but paying to restore a streak is not playing, and counting
+  // it would let a player buy a streak day outright.
+  //
+  // Deliberately not awaited into the caller's path: the stake is already
+  // taken and the round is live, so a streak bookkeeping failure must not
+  // surface as a failed bet. It is idempotent per day, so a lost update
+  // self-corrects on the player's next wager.
+  if (input.gameType !== 'STREAK_RESTORE') {
+    void recordPlay(input.userId).catch(() => {
+      /* streak accounting is not worth failing a settled wager over */
+    });
+  }
+
+  return result;
 }
 
 export interface ProcessWinInput {
@@ -252,6 +270,49 @@ export interface TransferBetweenUsersInput {
 export interface TransferBetweenUsersResult {
   fromBalance: string;
   toBalance: string;
+}
+
+/**
+ * Credits daily streak cashback.
+ *
+ * Separate from `awardBonus` only in the transaction type it writes:
+ * BONUS_CASHBACK is what the once-a-day guard in streak.routes matches on, and
+ * keeping it distinct from DEPOSIT stops bonus credits inflating deposit
+ * reporting with money that never entered the platform.
+ */
+export async function creditCashback(
+  input: AwardBonusInput
+): Promise<AwardBonusResult> {
+  const currency = input.currency ?? 'USD';
+  const amount = toAmount(input.amount, 'cashback amount');
+
+  return prisma.$transaction(async (tx) => {
+    const wallet = await tx.wallet.upsert({
+      where: { userId_currency: { userId: input.userId, currency } },
+      update: {},
+      create: { userId: input.userId, currency, balance: new D(0) },
+      select: { id: true },
+    });
+
+    const updated = await tx.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: { increment: amount } },
+      select: { balance: true },
+    });
+
+    const row = await tx.transaction.create({
+      data: {
+        walletId: wallet.id,
+        type: TransactionType.BONUS_CASHBACK,
+        amount,
+        status: 'COMPLETED',
+        txHash: `cashback:${input.userId}:${Date.now()}`,
+      },
+      select: { id: true },
+    });
+
+    return { transactionId: row.id, balance: updated.balance.toFixed(8) };
+  });
 }
 
 export async function transferBetweenUsers(

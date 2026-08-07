@@ -25,6 +25,8 @@ import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Navbar } from '@/components/nav/Navbar';
 import { ProvablyFairModal } from '@/components/games/ProvablyFairModal';
 import ChatSidebar from '@/components/chat/ChatSidebar';
+import StreakProgressBar from '@/components/streak/StreakProgressBar';
+import RestoreStreakModal from '@/components/streak/RestoreStreakModal';
 import { ChatFab } from '@/components/chat/ChatFab';
 import LiveBetsFeed from '@/components/feed/LiveBetsFeed';
 
@@ -94,6 +96,8 @@ function DashboardChrome({ children }: { children: ReactNode }) {
       <LiveBetsFeed />
       {/* Hidden while the panel is open — the sidebar carries its own close,
           and a launcher for an already-open panel is a dead control. */}
+      <StreakProgressBar />
+      <RestoreStreakModal />
       <ChatFab onOpen={() => setChatOpen(true)} hidden={chatOpen} />
       <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} />
 
