@@ -1,0 +1,28 @@
+{
+  "name": "@frigat/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "shared": "tsc -p ../../packages/shared/tsconfig.json",
+    "predev": "npm run shared",
+    "dev": "next dev -p 3000",
+    "prebuild": "npm run shared",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "pretypecheck": "npm run shared",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@frigat/shared": "*",
+    "framer-motion": "^12.43.0",
+    "jose": "^5.10.0",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.7",
+    "typescript": "^5.5.0"
+  }
+}

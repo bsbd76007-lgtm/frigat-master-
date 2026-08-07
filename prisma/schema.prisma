@@ -1,0 +1,318 @@
+// FRIGAT — PostgreSQL Schema
+// All monetary values use Decimal(18, 8) to prevent floating-point drift.
+// Balance mutations MUST occur inside prisma.$transaction (see ledger.service.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  BET
+  WIN
+  /// RevShare credit to a referrer. Lands in Wallet.affiliateBalance, NOT
+  /// Wallet.balance — see the note on that field.
+  AFFILIATE_REWARD
+  /// Affiliate sweeping earnings into their wagerable balance. An internal
+  /// transfer between two columns of one wallet, so it is NOT a DEPOSIT —
+  /// counting it as one would inflate deposit reporting with money that never
+  /// entered the platform.
+  AFFILIATE_CLAIM
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+/// Lifecycle of a Cryptomus invoice or payout, mirroring the provider's own
+/// `status` strings. Kept separate from TransactionStatus because the gateway
+/// has states the ledger does not care about (a partially-paid invoice is not
+/// a failed one, but it is not a credit either).
+enum CryptoPaymentStatus {
+  PENDING
+  CONFIRMING
+  CONFIRMED
+  PAID
+  PAID_OVER
+  WRONG_AMOUNT
+  CANCELLED
+  EXPIRED
+  FAILED
+}
+
+enum GameType {
+  CRASH
+  MINES
+  ROULETTE
+  COINFLIP
+  PLINKO
+  DICE
+  LIMBO
+  KENO
+  CHICKEN
+}
+
+// ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  telegramId   String?  @unique
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+
+  // Account freeze. Enforced in ledger.service.processBet (the single money-out
+  // gate) and at WebSocket connect — a flag nothing checks would be worse than
+  // no freeze at all, because it would look like the account was stopped.
+  frozen       Boolean   @default(false)
+  frozenAt     DateTime?
+  frozenReason String?
+
+  // ── RevShare referral engine ──
+  /// This user's own code, handed out to recruit others (?ref=<code>).
+  referralCode String  @unique @default(cuid())
+  /// Who recruited this user. Set once at registration and never reassigned —
+  /// a mutable attribution would let a later ?ref= steal an existing downline.
+  referredById String?
+  /// Share of a downline's net losses paid to THIS user as the referrer.
+  /// Per-user so individual affiliates can be given a custom cut.
+  revSharePercentage Decimal @default(25.00) @db.Decimal(5, 2)
+
+  referredBy User?  @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals  User[] @relation("Referrals")
+
+  lastDailyWheelSpinAt DateTime?
+
+  wallets        Wallet[]
+  payments       Payment[]
+  withdrawals    Withdrawal[]
+  rakebackClaims RakebackClaim[]
+  gameSessions   GameSession[]
+  provableSeeds ProvableSeed[]
+  auditActions  AdminAuditLog[] @relation("AdminActions")
+  auditTargets  AdminAuditLog[] @relation("AuditTargets")
+
+  @@index([telegramId])
+  @@index([referredById])
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String
+  balance   Decimal  @default(0) @db.Decimal(18, 8)
+  /// Accrued RevShare earnings, held separately from the wagerable `balance`.
+  /// Consequence: summing this wallet's transactions no longer reconciles to
+  /// `balance` alone — AFFILIATE_REWARD rows settle against this column
+  /// instead. Any reconciliation job must net them out per type.
+  affiliateBalance Decimal @default(0.00) @db.Decimal(18, 8)
+  currency  String   @default("USD")
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, currency])
+  @@index([userId])
+}
+
+model Transaction {
+  id        String            @id @default(cuid())
+  walletId  String
+  type      TransactionType
+  amount    Decimal           @db.Decimal(18, 8)
+  status    TransactionStatus @default(PENDING)
+  txHash    String?           @unique
+  createdAt DateTime          @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Restrict)
+
+  @@index([walletId, createdAt])
+  @@index([status])
+}
+
+/// A Cryptomus deposit invoice.
+///
+/// This is the *gateway* record, not the money. Crediting the wallet stays the
+/// ledger's job: when a webhook confirms payment, payment.service credits the
+/// balance through the ledger and stores the resulting Transaction id in
+/// `transactionId`. That column is therefore also the idempotency key — a
+/// non-null value means this invoice has already been credited, and Cryptomus
+/// retries webhooks until it gets a 200.
+model Payment {
+  id       String @id @default(cuid())
+  userId   String
+  /// Invoice amount in `currency`, as requested by the player.
+  amount   Decimal @db.Decimal(18, 8)
+  /// Asset the player pays in (USDT, BTC, ETH, LTC).
+  currency String
+  status   CryptoPaymentStatus @default(PENDING)
+
+  /// Cryptomus' own invoice uuid. Unique so a replayed webhook cannot open a
+  /// second row for the same invoice.
+  paymentId String  @unique
+  /// On-chain transaction hash, once the network confirms it.
+  txHash    String?
+
+  /// Deposit address and hosted checkout page returned by Cryptomus. Shown in
+  /// the deposit modal (QR + link); nullable because a freshly created invoice
+  /// may not have an address until the player picks a network.
+  address String?
+  payUrl  String?
+
+  /// Amount actually received on-chain, which is not always what was invoiced
+  /// (PAID_OVER / WRONG_AMOUNT). The wallet is credited from this when present,
+  /// never from `amount` — crediting the invoiced figure for an underpayment
+  /// would hand out money that never arrived.
+  paidAmount Decimal? @db.Decimal(18, 8)
+
+  /// Ledger row created when this deposit was credited. Null until confirmed.
+  transactionId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+/// A Cryptomus payout request.
+///
+/// Funds are debited when the request is made (via ledger.requestWithdrawal),
+/// so `transactionId` is set from the start — the PENDING ledger row *is* the
+/// hold. A provider failure refunds by rejecting that row rather than by
+/// incrementing a balance here.
+model Withdrawal {
+  id       String @id @default(cuid())
+  userId   String
+  amount   Decimal @db.Decimal(18, 8)
+  currency String
+  status   CryptoPaymentStatus @default(PENDING)
+
+  /// Cryptomus payout uuid. Null only in the window between reserving funds and
+  /// the provider accepting the payout; unique once set.
+  paymentId String? @unique
+  txHash    String?
+
+  /// Destination wallet address supplied by the player.
+  address String
+  /// Chain the payout is sent on (e.g. TRON for USDT). Cryptomus requires it
+  /// whenever a currency exists on more than one network.
+  network String?
+
+  /// The PENDING WITHDRAWAL ledger row holding the reserved funds.
+  transactionId String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+/// One settled VIP rakeback claim.
+///
+/// Exists to make rakeback non-repeatable. Entitlement is a function of
+/// lifetime house edge, which only grows — without a record of what has
+/// already been paid out, a player could claim the same edge on every page
+/// load. getVipStatus subtracts the sum of these rows from the entitlement.
+model RakebackClaim {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Decimal  @db.Decimal(18, 8)
+  currency  String   @default("USD")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model GameSession {
+  id         String   @id @default(cuid())
+  userId     String
+  gameType   GameType
+  betAmount  Decimal  @db.Decimal(18, 8)
+  payout     Decimal  @default(0) @db.Decimal(18, 8)
+  multiplier Float    @default(0)
+  serverSeed String
+  clientSeed String
+  nonce      Int
+  resultData Json
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([gameType, createdAt])
+}
+
+model ProvableSeed {
+  id               String  @id @default(cuid())
+  userId           String
+  serverSeed       String
+  hashedServerSeed String
+  clientSeed       String
+  nonce            Int     @default(0)
+  active           Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  adminId      String
+  action       String
+  targetUserId String?
+  details      Json
+  createdAt    DateTime @default(now())
+
+  admin  User  @relation("AdminActions", fields: [adminId], references: [id], onDelete: Restrict)
+  target User? @relation("AuditTargets", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([adminId, createdAt])
+  @@index([targetUserId])
+}
+
+/// Singleton row (id is always "singleton") holding platform-wide switches.
+/// Read on every bet through a short-lived cache in riskConfig.service.ts.
+model PlatformConfig {
+  id                 String   @id @default("singleton")
+  maintenanceMode    Boolean  @default(false)
+  maintenanceMessage String?
+  updatedAt          DateTime @updatedAt
+  updatedBy          String?
+}
+
+/// Per-game wagering limits. Absent row = fall back to the shared BET_LIMITS.
+/// Enforced in ledger.service.processBet (stake) and at payout (maxWin).
+model GameLimit {
+  gameType  GameType @id
+  minBet    Decimal  @db.Decimal(18, 8)
+  maxBet    Decimal  @db.Decimal(18, 8)
+  /// Ceiling on a single settled payout. 0 = uncapped.
+  maxWin    Decimal  @default(0) @db.Decimal(18, 8)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}

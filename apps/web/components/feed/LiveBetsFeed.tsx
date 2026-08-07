@@ -1,0 +1,197 @@
+'use client';
+
+/**
+ * FRIGAT — Live bets feed
+ *
+ * Two columns: the game on the left, what it paid on the right. Rows arrive
+ * from the LIVE_BET socket frame and are backfilled from settled rounds on
+ * load, so the table is never empty and never fabricated — every row is a real
+ * GameSession. Clicking one opens its fairness record.
+ *
+ * On currency badges: FRIGAT's wallet is a single USD balance and GameSession
+ * carries no currency column. Per-row Tether / Bitcoin / Ethereum badges would
+ * assert a multi-currency ledger that does not exist — and on a payout figure,
+ * an invented currency misstates what a player actually won. With one currency
+ * the leading '$' already says everything a badge would, so there is no badge:
+ * a green '$' chip beside '$1.00' just prints the sign twice, in Tether's
+ * brand colour, on a balance that is not Tether.
+ */
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { BetDetailsModal } from '@/components/modals/BetDetailsModal';
+import { FeedSkeleton } from '@/components/feed/ShimmerSkeleton';
+import { GAME_ICONS } from '@/components/icons';
+
+import { apiFetch } from '@/lib/api';
+import { gameIdentity } from '@/lib/gameIdentity';
+import { betProfit, formatSignedUsd, isWin, type LiveBet } from '@/lib/liveBets';
+const MAX_ROWS = 20;
+
+const TABS = ['All Bets', 'High Rollers', 'My Bets'] as const;
+type Tab = (typeof TABS)[number];
+
+export default function LiveBetsFeed() {
+  const { socket, token } = useGameSocket();
+  const [tab, setTab] = useState<Tab>('All Bets');
+  const [bets, setBets] = useState<LiveBet[]>([]);
+  const [selfUserId, setSelfUserId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<LiveBet | null>(null);
+  /**
+   * False until the backfill request settles either way. Gates the skeleton —
+   * distinguishing "still loading" from "hasLoaded, and genuinely empty", which
+   * a bare `bets.length === 0` cannot tell apart.
+   */
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = socket.subscribe('LIVE_BET', (data) => {
+      const userId = String(data.userId ?? '');
+      const timestamp = typeof data.timestamp === 'number' ? data.timestamp : Date.now();
+      setBets((prev) =>
+        [
+          {
+            // Live frames carry no row id, so one is synthesised. The bet is
+            // already in GameSession under a different id; this key only has to
+            // be unique within the rendered list. The `live-` prefix is load
+            // bearing — the details dialog reads it to know there is no
+            // persisted row to fetch seeds from yet.
+            id: `live-${timestamp}-${userId}`,
+            userId,
+            username: String(data.username ?? 'player'),
+            gameType: String(data.gameType ?? 'UNKNOWN'),
+            betAmount: String(data.betAmount ?? '0'),
+            multiplier: typeof data.multiplier === 'number' ? data.multiplier : 0,
+            payout: String(data.payout ?? '0'),
+            timestamp,
+          },
+          ...prev,
+        ].slice(0, MAX_ROWS)
+      );
+    });
+    return unsubscribe;
+  }, [socket]);
+
+  // Backfill from settled rounds so the table is not empty on load. Live frames
+  // prepend on top of these; `slice` keeps the list bounded either way.
+  useEffect(() => {
+    let active = true;
+    apiFetch(`api/bets/recent?limit=${MAX_ROWS}`)
+      .then((res) => res.json())
+      .then((body: { bets?: LiveBet[] }) => {
+        const rows = body.bets;
+        if (!active || !Array.isArray(rows)) return;
+        setBets((prev) => {
+          // A live frame may already have landed while this was in flight — it
+          // is newer than anything here, so it stays on top.
+          const seen = new Set(prev.map((bet) => bet.id));
+          return [...prev, ...rows.filter((bet) => !seen.has(bet.id))].slice(0, MAX_ROWS);
+        });
+      })
+      .catch(() => {
+      })
+      .finally(() => {
+        // `finally`, not the success path: a failed backfill has also finished
+        // loading, and leaving the skeleton up forever would promise rows that
+        // are never going to arrive.
+        if (active) setHasLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    try {
+      const payload = token.split('.')[1];
+      const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+      setSelfUserId(typeof json.userId === 'string' ? json.userId : null);
+    } catch {
+      setSelfUserId(null);
+    }
+  }, [token]);
+
+  const filtered = useMemo(() => {
+    if (tab === 'All Bets') return bets;
+    if (tab === 'High Rollers') {
+      return bets.filter((bet) => Number(bet.betAmount) >= 50 || bet.multiplier >= 10);
+    }
+    if (tab === 'My Bets' && selfUserId) {
+      return bets.filter((bet) => bet.userId === selfUserId);
+    }
+    return [];
+  }, [bets, tab, selfUserId]);
+
+  const closeDetails = useCallback(() => setSelected(null), []);
+
+  return (
+    <section className="feed">
+      <div className="feed__header">
+        <div>
+          <h3>Live Bets</h3>
+          <p className="feed__subtitle">Real-time action from the tables and crash rounds.</p>
+        </div>
+        <div className="feed__tabs">
+          {TABS.map((option) => (
+            <button
+              type="button"
+              key={option}
+              className={`feed__tab${option === tab ? ' feed__tab--active' : ''}`}
+              onClick={() => setTab(option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="feed__columns" aria-hidden="true">
+        <span>Игра</span>
+        <span>Выплата</span>
+      </div>
+
+      {!hasLoaded ? (
+        <FeedSkeleton />
+      ) : (
+      <div className="feed__list">
+        {filtered.length === 0 ? (
+          <div className="feed__empty">No live bets yet.</div>
+        ) : (
+          filtered.map((bet) => {
+            const { slug, name } = gameIdentity(bet.gameType);
+            const Icon = GAME_ICONS[slug];
+            const won = isWin(bet);
+            return (
+              <button
+                type="button"
+                key={bet.id}
+                className="feed__row"
+                onClick={() => setSelected(bet)}
+              >
+                <span className="feed__game">
+                  <span className="feed__icon" aria-hidden="true">
+                    <Icon size={18} />
+                  </span>
+                  <span className="feed__name">{name}</span>
+                </span>
+                <span
+                  className={`feed__payout${won ? ' feed__payout--win' : ' feed__payout--loss'}`}
+                >
+                  {/* The signed net result, not the gross payout: a $10 stake
+                      returning $4 is a loss, and showing a bare "$4.00" in the
+                      payout column would read as a win. */}
+                  {formatSignedUsd(betProfit(bet))}
+                </span>
+              </button>
+            );
+          })
+        )}
+      </div>
+      )}
+
+      <BetDetailsModal bet={selected} onClose={closeDetails} />
+    </section>
+  );
+}

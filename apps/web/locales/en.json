@@ -1,0 +1,224 @@
+{
+  "nav": {
+    "crash": "Crash",
+    "mines": "Mines",
+    "roulette": "Roulette",
+    "coinflip": "Coinflip",
+    "plinko": "Plinko",
+    "dice": "Dice",
+    "referrals": "Refer & Earn",
+    "aria": "Main",
+    "limbo": "Limbo",
+    "keno": "Keno",
+    "chicken": "Chicken Road"
+  },
+  "header": {
+    "provablyFair": "Provably Fair",
+    "signOut": "Sign out",
+    "language": "Language",
+    "connection": "Connection {status}",
+    "socket": "Socket {status}",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeDim": "Dim",
+    "themeLight": "Light",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "login": "Log in",
+    "register": "Sign up"
+  },
+  "gate": {
+    "title": "Sign in to play",
+    "body": "Your session has not been established on this device. Sign in to load your wallet and connect to the tables.",
+    "rejected": "The server rejected that session: {error}. Sign in again.",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "unauthorized": "unauthorized"
+  },
+  "home": {
+    "heading": "Games",
+    "filters": {
+      "all": "All Games",
+      "top": "Top",
+      "new": "New",
+      "slots": "Slots",
+      "live": "Live Casino",
+      "table": "Table Games",
+      "instant": "Instant Win",
+      "empty": "No games in this category yet.",
+      "megaways": "Megaways",
+      "bonusbuy": "Bonus Buy",
+      "holdandwin": "Hold and Win",
+      "jackpots": "Jackpots",
+      "gravity": "Gravity",
+      "search": "Search"
+    },
+    "playNow": "Play Now",
+    "demoMode": "How it works",
+    "badge": {
+      "hot": "HOT",
+      "new": "NEW"
+    },
+    "sections": {
+      "originals": "Originals",
+      "top": "Top",
+      "new": "New",
+      "promos": "Promotions"
+    }
+  },
+  "games": {
+    "crash": {
+      "name": "Crash",
+      "blurb": "Cash out before the curve breaks."
+    },
+    "mines": {
+      "name": "Mines",
+      "blurb": "Pick tiles, dodge the mines, bank it."
+    },
+    "roulette": {
+      "name": "Roulette",
+      "blurb": "Inside, outside, and everything between."
+    },
+    "coinflip": {
+      "name": "Coinflip",
+      "blurb": "One toss, even odds, instant result."
+    },
+    "plinko": {
+      "name": "Plinko",
+      "blurb": "Drop the ball, ride the multipliers."
+    },
+    "dice": {
+      "name": "Dice",
+      "blurb": "Set your target, roll under or over."
+    },
+    "limbo": {
+      "name": "Limbo",
+      "blurb": "Pick a target, clear the bar, cash in."
+    },
+    "keno": {
+      "name": "Keno",
+      "blurb": "Pick your numbers, watch the draw."
+    },
+    "chicken": {
+      "name": "Chicken Road",
+      "blurb": "Cross the lanes, bank before the traffic."
+    }
+  },
+  "hero": {
+    "label": "Promotions",
+    "previous": "Previous slide",
+    "next": "Next slide",
+    "goTo": "Go to slide {position}: {title}",
+    "position": "{position} of {count}",
+    "tournaments": {
+      "eyebrow": "Tournaments & Events",
+      "title": "FRIGAT NOW — Join the new Tournament Hub!",
+      "subtitle": "Weekly leaderboards across every table. Climb the ranks, claim the prize pool.",
+      "cta": "JOIN NOW",
+      "secondaryCta": "See the schedule"
+    },
+    "rakeback": {
+      "eyebrow": "VIP Programme",
+      "title": "Level Up — Claim up to 15% Daily Rakeback!",
+      "subtitle": "Unlock exclusive benefits and earn cashback on every bet. The more you play, the more you earn.",
+      "cta": "VIEW VIP TIERS"
+    },
+    "dailySpin": {
+      "eyebrow": "Daily Rewards",
+      "title": "Free Daily Reward — Spin to win up to $100!",
+      "subtitle": "Every day brings a new opportunity. Log in and spin the wheel for instant rewards.",
+      "cta": "SPIN WHEEL"
+    },
+    "crash": {
+      "eyebrow": "High Volatility",
+      "title": "Crash reaches 1000x multiplier!",
+      "subtitle": "Race against the curve and watch your winnings multiply. Cash out before the crash for your prize.",
+      "cta": "PLAY CRASH"
+    },
+    "mines": {
+      "eyebrow": "Strategy Game",
+      "title": "Mines Game — Uncover gems and dodge the bombs",
+      "subtitle": "Choose your risk level, bank your wins, and outsmart the board. Perfect mix of luck and strategy.",
+      "cta": "PLAY MINES"
+    },
+    "cryptoDeposits": {
+      "eyebrow": "Instant Deposits",
+      "title": "Instant Deposits — TRC20, BTC, ETH, LTC",
+      "subtitle": "Fund your account instantly with your favorite cryptocurrency. Fast, secure, and always available.",
+      "cta": "DEPOSIT NOW"
+    },
+    "communityChat": {
+      "eyebrow": "Live Community",
+      "title": "Live Chat — Catch random token Rains in active rooms!",
+      "subtitle": "Join our thriving community, chat with other players, and win free tokens in spontaneous airdrops.",
+      "cta": "OPEN CHAT"
+    },
+    "provablyFair": {
+      "eyebrow": "Transparency",
+      "title": "100% Fair Gaming — SHA-256 seed verification on every bet",
+      "subtitle": "Independently verify every single bet with our blockchain-powered fairness system. No house tricks.",
+      "cta": "VERIFY BETS"
+    },
+    "welcomeBonus": {
+      "eyebrow": "WELCOME BONUS",
+      "title": "Up to 200% bonus and 200 free spins on your first deposit!",
+      "subtitle": "Top up your account to claim the first-deposit bonus along with your free spins.",
+      "cta": "Deposit now",
+      "secondaryCta": "Terms"
+    },
+    "joyPoints": {
+      "eyebrow": "JOY POINTS",
+      "title": "Meet Joy Points! The more you play, the more you earn",
+      "subtitle": "Collect points on every bet and trade them in for bonuses.",
+      "cta": "Learn more"
+    }
+  },
+  "footer": {
+    "aria": "Footer",
+    "tagline": "Provably fair gaming. Every roll, drop and card verifiable before it is dealt.",
+    "brand": "FRIGAT",
+    "games": "Games",
+    "fair": "Provably Fair",
+    "info": "Information & Rules",
+    "community": "Affiliate & Community",
+    "aboutUs": "About Us",
+    "faq": "FAQ",
+    "support": "Contact Support",
+    "affiliates": "Affiliates",
+    "verifier": "Verification Tool",
+    "calcRules": "Calculation Rules",
+    "serverSeedHash": "Server Seed Hash",
+    "clientSeedGuide": "Client Seed Guide",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "responsible": "Responsible Gaming",
+    "gameRules": "Game Rules",
+    "revshare": "RevShare Program",
+    "referralDashboard": "Referral Dashboard",
+    "telegram": "Telegram Channel",
+    "followUs": "Follow us",
+    "copyright": "© {year} FRIGAT. All rights reserved.",
+    "disclaimer": "18+. Gambling can be addictive — play responsibly."
+  },
+  "dock": {
+    "live": "Live",
+    "favorites": "Favorites",
+    "casino": "Casino",
+    "cards": "Cards",
+    "sports": "Sports",
+    "menu": "Menu",
+    "aria": "Quick navigation"
+  },
+  "chat": {
+    "open": "Open Chat"
+  },
+  "launch": {
+    "rtp": "RTP",
+    "close": "Close",
+    "balance": "Your balance",
+    "topUp": "Top up",
+    "play": "Play now",
+    "verify": "Verify fairness",
+    "note": "Every round settles through the live ledger and is provably fair."
+  }
+}
