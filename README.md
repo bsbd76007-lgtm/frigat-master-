@@ -1,4 +1,4 @@
-# 🎰 FRIGAT — Provably Fair Casino Platform
+ ## Provably Fair Casino Platform
 
 [![Node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -13,7 +13,7 @@
 
 ---
 
-## 📖 Overview
+## Overview
 
 FRIGAT is an npm-workspaces monorepo split into two applications and one shared
 library:
@@ -36,9 +36,9 @@ figure a player was shown.
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
-### 🎲 Nine in-house game engines
+###  Nine in-house game engines
 
 No third-party aggregator, no licensed content. Every game is a first-party
 engine with its own maths, reachable at `/games/<slug>` and settling through
@@ -63,7 +63,7 @@ the audited ledger.
 Live RTP is served from **`GET /api/games/rtp`** — the same constants the
 engines settle against, so the published figure cannot drift from reality.
 
-### 🐔 Chicken Road
+###  Chicken Road
 
 A multi-step crossing game in the same shape as Mines: `BET` opens a round and
 fixes the entire road from the seed, `STEP` advances one lane, `CASHOUT`
@@ -81,7 +81,7 @@ settles at the running multiplier.
 > If pixel overlap decided outcomes, pausing the loop in devtools would be an
 > exploit.
 
-### 📊 Live bets feed
+###  Live bets feed
 
 A two-column feed of real settled rounds — backfilled from
 `GET /api/bets/recent` and streamed live over the `LIVE_BET` socket frame.
@@ -91,7 +91,7 @@ Players are shown a stable pseudonymous handle (`Player_a1305f`) derived from a
 one-way hash of their user id, because the only human-readable identifier on
 the `User` model is an email address that must not be published.
 
-### 🔐 Provably fair
+###  Provably fair
 
 Every round is decided by `HMAC-SHA256(serverSeed, clientSeed:nonce)`. The
 hashed server seed is published **before** the bet; the seed itself is revealed
@@ -101,7 +101,7 @@ next round's outcome.
 The bet-details dialog exposes the commitment, the client seed, and the nonce,
 and shows the server seed the moment it is safe to do so.
 
-### 🔥 Daily play streak
+###  Daily play streak
 
 Consecutive **UTC calendar days** with at least one settled bet — not a rolling
 24-hour window, which would break a streak for a player betting at 23:00 and
@@ -113,7 +113,7 @@ then 22:00 the following evening.
   ledger so it respects the frozen-account gate and lands in transaction
   history.
 
-### 🎡 Daily bonus wheel
+###  Daily bonus wheel
 
 One free spin every 24 hours across five weighted segments. The outcome is
 drawn on the server and the animation is scheduled to *land* on the returned
@@ -125,7 +125,7 @@ on the wheel is one a player can actually win.
 
 ---
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 **Frontend**
 - Next.js 14 (App Router) · React 18 · TypeScript 5.5
@@ -146,7 +146,7 @@ on the wheel is one a player can actually win.
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -181,8 +181,8 @@ DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/frigat"
 
 | Key | Required | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `JWT_SECRET` | ✅ | Signs session tokens — use a long random value |
+| `DATABASE_URL` |+ | PostgreSQL connection string |
+| `JWT_SECRET` |+ | Signs session tokens — use a long random value |
 | `PORT` | — | API port (defaults to `4000`) |
 | `HOST` | — | Bind address (defaults to `0.0.0.0`) |
 | `NODE_ENV` | — | `development` \| `production` |
@@ -197,12 +197,12 @@ DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/frigat"
 
 | Key | Required | Purpose |
 | --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | ✅ | e.g. `http://localhost:4000` |
-| `NEXT_PUBLIC_WS_URL` | ✅ | e.g. `ws://localhost:4000/ws` |
-| `API_URL` | ✅ | Server-side API base for route handlers |
-| `JWT_SECRET` | ✅ | Must match the server's, to verify the session cookie |
+| `NEXT_PUBLIC_API_URL` | + | e.g. `http://localhost:4000` |
+| `NEXT_PUBLIC_WS_URL` | + | e.g. `ws://localhost:4000/ws` |
+| `API_URL` | + | Server-side API base for route handlers |
+| `JWT_SECRET` | + | Must match the server's, to verify the session cookie |
 
-> ⚠️ **Never commit these files.** `.env` and `.env.*` are gitignored. The
+ **Never commit these files.** `.env` and `.env.*` are gitignored. The
 > Cryptomus keys move real money and `JWT_SECRET` grants session forgery — a
 > leaked value means rotating credentials, not just a new commit.
 
@@ -249,7 +249,7 @@ Open **http://localhost:3000**.
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 frigat/
@@ -317,6 +317,6 @@ frigat/
 
 ---
 
-## 📄 License
+## License
 
 Private and unpublished. All rights reserved.
