@@ -41,6 +41,11 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   FAILED
+  /// Withdrawn by the player or rejected before it moved money. Distinct from
+  /// FAILED, which means the transfer was attempted and did not succeed — the
+  /// two need separating for reconciliation and for support to answer "where
+  /// did my withdrawal go".
+  CANCELED
 }
 
 /// Lifecycle of a Cryptomus invoice or payout, mirroring the provider's own
@@ -90,10 +95,10 @@ model User {
 
   // ── RevShare referral engine ──
   /// This user's own code, handed out to recruit others (?ref=<code>).
-  referralCode String  @unique @default(cuid())
+  referralCode       String  @unique @default(cuid())
   /// Who recruited this user. Set once at registration and never reassigned —
   /// a mutable attribution would let a later ?ref= steal an existing downline.
-  referredById String?
+  referredById       String?
   /// Share of a downline's net losses paid to THIS user as the referrer.
   /// Per-user so individual affiliates can be given a custom cut.
   revSharePercentage Decimal @default(25.00) @db.Decimal(5, 2)
@@ -105,50 +110,50 @@ model User {
 
   // ── Daily play streak ──
   /// Consecutive calendar days with at least one settled bet.
-  currentStreak Int @default(0)
+  currentStreak     Int       @default(0)
   /// High-water mark, kept for display after a break.
-  longestStreak Int @default(0)
+  longestStreak     Int       @default(0)
   /// Start of the last UTC day the player bet on. Date-only semantics: two bets
   /// in one day must not advance the streak twice, and the comparison has to be
   /// stable regardless of the hour a player bets at.
-  lastPlayedDate DateTime?
+  lastPlayedDate    DateTime?
   /// Price to reinstate a broken streak, priced when the break is detected.
   /// Decimal, not Float: this is charged against a real balance, and a float
   /// cannot hold a money value exactly.
-  streakRestoreCost Decimal @default(0) @db.Decimal(18, 8)
+  streakRestoreCost Decimal   @default(0) @db.Decimal(18, 8)
   /// The streak a paid restore would bring back. Held separately so the offer
   /// survives `currentStreak` being zeroed at the break.
-  restorableStreak Int @default(0)
+  restorableStreak  Int       @default(0)
   /// When the break was recorded. The restore window is measured from here,
   /// NOT from lastPlayedDate — recordPlay sets lastPlayedDate to today in the
   /// same call that detects the break, so a window keyed off it would compute
   /// a zero-day gap and the offer could never be shown.
-  streakBrokenAt DateTime?
+  streakBrokenAt    DateTime?
 
   wallets        Wallet[]
   payments       Payment[]
   withdrawals    Withdrawal[]
   rakebackClaims RakebackClaim[]
   gameSessions   GameSession[]
-  provableSeeds ProvableSeed[]
-  auditActions  AdminAuditLog[] @relation("AdminActions")
-  auditTargets  AdminAuditLog[] @relation("AuditTargets")
+  provableSeeds  ProvableSeed[]
+  auditActions   AdminAuditLog[] @relation("AdminActions")
+  auditTargets   AdminAuditLog[] @relation("AuditTargets")
 
   @@index([telegramId])
   @@index([referredById])
 }
 
 model Wallet {
-  id        String   @id @default(cuid())
-  userId    String
-  balance   Decimal  @default(0) @db.Decimal(18, 8)
+  id               String   @id @default(cuid())
+  userId           String
+  balance          Decimal  @default(0) @db.Decimal(18, 8)
   /// Accrued RevShare earnings, held separately from the wagerable `balance`.
   /// Consequence: summing this wallet's transactions no longer reconciles to
   /// `balance` alone — AFFILIATE_REWARD rows settle against this column
   /// instead. Any reconciliation job must net them out per type.
-  affiliateBalance Decimal @default(0.00) @db.Decimal(18, 8)
-  currency  String   @default("USD")
-  updatedAt DateTime @updatedAt
+  affiliateBalance Decimal  @default(0.00) @db.Decimal(18, 8)
+  currency         String   @default("USD")
+  updatedAt        DateTime @updatedAt
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
@@ -158,18 +163,28 @@ model Wallet {
 }
 
 model Transaction {
-  id        String            @id @default(cuid())
-  walletId  String
-  type      TransactionType
-  amount    Decimal           @db.Decimal(18, 8)
-  status    TransactionStatus @default(PENDING)
-  txHash    String?           @unique
-  createdAt DateTime          @default(now())
+  id         String            @id @default(cuid())
+  walletId   String
+  type       TransactionType
+  amount     Decimal           @db.Decimal(18, 8)
+  status     TransactionStatus @default(PENDING)
+  txHash     String?           @unique
+  /// Identifier at the payment provider — a Cryptomus invoice uuid for a
+  /// deposit, a payout id for a withdrawal. Separate from `txHash`, which is
+  /// the on-chain hash: a pending invoice has a provider id long before any
+  /// chain confirms it, and reconciliation needs to match on the provider's
+  /// reference, not the blockchain's.
+  providerId String?
+  createdAt  DateTime          @default(now())
+  /// Set on every status transition, so PENDING → COMPLETED is timestamped.
+  /// `createdAt` alone cannot answer how long a withdrawal sat unprocessed.
+  updatedAt  DateTime          @default(now()) @updatedAt
 
   wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Restrict)
 
   @@index([walletId, createdAt])
   @@index([status])
+  @@index([providerId])
 }
 
 /// A Cryptomus deposit invoice.
@@ -181,10 +196,10 @@ model Transaction {
 /// non-null value means this invoice has already been credited, and Cryptomus
 /// retries webhooks until it gets a 200.
 model Payment {
-  id       String @id @default(cuid())
+  id       String              @id @default(cuid())
   userId   String
   /// Invoice amount in `currency`, as requested by the player.
-  amount   Decimal @db.Decimal(18, 8)
+  amount   Decimal             @db.Decimal(18, 8)
   /// Asset the player pays in (USDT, BTC, ETH, LTC).
   currency String
   status   CryptoPaymentStatus @default(PENDING)
@@ -226,9 +241,9 @@ model Payment {
 /// hold. A provider failure refunds by rejecting that row rather than by
 /// incrementing a balance here.
 model Withdrawal {
-  id       String @id @default(cuid())
+  id       String              @id @default(cuid())
   userId   String
-  amount   Decimal @db.Decimal(18, 8)
+  amount   Decimal             @db.Decimal(18, 8)
   currency String
   status   CryptoPaymentStatus @default(PENDING)
 
