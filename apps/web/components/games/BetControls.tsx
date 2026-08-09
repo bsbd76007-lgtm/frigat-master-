@@ -41,6 +41,8 @@ export interface BetControlsProps {
   onBet: () => void;
   onCashout?: () => void;
   canCashout?: boolean;
+  /** Cashout button colour. Crash uses green; the default is the gold pill. */
+  cashoutTone?: 'gold' | 'green';
   cashoutAmount?: string | null;
   cashoutMultiplier?: number | null;
   disabled?: boolean;
@@ -92,6 +94,8 @@ const CSS = `
 .fg-bet__action:disabled { opacity: .5; cursor: not-allowed; }
 .fg-bet__action--cashout { color: #1a1204; background: #f5b83d; }
 .fg-bet__action--cashout:focus-visible { box-shadow: 0 0 0 3px rgba(245,184,61,.35); }
+.fg-bet__action--cashout-green { color: var(--fg-bg); background: var(--fg-accent); }
+.fg-bet__action--cashout-green:focus-visible { box-shadow: 0 0 0 3px rgba(0,231,1,.35); }
 .fg-bet__quote { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; opacity: .8; }
 @media (prefers-reduced-motion: reduce) {
   .fg-bet__input, .fg-bet__mod, .fg-bet__action { transition: none; }
@@ -108,6 +112,7 @@ export function BetControls({
   onBet,
   onCashout,
   canCashout = false,
+  cashoutTone = 'gold',
   cashoutAmount = null,
   cashoutMultiplier = null,
   disabled = false,
@@ -263,7 +268,9 @@ export function BetControls({
       {showCashout ? (
         <button
           type="submit"
-          className="fg-bet__action fg-bet__action--cashout"
+          className={`fg-bet__action fg-bet__action--cashout${
+            cashoutTone === 'green' ? ' fg-bet__action--cashout-green' : ''
+          }`}
           disabled={disabled || busy}
         >
           {busy ? 'Cashing out…' : 'Cashout'}

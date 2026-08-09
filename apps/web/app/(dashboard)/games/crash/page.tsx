@@ -90,8 +90,14 @@ export default function CrashPage() {
     [crashRounds]
   );
 
-  const canCashout = hasBet && cashedOutAt === null && phase === 'RUNNING';
+  /* Action-button state machine, in priority order:
+     1. BETTING + no bet yet     → "Place bet"
+     2. RUNNING + live bet       → green "Cashout" with the live payout
+     3. anything else (already cashed out, or no bet in the active round)
+                                 → disabled "Waiting for next round" */
+  const hasCashedOut = cashedOutAt !== null;
   const canBet = phase === 'BETTING' && !hasBet;
+  const canCashout = phase === 'RUNNING' && hasBet && !hasCashedOut;
 
   return (
     <GameShell
@@ -135,6 +141,7 @@ export default function CrashPage() {
             balance={balance.balance}
             currency={balance.currency}
             canCashout={canCashout}
+            cashoutTone="green"
             cashoutMultiplier={canCashout ? multiplier : null}
             /* The live value of cashing out right now. The button showed only
                the multiplier before, leaving the player to do the arithmetic
@@ -152,17 +159,15 @@ export default function CrashPage() {
             }}
             disabled={!canBet && !canCashout}
             busy={busy}
-            /* `hasBet` is tested BEFORE the phase: the previous order checked
-               `phase === 'BETTING'` first, so a player who had already bet
-               still read "Place bet" on a disabled button for the whole
-               betting window — no confirmation their stake had landed. */
+            /* Reached only when the cashout button is not showing. A player who
+               has bet but is still inside the betting window gets explicit
+               confirmation their stake landed; every other case is the
+               waiting state. */
             betLabel={
-              hasBet
-                ? phase === 'BETTING'
+              canBet
+                ? 'Place bet'
+                : hasBet && !hasCashedOut && phase === 'BETTING'
                   ? 'Bet placed · waiting for round'
-                  : 'Bet placed'
-                : phase === 'BETTING'
-                  ? 'Place bet'
                   : 'Waiting for next round'
             }
           />

@@ -144,215 +144,215 @@ export default function ChickenRoad() {
   const rowIndexes = Array.from({ length: GAME_CONFIG.ROWS }, (_, i) => GAME_CONFIG.ROWS - 1 - i);
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-6 min-h-[700px] select-none rounded-2xl bg-[#131b26] p-4 text-white shadow-2xl">
+    <div className="w-full min-h-[600px] flex flex-col lg:flex-row">
       {/* ---------- Board ---------- */}
-      <div className="relative flex flex-1 min-h-[700px] w-full overflow-hidden rounded-xl bg-[#1a2130]">
-          <div
-            className={[
-              'relative flex h-full w-full flex-1 flex-col transition-all duration-300',
-              gameState === GAME_STATE.IDLE ? 'blur-sm brightness-50' : '',
-            ].join(' ')}
-          >
-            {/* Lane separators */}
-            <div className="pointer-events-none absolute inset-0 flex">
-              {Array.from({ length: GAME_CONFIG.LANES }).map((_, i) => (
-                <div
-                  key={i}
-                  className={[
-                    'flex-1',
-                    i < GAME_CONFIG.LANES - 1 ? 'border-r-2 border-dashed border-gray-500' : '',
-                  ].join(' ')}
-                />
-              ))}
-            </div>
-
-            {/* Rows */}
-            <div className="relative flex h-full w-full flex-1 flex-col">
-              {rowIndexes.map((row) => {
-                const isActive = isPlaying && row === currentRow;
-                const rowMultiplier = multiplierAt(row + 1);
-                const chosenLane = path[row];
-
-                return (
-                  <div
-                    key={row}
-                    className={[
-                      'flex w-full flex-1 items-center justify-around px-2 transition-opacity duration-200',
-                      isActive || isOver || row < currentRow ? 'opacity-100' : 'opacity-50',
-                    ].join(' ')}
-                  >
-                    {Array.from({ length: GAME_CONFIG.LANES }).map((_, lane) => {
-                      const revealed = revealedCells[`${row}-${lane}`];
-                      const isCrashCell =
-                        gameState === GAME_STATE.CRASHED && row === currentRow && crashLane === lane;
-                      const isCoin = row < currentRow && chosenLane === lane;
-
-                      if (isActive) {
-                        return (
-                          <button
-                            key={lane}
-                            type="button"
-                            onClick={() => selectCell(row, lane)}
-                            className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-gray-700 bg-gray-800 text-xs font-bold text-yellow-300 shadow-inner transition-transform duration-150 hover:scale-110 hover:border-yellow-500 active:scale-95"
-                          >
-                            {rowMultiplier.toFixed(2)}x
-                          </button>
-                        );
-                      }
-
-                      return (
-                        <div
-                          key={lane}
-                          className={[
-                            'flex h-16 w-16 items-center justify-center rounded-full text-3xl transition-colors duration-300',
-                            isCrashCell
-                              ? 'border-4 border-red-500 bg-red-600/70'
-                              : isCoin
-                                ? 'bg-transparent'
-                                : revealed === 'car'
-                                  ? 'border-4 border-red-900/60 bg-red-950/40'
-                                  : 'border-4 border-gray-800/60 bg-gray-900/40',
-                          ].join(' ')}
-                        >
-                          {isCrashCell ? (
-                            <span className="animate-[chicken-road-drive_0.6s_ease-in]">🚗</span>
-                          ) : isCoin ? (
-                            '🪙'
-                          ) : revealed === 'car' ? (
-                            <span className="opacity-40">🚗</span>
-                          ) : (
-                            <span className="text-[10px] text-gray-500">
-                              {rowMultiplier.toFixed(2)}x
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-
-              {/* Chicken — % positioning so it tracks any board height */}
+      <div className="relative flex-1 w-full min-h-[500px]">
+        <div
+          className={[
+            'relative flex h-full w-full flex-1 flex-col transition-all duration-300',
+            gameState === GAME_STATE.IDLE ? 'blur-sm brightness-50' : '',
+          ].join(' ')}
+        >
+          {/* Lane separators */}
+          <div className="pointer-events-none absolute inset-0 flex">
+            {Array.from({ length: GAME_CONFIG.LANES }).map((_, i) => (
               <div
-                className="pointer-events-none absolute z-10 flex h-16 w-16 items-center justify-center text-4xl transition-all duration-500 ease-out"
-                style={{
-                  left: `calc(${(chickenLane + 0.5) * (100 / GAME_CONFIG.LANES)}% - 2rem)`,
-                  bottom: `calc(${((chickenRow + 0.5) * 100) / GAME_CONFIG.ROWS}% - 2rem)`,
-                }}
-              >
-                {gameState === GAME_STATE.CRASHED ? '💥' : '🐔'}
-              </div>
-            </div>
+                key={i}
+                className={[
+                  'flex-1',
+                  i < GAME_CONFIG.LANES - 1 ? 'border-r-2 border-dashed border-gray-500' : '',
+                ].join(' ')}
+              />
+            ))}
+          </div>
 
-            {/* Start pad */}
-            <div className="flex shrink-0 items-center justify-center border-t-2 border-gray-700 py-3 text-xs uppercase tracking-widest text-gray-500">
-              start
+          {/* Rows */}
+          <div className="relative flex h-full w-full flex-1 flex-col">
+            {rowIndexes.map((row) => {
+              const isActive = isPlaying && row === currentRow;
+              const rowMultiplier = multiplierAt(row + 1);
+              const chosenLane = path[row];
+
+              return (
+                <div
+                  key={row}
+                  className={[
+                    'flex w-full flex-1 items-center justify-around px-2 transition-opacity duration-200',
+                    isActive || isOver || row < currentRow ? 'opacity-100' : 'opacity-50',
+                  ].join(' ')}
+                >
+                  {Array.from({ length: GAME_CONFIG.LANES }).map((_, lane) => {
+                    const revealed = revealedCells[`${row}-${lane}`];
+                    const isCrashCell =
+                      gameState === GAME_STATE.CRASHED && row === currentRow && crashLane === lane;
+                    const isCoin = row < currentRow && chosenLane === lane;
+
+                    if (isActive) {
+                      return (
+                        <button
+                          key={lane}
+                          type="button"
+                          onClick={() => selectCell(row, lane)}
+                          className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-gray-700 bg-gray-800 text-xs font-bold text-yellow-300 shadow-inner transition-transform duration-150 hover:scale-110 hover:border-yellow-500 active:scale-95"
+                        >
+                          {rowMultiplier.toFixed(2)}x
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={lane}
+                        className={[
+                          'flex h-16 w-16 items-center justify-center rounded-full text-3xl transition-colors duration-300',
+                          isCrashCell
+                            ? 'border-4 border-red-500 bg-red-600/70'
+                            : isCoin
+                              ? 'bg-transparent'
+                              : revealed === 'car'
+                                ? 'border-4 border-red-900/60 bg-red-950/40'
+                                : 'border-4 border-gray-800/60 bg-gray-900/40',
+                        ].join(' ')}
+                      >
+                        {isCrashCell ? (
+                          <span className="animate-[chicken-road-drive_0.6s_ease-in]">🚗</span>
+                        ) : isCoin ? (
+                          '🪙'
+                        ) : revealed === 'car' ? (
+                          <span className="opacity-40">🚗</span>
+                        ) : (
+                          <span className="text-[10px] text-gray-500">
+                            {rowMultiplier.toFixed(2)}x
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            {/* Chicken — % positioning so it tracks any board height */}
+            <div
+              className="pointer-events-none absolute z-10 flex h-16 w-16 items-center justify-center text-4xl transition-all duration-500 ease-out"
+              style={{
+                left: `calc(${(chickenLane + 0.5) * (100 / GAME_CONFIG.LANES)}% - 2rem)`,
+                bottom: `calc(${((chickenRow + 0.5) * 100) / GAME_CONFIG.ROWS}% - 2rem)`,
+              }}
+            >
+              {gameState === GAME_STATE.CRASHED ? '💥' : '🐔'}
             </div>
           </div>
 
-          {gameState === GAME_STATE.IDLE && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="rounded-lg bg-black/60 px-4 py-2 text-sm text-gray-200">
-                Place your bet and start crossing
-              </span>
+          {/* Start pad */}
+          <div className="flex shrink-0 items-center justify-center border-t-2 border-gray-700 py-3 text-xs uppercase tracking-widest text-gray-500">
+            start
+          </div>
+        </div>
+
+        {gameState === GAME_STATE.IDLE && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="rounded-lg bg-black/60 px-4 py-2 text-sm text-gray-200">
+              Place your bet and start crossing
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ---------- Controls ---------- */}
+      <div className="flex w-full lg:w-[350px] shrink-0 flex-col gap-4 rounded-xl bg-[#1a2130] p-4">
+        <div className="rounded-lg bg-black/20 p-3 text-center">
+          <div className="text-xs uppercase tracking-wide text-gray-400">Balance</div>
+          <div className="text-xl font-bold text-green-400">
+            {GAME_CONFIG.CURRENCY}
+            {balance.toFixed(2)}
+          </div>
+        </div>
+
+        <div className="text-center">
+          <div className="text-4xl font-extrabold text-yellow-400">{multiplier.toFixed(2)}x</div>
+          {isPlaying && (
+            <div className="mt-1 text-xs text-gray-400">
+              Next: <span className="text-gray-200">{nextMultiplier.toFixed(2)}x</span>
             </div>
           )}
         </div>
 
-      {/* ---------- Controls ---------- */}
-      <div className="flex w-full lg:w-[350px] shrink-0 flex-col gap-4 rounded-xl bg-[#1a2130] p-4">
-          <div className="rounded-lg bg-black/20 p-3 text-center">
-            <div className="text-xs uppercase tracking-wide text-gray-400">Balance</div>
-            <div className="text-xl font-bold text-green-400">
-              {GAME_CONFIG.CURRENCY}
-              {balance.toFixed(2)}
-            </div>
-          </div>
-
-          <div className="text-center">
-            <div className="text-4xl font-extrabold text-yellow-400">{multiplier.toFixed(2)}x</div>
-            {isPlaying && (
-              <div className="mt-1 text-xs text-gray-400">
-                Next: <span className="text-gray-200">{nextMultiplier.toFixed(2)}x</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-xs uppercase tracking-wide text-gray-400">Bet Amount</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={GAME_CONFIG.MIN_BET}
-                max={Math.min(GAME_CONFIG.MAX_BET, balance)}
-                step={1}
-                value={betAmount}
-                disabled={isPlaying}
-                onChange={(e) => setBetAmount(Math.max(0, Number(e.target.value)))}
-                className="w-full min-w-0 flex-1 rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm outline-none focus:border-yellow-500 disabled:opacity-50"
-              />
-              <button
-                type="button"
-                disabled={isPlaying}
-                onClick={() => setBetAmount((b) => Math.max(GAME_CONFIG.MIN_BET, Number((b / 2).toFixed(2))))}
-                className="rounded-lg bg-gray-800 px-3 py-2 text-xs hover:bg-gray-700 disabled:opacity-50"
-              >
-                ½
-              </button>
-              <button
-                type="button"
-                disabled={isPlaying}
-                onClick={() =>
-                  setBetAmount((b) => Math.min(GAME_CONFIG.MAX_BET, Number((b * 2).toFixed(2))))
-                }
-                className="rounded-lg bg-gray-800 px-3 py-2 text-xs hover:bg-gray-700 disabled:opacity-50"
-              >
-                2×
-              </button>
-            </div>
-          </div>
-
-          {gameState === GAME_STATE.CRASHED && (
-            <div className="rounded-lg bg-red-950/60 p-3 text-center text-sm font-semibold text-red-400">
-              💥 Hit by a car! You lost {GAME_CONFIG.CURRENCY}
-              {betAmount.toFixed(2)}
-            </div>
-          )}
-          {gameState === GAME_STATE.CASHED_OUT && (
-            <div className="rounded-lg bg-green-950/60 p-3 text-center text-sm font-semibold text-green-400">
-              🎉 Cashed out {GAME_CONFIG.CURRENCY}
-              {(lastWin ?? 0).toFixed(2)}!
-            </div>
-          )}
-
-          {isPlaying ? (
+        <div className="flex flex-col gap-2">
+          <label className="text-xs uppercase tracking-wide text-gray-400">Bet Amount</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={GAME_CONFIG.MIN_BET}
+              max={Math.min(GAME_CONFIG.MAX_BET, balance)}
+              step={1}
+              value={betAmount}
+              disabled={isPlaying}
+              onChange={(e) => setBetAmount(Math.max(0, Number(e.target.value)))}
+              className="w-full min-w-0 flex-1 rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm outline-none focus:border-yellow-500 disabled:opacity-50"
+            />
             <button
               type="button"
-              onClick={cashOut}
-              disabled={currentRow === 0}
-              className="mt-auto w-full rounded-lg bg-yellow-500 px-6 py-3 font-bold text-black transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={isPlaying}
+              onClick={() => setBetAmount((b) => Math.max(GAME_CONFIG.MIN_BET, Number((b / 2).toFixed(2))))}
+              className="rounded-lg bg-gray-800 px-3 py-2 text-xs hover:bg-gray-700 disabled:opacity-50"
             >
-              Cash Out {GAME_CONFIG.CURRENCY}
-              {(betAmount * multiplier).toFixed(2)}
+              ½
             </button>
-          ) : gameState === GAME_STATE.IDLE ? (
             <button
               type="button"
-              onClick={startGame}
-              disabled={betAmount < GAME_CONFIG.MIN_BET || betAmount > balance}
-              className="mt-auto w-full rounded-lg bg-green-500 px-6 py-3 font-bold text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={isPlaying}
+              onClick={() =>
+                setBetAmount((b) => Math.min(GAME_CONFIG.MAX_BET, Number((b * 2).toFixed(2))))
+              }
+              className="rounded-lg bg-gray-800 px-3 py-2 text-xs hover:bg-gray-700 disabled:opacity-50"
             >
-              Place Bet
+              2×
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={reset}
-              className="mt-auto w-full rounded-lg bg-blue-500 px-6 py-3 font-bold text-white transition hover:bg-blue-400"
-            >
-              Play Again
-            </button>
-          )}
+          </div>
+        </div>
+
+        {gameState === GAME_STATE.CRASHED && (
+          <div className="rounded-lg bg-red-950/60 p-3 text-center text-sm font-semibold text-red-400">
+            💥 Hit by a car! You lost {GAME_CONFIG.CURRENCY}
+            {betAmount.toFixed(2)}
+          </div>
+        )}
+        {gameState === GAME_STATE.CASHED_OUT && (
+          <div className="rounded-lg bg-green-950/60 p-3 text-center text-sm font-semibold text-green-400">
+            🎉 Cashed out {GAME_CONFIG.CURRENCY}
+            {(lastWin ?? 0).toFixed(2)}!
+          </div>
+        )}
+
+        {isPlaying ? (
+          <button
+            type="button"
+            onClick={cashOut}
+            disabled={currentRow === 0}
+            className="mt-auto w-full rounded-lg bg-yellow-500 px-6 py-3 font-bold text-black transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Cash Out {GAME_CONFIG.CURRENCY}
+            {(betAmount * multiplier).toFixed(2)}
+          </button>
+        ) : gameState === GAME_STATE.IDLE ? (
+          <button
+            type="button"
+            onClick={startGame}
+            disabled={betAmount < GAME_CONFIG.MIN_BET || betAmount > balance}
+            className="mt-auto w-full rounded-lg bg-green-500 px-6 py-3 font-bold text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Place Bet
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={reset}
+            className="mt-auto w-full rounded-lg bg-blue-500 px-6 py-3 font-bold text-white transition hover:bg-blue-400"
+          >
+            Play Again
+          </button>
+        )}
       </div>
     </div>
   );
