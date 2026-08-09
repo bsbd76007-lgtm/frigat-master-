@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { ThemeToggle } from '@/components/nav/ThemeToggle';
-import { Logo } from '@/components/art/Logo';
 import { PlayersOnline } from '@/components/feed/PlayersOnline';
 import WalletModal, { type WalletTab } from '@/components/modals/WalletModal';
 import DepositModal from '@/components/modals/DepositModal';
@@ -24,7 +24,13 @@ const STATUS_CLASS: Record<string, string> = {
   idle: 'dash__status',
 };
 
-export function Navbar() {
+interface NavbarProps {
+  onMenuToggle?: () => void;
+  menuOpen?: boolean;
+  onSearch?: () => void;
+}
+
+export function Navbar({ onMenuToggle, menuOpen, onSearch }: NavbarProps) {
   const { balance, socket, setFairnessOpen, token, setToken } = useGameSocket();
   const { t } = useLanguage();
   const pathname = usePathname();
@@ -58,33 +64,55 @@ export function Navbar() {
 
   return (
     <header className="dash__header">
+      <button
+        type="button"
+        className="dash__burger"
+        onClick={onMenuToggle}
+        aria-label="Toggle navigation"
+        aria-expanded={menuOpen}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </button>
+
       {/* The SVG carries its own <title>, so the link needs no extra label. */}
-      <Link className="dash__brand" href="/">
-        <Logo height={34} />
+      <Link className="dash__brand" href="/" aria-label="FRIGAT home">
+        {/* Sized from the file's own 1070x672 (ratio 1.59), not the 3:1 the
+            brief assumed — 120x40 would squash it by half. Height is pinned to
+            the header band and width follows via CSS `auto`, so the intrinsic
+            numbers here only set the decode hint and reserve layout space. */}
+        <Image
+          src="/logo.png"
+          alt="FRIGAT"
+          width={1070}
+          height={672}
+          priority
+          className="dash__brand-img"
+        />
       </Link>
 
-      <nav className="dash__nav" aria-label={t('nav.aria')}>
-        {NAV_GAMES.map((game) => {
-          const href = `/games/${game.slug}`;
-          return (
-            <Link
-              key={game.slug}
-              href={href}
-              className="dash__link"
-              aria-current={pathname === href ? 'page' : undefined}
-            >
-              {t(game.labelKey)}
-            </Link>
-          );
-        })}
-        <Link
-          href="/referrals"
-          className="dash__link"
-          aria-current={pathname === '/referrals' ? 'page' : undefined}
-        >
-          {t('nav.referrals')}
-        </Link>
-      </nav>
+      {/* Search sits where the game links were: the rail owns navigation now,
+          so the header is for finding things and for the cashier. */}
+      <form
+        className="dash__search"
+        role="search"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSearch?.();
+        }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+          <path d="M15.5 15.5 21 21" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+        <input
+          type="search"
+          placeholder={t('home.filters.search')}
+          aria-label={t('home.filters.search')}
+          onFocus={() => onSearch?.()}
+        />
+      </form>
 
       {/* Ambient context, so it sits with the nav rather than competing with
           the cashier controls on the right — which already wrap on mobile. */}

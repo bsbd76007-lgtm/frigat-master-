@@ -20,15 +20,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
-
-import { formatDecimalString } from '@/lib/decimal';
-interface Winner {
-  id: string;
-  username: string;
-  gameType: string;
-  payout: string;
-  multiplier: number;
-}
+import LiveBetsFeed from '@/components/feed/LiveBetsFeed';
 
 const JACKPOT_SEED = {
   grand: 184_000,
@@ -48,7 +40,6 @@ const TIERS = [
   { id: 'minor', label: 'Minor', tone: 'minor' },
 ] as const;
 
-const MAX_WINNERS = 8;
 
 function useJackpots() {
   // Ticks once a second. Seeded from a constant rather than Math.random() so
@@ -72,36 +63,9 @@ function useJackpots() {
 }
 
 export function JackpotDock() {
-  const { socket } = useGameSocket();
   const jackpots = useJackpots();
-  const [winners, setWinners] = useState<Winner[]>([]);
 
-  const { subscribe } = socket;
 
-  useEffect(() => {
-    return subscribe('LIVE_BET', (data) => {
-      const payout = String(data.payout ?? '0');
-      const multiplier =
-        typeof data.multiplier === 'number' ? data.multiplier : 0;
-      if (Number(payout) <= 0 || multiplier <= 1) return;
-
-      setWinners((prev) =>
-        [
-          {
-            id:
-              typeof data.betId === 'string'
-                ? data.betId
-                : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            username: String(data.username ?? 'player'),
-            gameType: String(data.gameType ?? 'GAME'),
-            payout,
-            multiplier,
-          },
-          ...prev,
-        ].slice(0, MAX_WINNERS)
-      );
-    });
-  }, [subscribe]);
 
   return (
     <aside className="dock" aria-label="Jackpots and recent winners">
@@ -124,37 +88,10 @@ export function JackpotDock() {
         </div>
       </section>
 
-      <section className="dock__panel">
-        <h2 className="dock__title">
-          <span className="dock__pulse" aria-hidden="true" />
-          Live wins
-        </h2>
-        {winners.length === 0 ? (
-          <p className="dock__empty">
-            Waiting for the next win to come through…
-          </p>
-        ) : (
-          <ul className="dock__winners">
-            {winners.map((winner) => (
-              <li key={winner.id} className="dock__winner">
-                <span className="dock__winner-who">
-                  <b>{winner.username}</b>
-                  <small>{winner.gameType}</small>
-                </span>
-                <span className="dock__winner-amt">
-                  <b>${formatDecimalString(winner.payout, 2)}</b>
-                  <small>{winner.multiplier.toFixed(2)}×</small>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <p className="dock__note">
-        Jackpot figures are illustrative — FRIGAT does not currently run a
-        progressive pool. Live wins are real, streamed from the game socket.
-      </p>
+      {/* The live-bets feed itself, rather than a second winners list: this
+          panel used to subscribe to the same LIVE_BET frames the feed already
+          consumes, so two components rendered one stream. */}
+      <LiveBetsFeed compact />
     </aside>
   );
 }

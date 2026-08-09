@@ -15,7 +15,12 @@ const MAX_ROWS = 20;
 const TABS = ['All Bets', 'High Rollers', 'My Bets'] as const;
 type Tab = (typeof TABS)[number];
 
-export default function LiveBetsFeed() {
+interface LiveBetsFeedProps {
+  /** Sidebar variant: narrower rows, fewer of them, no tab bar. */
+  compact?: boolean;
+}
+
+export default function LiveBetsFeed({ compact = false }: LiveBetsFeedProps) {
   const { socket, token } = useGameSocket();
   const [tab, setTab] = useState<Tab>('All Bets');
   const [bets, setBets] = useState<LiveBet[]>([]);
@@ -101,14 +106,18 @@ export default function LiveBetsFeed() {
 
   const closeDetails = useCallback(() => setSelected(null), []);
 
+  // The sidebar column is ~240px, so a compact feed drops the tab bar and
+  // shows fewer rows rather than shrinking type until it is unreadable.
+  const rows = compact ? filtered.slice(0, 8) : filtered;
+
   return (
-    <section className="feed">
+    <section className={`feed${compact ? ' feed--compact' : ''}`}>
       <div className="feed__header">
         <div>
           <h3>Live Bets</h3>
           <p className="feed__subtitle">Real-time action from the tables and crash rounds.</p>
         </div>
-        <div className="feed__tabs">
+        {!compact && <div className="feed__tabs">
           {TABS.map((option) => (
             <button
               type="button"
@@ -119,7 +128,7 @@ export default function LiveBetsFeed() {
               {option}
             </button>
           ))}
-        </div>
+        </div>}
       </div>
 
       <div className="feed__columns" aria-hidden="true">
@@ -131,10 +140,10 @@ export default function LiveBetsFeed() {
         <FeedSkeleton />
       ) : (
       <div className="feed__list">
-        {filtered.length === 0 ? (
+        {rows.length === 0 ? (
           <div className="feed__empty">No live bets yet.</div>
         ) : (
-          filtered.map((bet) => {
+          rows.map((bet) => {
             const { slug, name } = gameIdentity(bet.gameType);
             const Icon = GAME_ICONS[slug];
             const won = isWin(bet);

@@ -44,8 +44,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     secondaryCta: { labelKey: 'hero.welcomeBonus.secondaryCta', href: '/vip' },
     background: 'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 78% 30%, rgba(255,107,0,.20) 0%, rgba(255,107,0,.05) 45%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 78% 30%, rgba(0,231,1,.20) 0%, rgba(0,231,1,.05) 45%, transparent 100%)',
+    accent: '#00e701',
     art: 'car',
   },
   {
@@ -56,8 +56,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     cta: { labelKey: 'hero.joyPoints.cta', href: '/vip' },
     background: 'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 82% 22%, rgba(240,193,75,.18) 0%, rgba(255,107,0,.05) 48%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 82% 22%, rgba(240,193,75,.18) 0%, rgba(0,231,1,.05) 48%, transparent 100%)',
+    accent: '#00e701',
     art: 'vault',
   },
   {
@@ -70,8 +70,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     background:
       'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 12% 18%, rgba(255,107,0,.14) 0%, rgba(255,107,0,.04) 45%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 12% 18%, rgba(0,231,1,.14) 0%, rgba(0,231,1,.04) 45%, transparent 100%)',
+    accent: '#00e701',
   },
   {
     id: 'rakeback',
@@ -82,8 +82,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     background:
       'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 88% 12%, rgba(255,107,0,.14) 0%, rgba(255,107,0,.04) 45%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 88% 12%, rgba(0,231,1,.14) 0%, rgba(0,231,1,.04) 45%, transparent 100%)',
+    accent: '#00e701',
   },
   {
     id: 'daily-spin',
@@ -94,8 +94,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     background:
       'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 50% 100%, rgba(255,107,0,.14) 0%, rgba(255,107,0,.04) 45%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 50% 100%, rgba(0,231,1,.14) 0%, rgba(0,231,1,.04) 45%, transparent 100%)',
+    accent: '#00e701',
   },
   {
     id: 'crash-game',
@@ -106,8 +106,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     background:
       'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 75% 25%, rgba(255,107,0,.14) 0%, rgba(255,107,0,.04) 45%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 75% 25%, rgba(0,231,1,.14) 0%, rgba(0,231,1,.04) 45%, transparent 100%)',
+    accent: '#00e701',
   },
   {
     id: 'mines-game',
@@ -118,8 +118,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     background:
       'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 25% 75%, rgba(255,107,0,.14) 0%, rgba(255,107,0,.04) 45%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 25% 75%, rgba(0,231,1,.14) 0%, rgba(0,231,1,.04) 45%, transparent 100%)',
+    accent: '#00e701',
   },
   {
     id: 'crypto-deposits',
@@ -130,8 +130,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     background:
       'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 12% 88%, rgba(255,107,0,.14) 0%, rgba(255,107,0,.04) 45%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 12% 88%, rgba(0,231,1,.14) 0%, rgba(0,231,1,.04) 45%, transparent 100%)',
+    accent: '#00e701',
   },
   {
     id: 'community-chat',
@@ -142,8 +142,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     background:
       'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 88% 88%, rgba(255,107,0,.14) 0%, rgba(255,107,0,.04) 45%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 88% 88%, rgba(0,231,1,.14) 0%, rgba(0,231,1,.04) 45%, transparent 100%)',
+    accent: '#00e701',
   },
   {
     id: 'provably-fair',
@@ -154,8 +154,8 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     background:
       'linear-gradient(135deg, #14161b 0%, #0e0f12 100%)',
     tint:
-      'radial-gradient(120% 140% at 50% 0%, rgba(255,107,0,.14) 0%, rgba(255,107,0,.04) 45%, transparent 100%)',
-    accent: '#ff6b00',
+      'radial-gradient(120% 140% at 50% 0%, rgba(0,231,1,.14) 0%, rgba(0,231,1,.04) 45%, transparent 100%)',
+    accent: '#00e701',
   },
 ];
 

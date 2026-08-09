@@ -25,7 +25,7 @@ const PEGS: Peg[] = Array.from({ length: ROWS }).flatMap((_, row) => {
 const BINS = [
   { x: 6.5, fill: '#f0616d' },
   { x: 15, fill: '#f5b83d' },
-  { x: 23.5, fill: '#ff6b00' },
+  { x: 23.5, fill: '#00e701' },
   { x: 32, fill: '#f5b83d' },
   { x: 40.5, fill: '#f0616d' },
 ];
@@ -65,7 +65,7 @@ export function PlinkoIcon({ size = 40, title, ...rest }: GameIconProps) {
       <path
         d="M24 6v4.5l-3.6 5 3.6 5-4 5"
         fill="none"
-        stroke="#ff6b00"
+        stroke="#00e701"
         strokeWidth="1.3"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -85,7 +85,7 @@ export function PlinkoIcon({ size = 40, title, ...rest }: GameIconProps) {
       ))}
 
       {/* The live ball, mid-bounce off the third row. */}
-      <circle cx="20" cy="30.5" r="2.9" fill="#ff6b00" filter={`url(#${glow})`} />
+      <circle cx="20" cy="30.5" r="2.9" fill="#00e701" filter={`url(#${glow})`} />
       <circle cx="19.2" cy="29.7" r="1" fill="#e9fff8" />
 
       <g opacity=".9">

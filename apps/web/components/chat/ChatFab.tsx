@@ -5,12 +5,15 @@
  *
  * A circular icon button in the bottom-right corner.
  *
- * On the vertical offset: the bottom dock is also anchored to the bottom of
- * the viewport, and under 640px it spans the full width — a button at the
- * corner would land on top of it. Rather than pick one fixed offset that is
- * wrong at some size, the button tracks the dock's own scroll visibility: it
- * sits above the dock while the dock is showing, and drops to the corner once
- * the dock has slid away. Both use the same hook, so they cannot disagree.
+ * Scroll behaviour: hides on the way down, returns on the way up, and is
+ * always present near the top of the page. It shares `useScrollDirection` with
+ * the bottom dock, so the two move together instead of one sliding away while
+ * the other stays put.
+ *
+ * On the vertical offset: the dock is also anchored to the bottom of the
+ * viewport and spans the full width under 640px, so a button at the corner
+ * would land on top of it. While both are visible this one rides above the
+ * dock; when the dock leaves, this leaves with it.
  *
  * The badge is a hover affordance rather than an unread count. There is no
  * unread state to read — ChatSidebar keeps messages in component state and
@@ -28,11 +31,15 @@ interface ChatFabProps {
 
 export function ChatFab({ onOpen, hidden = false }: ChatFabProps) {
   const { t } = useLanguage();
-  const dockVisible = useScrollDirection();
+  // One hook drives both behaviours: the button rides above the dock while the
+  // dock is up, and slides off-screen with it on the way down. Reusing it
+  // rather than adding a second scroll listener keeps the two in lockstep —
+  // two listeners with their own thresholds would drift apart mid-scroll.
+  const isVisible = useScrollDirection();
 
   const className = [
     'chat-fab',
-    dockVisible ? 'chat-fab--raised' : '',
+    isVisible ? 'chat-fab--raised' : 'chat-fab--hidden',
     hidden ? 'chat-fab--gone' : '',
   ]
     .filter(Boolean)

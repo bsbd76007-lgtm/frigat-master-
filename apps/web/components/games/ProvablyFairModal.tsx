@@ -73,7 +73,7 @@ const CSS = `
   border: 1px solid var(--fg-line); border-radius: 8px; cursor: pointer;
   transition: color .15s ease, border-color .15s ease; }
 .fg-pf__close:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
-.fg-pf__close:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255,107,0,.2); }
+.fg-pf__close:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.2); }
 .fg-pf__list { display: flex; flex-direction: column; gap: 12px; margin: 18px 0 0; }
 .fg-pf__item { display: flex; flex-direction: column; gap: 5px; }
 .fg-pf__key { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
@@ -83,7 +83,7 @@ const CSS = `
   font-size: 9.5px; font-weight: 700; letter-spacing: 0; color: var(--fg-muted);
   background: var(--fg-line-2); border-radius: 50%; cursor: help; }
 .fg-pf__hint:hover { color: var(--fg-text); }
-.fg-pf__hint:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(255,107,0,.45); }
+.fg-pf__hint:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0,231,1,.45); }
 .fg-pf__code { flex: 1 1 auto; min-width: 0; padding: 9px 11px; font-size: 12.5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--fg-text);
   background: var(--fg-bg); border: 1px solid var(--fg-hover-2); border-radius: 7px;
@@ -93,26 +93,26 @@ const CSS = `
   color: var(--fg-text); background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: 7px;
   cursor: pointer; transition: background .15s ease, color .15s ease; }
 .fg-pf__copy:hover { background: var(--fg-hover-2); color: #fff; }
-.fg-pf__copy:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255,107,0,.2); }
+.fg-pf__copy:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.2); }
 .fg-pf__rotate { margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--fg-hover-2); }
 .fg-pf__row { display: flex; gap: 8px; margin-top: 9px; }
 .fg-pf__input { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 10px 12px;
   font-size: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--fg-text); background: var(--fg-bg); border: 1px solid var(--fg-line); border-radius: 10px;
   outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
-.fg-pf__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255,107,0,.18); }
+.fg-pf__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.18); }
 .fg-pf__input[aria-invalid="true"] { border-color: var(--fg-red); }
 .fg-pf__dice { flex: 0 0 auto; padding: 0 12px; font-size: 15px; color: var(--fg-text);
   background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: 8px; cursor: pointer; }
 .fg-pf__dice:hover { background: var(--fg-hover-2); }
-.fg-pf__dice:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255,107,0,.2); }
+.fg-pf__dice:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.2); }
 .fg-pf__warn { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--fg-muted); }
 .fg-pf__err { margin: 10px 0 0; font-size: 12.5px; font-weight: 500; color: var(--fg-red); }
 .fg-pf__submit { width: 100%; margin-top: 12px; padding: 12px 16px; font-size: 14px;
   font-weight: 700; color: var(--fg-bg); background: var(--fg-accent); border: none; border-radius: 8px;
   cursor: pointer; transition: filter .15s ease; }
 .fg-pf__submit:hover:not(:disabled) { filter: brightness(1.08); }
-.fg-pf__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,107,0,.35); }
+.fg-pf__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0,231,1,.35); }
 .fg-pf__submit:disabled { opacity: .5; cursor: not-allowed; }
 @keyframes fg-pf-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes fg-pf-rise { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }

@@ -36,7 +36,7 @@ const COLORS = {
   axis: '#243040',
   muted: '#6b7787',
   text: '#e6edf3',
-  live: '#ff6b00',
+  live: '#00e701',
   bust: '#f0616d',
   cashed: '#f5b83d',
 };

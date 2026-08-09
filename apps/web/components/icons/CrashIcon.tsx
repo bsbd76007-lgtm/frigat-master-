@@ -20,8 +20,8 @@ export function CrashIcon({ size = 40, title, ...rest }: GameIconProps) {
       {title && <title>{title}</title>}
       <defs>
         <linearGradient id={trail} x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stopColor="#ff6b00" stopOpacity="0" />
-          <stop offset="45%" stopColor="#ff6b00" stopOpacity=".55" />
+          <stop offset="0%" stopColor="#00e701" stopOpacity="0" />
+          <stop offset="45%" stopColor="#00e701" stopOpacity=".55" />
           <stop offset="100%" stopColor="#7ef7d4" />
         </linearGradient>
         <linearGradient id={body} x1="0" y1="1" x2="1" y2="0">
@@ -68,8 +68,8 @@ export function CrashIcon({ size = 40, title, ...rest }: GameIconProps) {
           d="M35 2.5c2.6 2.4 4 5.6 4 9.2 0 1.6-.3 3.2-.9 4.7h-6.2c-.6-1.5-.9-3.1-.9-4.7 0-3.6 1.4-6.8 4-9.2z"
           fill={`url(#${body})`}
         />
-        <path d="M31 10.5 27.6 15l3.5-.6z" fill="#ff6b00" />
-        <path d="M39 10.5 42.4 15l-3.5-.6z" fill="#ff6b00" />
+        <path d="M31 10.5 27.6 15l3.5-.6z" fill="#00e701" />
+        <path d="M39 10.5 42.4 15l-3.5-.6z" fill="#00e701" />
         <circle cx="35" cy="10" r="1.9" fill="#0a0f14" opacity=".85" />
         <circle cx="35" cy="10" r="1.1" fill="#7ef7d4" />
         <path

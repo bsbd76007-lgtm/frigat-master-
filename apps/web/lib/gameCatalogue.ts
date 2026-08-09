@@ -98,6 +98,29 @@ export const SECTIONS: ReadonlyArray<{
   { id: 'new', titleKey: 'home.sections.new' },
 ];
 
+/**
+ * Poster art in /public, keyed by slug.
+ *
+ * Every entry must exist in public/ or the card 404s its own art. A slug left
+ * out here is not a bug — GameCard falls back to the SVG icon, which is what
+ * keeps the grid whole for games whose poster has not been supplied yet.
+ *
+ * A slug left out renders its SVG icon instead — the fallback is what kept the
+ * grid whole while art was still being supplied, and it stays in place for any
+ * game added before its poster exists.
+ */
+export const GAME_ART: Partial<Record<GameSlug, string>> = {
+  crash: '/crash.jpg',
+  mines: '/mines.jpg',
+  roulette: '/roulette.jpg',
+  plinko: '/plinko.jpg',
+  coinflip: '/coin-flip.jpg',
+  dice: '/dice.jpg',
+  limbo: '/limbo.jpg',
+  keno: '/keno.jpg',
+  chicken: '/chicken.jpg',
+};
+
 export const CATEGORIES: ReadonlyArray<{
   id: GameCategory;
   labelKey: string;

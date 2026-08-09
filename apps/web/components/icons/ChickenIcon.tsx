@@ -41,11 +41,11 @@ export function ChickenIcon({ size = 48, title, ...rest }: GameIconProps) {
         <ellipse cx="23" cy="20" rx="9" ry="10" fill="#f2f5f8" />
         <ellipse cx="25.5" cy="11" rx="6" ry="5.6" fill="#f2f5f8" />
         <ellipse cx="24" cy="5.6" rx="3.2" ry="2.6" fill="#f0616d" />
-        <path d="M31 11l5.5 1.6L31 14.4z" fill="#ff6b00" />
+        <path d="M31 11l5.5 1.6L31 14.4z" fill="#00e701" />
         <circle cx="27.5" cy="10" r="1.2" fill="#11141a" />
         <path
           d="M20 29l-1.6 4M26 29l1.6 4"
-          stroke="#ff6b00"
+          stroke="#00e701"
           strokeWidth="2.2"
           strokeLinecap="round"
         />

@@ -40,7 +40,7 @@ function bucketColor(multiplier: number): string {
   if (!Number.isFinite(multiplier) || multiplier <= 0) return '#f0616d';
   if (multiplier < 1) return '#f09261';
   if (multiplier < 2) return '#8b97a6';
-  if (multiplier < 10) return '#ff6b00';
+  if (multiplier < 10) return '#00e701';
   return '#f5b83d';
 }
 

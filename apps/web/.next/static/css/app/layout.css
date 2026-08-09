@@ -12,24 +12,28 @@
    the accent is darkened to keep contrast against white panels. */
 :root,
 html[data-theme='dark'] {
-  /* ── Joycasino ramp ──
-     Near-black base, one step up for panels, a third for raised pills. */
-  --fg-bg: #0e0f12;
-  --fg-panel: #14161b;
-  --fg-panel-2: #101216;
-  --fg-line: #20242d;
-  --fg-line-2: #2d323d;
-  --fg-hover: #20242d;
-  --fg-hover-2: #2d323d;
-  --fg-header: rgba(14, 15, 18, .94);
+  /* ── Slate ramp ──
+     Deep navy-charcoal base, one step up for panels, a third for raised pills.
+     Borders resolve to the panel step so surfaces read as blocks of colour
+     rather than outlined boxes. */
+  --fg-bg: #0f212e;
+  --fg-panel: #1a2c38;
+  --fg-panel-2: #162835;
+  --fg-line: #213743;
+  --fg-line-2: #2f4553;
+  --fg-hover: #213743;
+  --fg-hover-2: #2f4553;
+  --fg-header: rgba(15, 33, 46, .94);
   --fg-text: #ffffff;
-  --fg-muted: #8a8f99;
-  --fg-dim: #6b707a;
+  --fg-muted: #b1bad3;
+  --fg-dim: #8592a6;
 
-  /* Vibrant orange: every CTA and active state. `--fg-accent-deep` is the far
-     stop of the gradient and the hover state. */
-  --fg-accent: #ff6b00;
-  --fg-accent-deep: #f25c00;
+  /* Bright green: every CTA and active state.
+     Text on this colour must be DARK — measured 12.43:1 against #0f212e-black
+     versus 1.69:1 against white, so a white label here would fail WCAG AA
+     outright. Every rule that paints a button green pairs it with --fg-bg. */
+  --fg-accent: #00e701;
+  --fg-accent-deep: #00c400;
 
   /* Gold stays for badges and gilt trim — subordinate to orange now, so it
      reads as an accent on badges rather than as the heading colour. */
@@ -44,7 +48,7 @@ html[data-theme='dark'] {
   --fg-charge: linear-gradient(180deg, var(--fg-accent) 0%, var(--fg-accent-deep) 100%);
   --fg-plate: linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(0, 0, 0, .18) 100%);
   --fg-bevel: inset 0 1px 0 rgba(255, 255, 255, .07), inset 0 -1px 0 rgba(0, 0, 0, .35);
-  --fg-glow-accent: 0 0 18px rgba(255, 107, 0, .38);
+  --fg-glow-accent: 0 0 18px rgba(0, 231, 1, .38);
   --fg-glow-gold: 0 0 18px rgba(240, 193, 75, .3);
 
   /* Brushed-metal texture. A repeating micro-gradient rather than an image:
@@ -189,6 +193,18 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   flex: none;
 }
 .dash__brand svg { display: block; }
+
+/* Height pinned to the header band; width follows the image's own ratio so it
+   can never be stretched. `w-auto` in Tailwind terms — expressed here because
+   next/image writes inline width/height attributes that would otherwise force
+   the intrinsic 1070x672 into the layout. */
+.dash__brand-img {
+  display: block;
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+}
+@media (max-width: 640px) { .dash__brand-img { height: 28px; } }
 .dash__nav { display: flex; gap: 4px; flex: 1 1 auto; flex-wrap: wrap; }
 .dash__link {
   padding: 7px 12px;
@@ -237,7 +253,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 }
 .dash__balance--action:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .35);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
 }
 .dash__balance b { font-size: 15px; font-weight: 700; }
 .dash__balance span { font-size: 10px; letter-spacing: .06em; color: var(--fg-dim); text-transform: uppercase; }
@@ -279,7 +295,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 }
 .dash__icon-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .35);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
 }
 
 /* Primary header action: solid orange, rounded, near-black ink. The one
@@ -306,14 +322,14 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 }
 .dash__cta:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .4);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .4);
 }
 .dash__btn:hover {
   background: var(--fg-plate), var(--fg-hover-2);
   border-color: var(--fg-gold);
   box-shadow: var(--fg-bevel), var(--fg-glow-gold);
 }
-.dash__btn:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255, 107, 0, .2); }
+.dash__btn:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .2); }
 .dash__status {
   display: inline-block;
   width: 8px;
@@ -321,7 +337,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   border-radius: 50%;
   background: var(--fg-dim);
 }
-.dash__status--open { background: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255, 107, 0, .18); }
+.dash__status--open { background: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .18); }
 .dash__status--pending { background: var(--fg-gold); }
 .dash__status--down { background: var(--fg-red); }
 
@@ -762,7 +778,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   width: 100%;
   margin-top: 16px;
   padding: 13px 16px;
-  background: #ff6b00;
+  background: #00e701;
   border: 0;
   border-radius: 12px;
   color: #0e0f12;
@@ -771,7 +787,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   cursor: pointer;
   transition: background .15s ease;
 }
-.bdm__play:hover { background: #f25c00; }
+.bdm__play:hover { background: #00c400; }
 
 .bdm__fair { margin-top: 12px; }
 
@@ -862,7 +878,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .lang__item:focus-visible {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .2);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .2);
 }
 /* The globe on the trigger. A vector, so unlike the flag emoji it needs no
    colour-font stack and cannot fall back to a tofu box. */
@@ -917,7 +933,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .theme__opt--on { color: var(--fg-bg); }
 .theme__opt:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .35);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
 }
 /* A muted surface rather than the accent: this is a settings toggle, and at
    full orange it competed with Deposit for the eye. The header keeps one
@@ -993,7 +1009,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   border-radius: 8px;
   outline: none;
 }
-.dash__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255, 107, 0, .18); }
+.dash__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .18); }
 
 /* ── Auth (sign in / register) ──────────── */
 .auth {
@@ -1004,7 +1020,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   padding: 32px 20px;
   /* A faint accent wash so the page reads as the front door, not a form. */
   background:
-    radial-gradient(80vw 60vh at 50% -10%, rgba(255, 107, 0, .07), transparent 70%),
+    radial-gradient(80vw 60vh at 50% -10%, rgba(0, 231, 1, .07), transparent 70%),
     var(--fg-bg);
 }
 .auth__card {
@@ -1047,7 +1063,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   transition: border-color .12s ease, box-shadow .12s ease;
 }
 .auth__input::placeholder { color: var(--fg-dim); }
-.auth__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255, 107, 0, .18); }
+.auth__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .18); }
 .auth__input[aria-invalid='true'] { border-color: var(--fg-red); }
 .auth__input:disabled { opacity: .6; cursor: not-allowed; }
 .auth__hint { font-size: 11.5px; color: var(--fg-dim); }
@@ -1066,7 +1082,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   transition: filter .12s ease;
 }
 .auth__submit:hover:not(:disabled) { background: var(--fg-accent-deep); border-color: var(--fg-accent-deep); }
-.auth__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .28); }
+.auth__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .28); }
 .auth__submit:disabled { opacity: .55; cursor: progress; }
 .auth__error {
   margin: 0 0 16px;
@@ -1149,7 +1165,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .opt__chip:hover:not(:disabled) { color: var(--fg-text); border-color: var(--fg-line-2); }
 .opt__chip[aria-pressed='true'] { color: #04120d; background: var(--fg-accent); border-color: var(--fg-accent); }
 .opt__chip:disabled { opacity: .45; cursor: not-allowed; }
-.opt__chip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .25); }
+.opt__chip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .25); }
 .opt__stat { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--fg-muted); font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
 .opt__stat b { color: var(--fg-text); font-weight: 600; }
 .opt__range { width: 100%; accent-color: var(--fg-accent); }
@@ -1177,8 +1193,8 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 }
 .mines__tile:hover:not(:disabled) { transform: translateY(-2px); background: var(--fg-hover); border-color: var(--fg-line-2); }
 .mines__tile:disabled { cursor: default; }
-.mines__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255, 107, 0, .22); }
-.mines__tile--safe { background: rgba(255, 107, 0, .14); border-color: rgba(255, 107, 0, .42); color: var(--fg-accent); }
+.mines__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .22); }
+.mines__tile--safe { background: rgba(0, 231, 1, .14); border-color: rgba(0, 231, 1, .42); color: var(--fg-accent); }
 .mines__tile--mine { background: rgba(240,97,109,.16); border-color: rgba(240,97,109,.45); color: var(--fg-red); }
 .mines__tile--hit { background: rgba(240,97,109,.34); border-color: var(--fg-red); }
 
@@ -1235,8 +1251,8 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   transition: transform .1s ease, background .15s ease, border-color .15s ease, color .15s ease; }
 .keno__tile:hover:not(:disabled) { transform: translateY(-1px); background: var(--fg-hover); border-color: var(--fg-line-2); }
 .keno__tile:disabled { cursor: default; }
-.keno__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255, 107, 0, .22); }
-.keno__tile--picked { background: rgba(255, 107, 0, .14); border-color: rgba(255, 107, 0, .42); color: var(--fg-accent); }
+.keno__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .22); }
+.keno__tile--picked { background: rgba(0, 231, 1, .14); border-color: rgba(0, 231, 1, .42); color: var(--fg-accent); }
 .keno__tile--drawn { background: rgba(139,151,166,.22); border-color: var(--fg-line-2); color: var(--fg-text); animation: keno-pop .22s ease-out; }
 .keno__tile--hit { background: rgba(245,184,61,.22); border-color: var(--fg-gold); color: var(--fg-gold); animation: keno-pop .22s ease-out; }
 @keyframes keno-pop { from { transform: scale(.7); } to { transform: scale(1); } }
@@ -1298,7 +1314,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .ref__input:focus-visible {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .18);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .18);
 }
 .ref__btn {
   padding: 9px 14px;
@@ -1315,7 +1331,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .ref__btn:focus-visible {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .2);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .2);
 }
 .ref__btn:disabled { opacity: .5; cursor: not-allowed; }
 .ref__btn--primary { color: #06231b; background: var(--fg-accent); border-color: var(--fg-accent); }
@@ -1355,11 +1371,11 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .ref__stat > b { font-size: 24px; font-weight: 700; font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
 .ref__stat > b i { font-size: 12px; font-style: normal; color: var(--fg-dim); }
 .ref__stat > em { font-size: 11.5px; font-style: normal; line-height: 1.5; color: var(--fg-muted); }
-.ref__stat--accent { border-color: rgba(255, 107, 0, .4); }
+.ref__stat--accent { border-color: rgba(0, 231, 1, .4); }
 .ref__stat--accent > b { color: var(--fg-accent); }
 
 .ref__msg { margin: 0; padding: 9px 11px; font-size: 13px; border-radius: 8px; }
-.ref__msg--ok { color: var(--fg-accent); background: rgba(255, 107, 0, .1); border: 1px solid rgba(255, 107, 0, .3); }
+.ref__msg--ok { color: var(--fg-accent); background: rgba(0, 231, 1, .1); border: 1px solid rgba(0, 231, 1, .3); }
 .ref__msg--err { color: var(--fg-red); background: rgba(240,97,109,.1); border: 1px solid rgba(240,97,109,.3); }
 
 .ref__alert {
@@ -1627,7 +1643,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   margin-top: 48px;
   background: var(--fg-panel-2);
   border-top: 1px solid var(--fg-line);
-  background-image: linear-gradient(180deg, rgba(255, 107, 0, .05), transparent 180px);
+  background-image: linear-gradient(180deg, rgba(0, 231, 1, .05), transparent 180px);
 }
 .foot__inner {
   max-width: 1180px;
@@ -1726,7 +1742,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   outline: none;
   color: var(--fg-text);
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .2);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .2);
 }
 
 /* The picker is shared with the header, where the menu drops down. Down here
@@ -1821,7 +1837,7 @@ html[data-theme='light'] .wal__panel {
 .wal__close:focus-visible {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .25);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .25);
 }
 
 /* Segmented tab switcher. */
@@ -1861,7 +1877,7 @@ html[data-theme='light'] .wal__tab--on { color: #fff; background: var(--fg-accen
 /* Light theme: --fg-accent is #c94a00 there, where white ink is 4.71:1. */
 .wal__tab:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .25);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .25);
 }
 
 /* The scrolling region, so the header and tabs stay pinned. */
@@ -1898,7 +1914,7 @@ html[data-theme='light'] .wal__label { color: var(--fg-dim); }
 .wal__input:focus {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .22);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .22);
 }
 html[data-theme='light'] .wal__input {
   background: var(--fg-panel-2);
@@ -1907,7 +1923,7 @@ html[data-theme='light'] .wal__input {
 .wal__input:focus-visible {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .2);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .2);
 }
 .wal__input[aria-invalid='true'] { border-color: var(--fg-red); }
 
@@ -1920,12 +1936,12 @@ html[data-theme='light'] .wal__input {
   font-weight: 700;
   letter-spacing: .05em;
   color: var(--fg-accent);
-  background: rgba(255, 107, 0, .1);
-  border: 1px solid rgba(255, 107, 0, .35);
+  background: rgba(0, 231, 1, .1);
+  border: 1px solid rgba(0, 231, 1, .35);
   border-radius: 9px;
   cursor: pointer;
 }
-.wal__max:hover { background: rgba(255, 107, 0, .18); }
+.wal__max:hover { background: rgba(0, 231, 1, .18); }
 .wal__max:disabled { opacity: .45; cursor: not-allowed; }
 
 /* Quick-amount chips. */
@@ -1944,8 +1960,8 @@ html[data-theme='light'] .wal__input {
 .wal__chip:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
 .wal__chip--on {
   color: var(--fg-accent);
-  background: rgba(255, 107, 0, .12);
-  border-color: rgba(255, 107, 0, .5);
+  background: rgba(0, 231, 1, .12);
+  border-color: rgba(0, 231, 1, .5);
 }
 
 /* Currency pills. */
@@ -1969,10 +1985,10 @@ html[data-theme='light'] .wal__input {
 .wal__cur:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
 .wal__cur--on {
   color: var(--fg-accent);
-  background: rgba(255, 107, 0, .12);
-  border-color: rgba(255, 107, 0, .55);
+  background: rgba(0, 231, 1, .12);
+  border-color: rgba(0, 231, 1, .55);
 }
-.wal__cur:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .25); }
+.wal__cur:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .25); }
 
 .wal__balance {
   display: flex;
@@ -2009,7 +2025,7 @@ html[data-theme='light'] .wal__input {
   transition: filter .15s ease, background .15s ease, border-color .15s ease;
 }
 .wal__btn:disabled { opacity: .45; cursor: not-allowed; }
-/* Solid orange pill. --fg-bg ink is 6.71:1 on #ff6b00; white would be 2.86:1
+/* Solid orange pill. --fg-bg ink is 6.71:1 on #00e701; white would be 2.86:1
    and fail AA. */
 .wal__btn--primary {
   color: var(--fg-bg);
@@ -2032,7 +2048,7 @@ html[data-theme='light'] .wal__input {
   box-shadow: 0 0 0 1px rgba(34, 197, 94, .35);
 }
 .wal__btn--test:hover:not(:disabled) { filter: brightness(1.06); }
-.wal__btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .3); }
+.wal__btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .3); }
 
 .wal__sandbox {
   margin-top: 14px;
@@ -2080,8 +2096,8 @@ html[data-theme='light'] .wal__input {
   align-items: flex-start;
   gap: 3px;
   color: inherit;
-  border-color: rgba(255, 107, 0, .5);
-  background: rgba(255, 107, 0, .08);
+  border-color: rgba(0, 231, 1, .5);
+  background: rgba(0, 231, 1, .08);
 }
 .wal__banner--ok b { font-size: 13px; color: var(--fg-accent); }
 .wal__banner--ok span { font-size: 12px; line-height: 1.5; color: var(--fg-muted); }
@@ -2313,7 +2329,7 @@ html[data-theme='light'] .wal__input {
 .wheel__close:hover { background: var(--fg-hover-2); }
 .wheel__close:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .35);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
 }
 .wheel__close:hover:not(:disabled) { background: var(--fg-hover); color: var(--fg-text); }
 .wheel__close:disabled { opacity: .4; cursor: not-allowed; }
@@ -2428,7 +2444,7 @@ html[data-theme='light'] .wal__input {
 .pills__search:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .pills__search:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .35);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
 }
 
 /* Horizontal scroller. The scrollbar is hidden but the overflow is real, so
@@ -2467,7 +2483,7 @@ html[data-theme='light'] .wal__input {
 }
 .pills__pill:hover { color: var(--fg-text); background: var(--fg-hover-2); }
 
-/* Active pill: solid orange with near-black ink. White on #ff6b00 is 2.86:1
+/* Active pill: solid orange with near-black ink. White on #00e701 is 2.86:1
    and fails AA; --fg-bg on the same fill is 6.71:1. */
 .pills__pill--on {
   color: var(--fg-bg);
@@ -2477,7 +2493,7 @@ html[data-theme='light'] .wal__input {
 .pills__pill--on:hover { color: var(--fg-bg); background: var(--fg-accent-deep); }
 .pills__pill:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .35);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
 }
 /* An SVG box, not a text glyph: `display: flex` stops the inline baseline gap
    that left the icon sitting a pixel low against its label. The icon inherits
@@ -2519,10 +2535,13 @@ html[data-theme='light'] .wal__input {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  padding: 18px 12px 15px;
-  text-align: center;
+  /* A poster, not a padded square: the art runs edge to edge at the top and
+     the copy sits on a dark plate beneath it. Padding moved onto .tile__body
+     so nothing insets the image. */
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  text-align: left;
   background: var(--fg-plate), var(--fg-panel);
   border: 1px solid var(--fg-line);
   border-radius: 16px;
@@ -2530,6 +2549,7 @@ html[data-theme='light'] .wal__input {
   overflow: hidden;
   transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
 }
+
 .tile:hover {
   transform: translateY(-3px);
   border-color: var(--fg-accent);
@@ -2537,7 +2557,7 @@ html[data-theme='light'] .wal__input {
 }
 .tile:focus-within {
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .3);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .3);
 }
 
 .tile__icon {
@@ -2569,15 +2589,26 @@ html[data-theme='light'] .wal__input {
 }
 /* Provenance mark, bottom-left — the opposite corner from the HOT/NEW ribbon
    so the two never collide on a card that carries both. */
+/* Anchored to the top-left of the artwork, not the bottom of the card: the
+   card's bottom is now the copy plate, where this sat on top of the blurb. The
+   HOT/NEW ribbon holds the opposite corner. */
 .tile__emblem {
   position: absolute;
   left: 9px;
-  bottom: 9px;
-  z-index: 2;
+  top: 9px;
+  z-index: 3;
   display: grid;
   place-items: center;
+  /* A dark disc behind it: the emblem sits over artwork whose top-left corner
+     varies from near-black (Crash) to 99% bright (Plinko), and an unbacked
+     mark disappears into the light ones. */
+  padding: 3px;
+  background: rgba(8, 9, 13, .62);
+  border-radius: 8px;
+  -webkit-backdrop-filter: blur(3px);
+          backdrop-filter: blur(3px);
   line-height: 0;
-  opacity: .75;
+  opacity: .85;
   transition: opacity .15s ease;
 }
 .tile:hover .tile__emblem { opacity: 1; }
@@ -2589,20 +2620,28 @@ html[data-theme='light'] .wal__input {
 
 /* Opaque, not translucent: at 82% the name and blurb underneath bled through
    and the buttons became hard to read. */
+/* Single source of truth for the overlay.
+   
+   It lives inside .tile__art, so `inset: 0` resolves against the poster and the
+   box needs no height or aspect-ratio of its own. Three competing rules had
+   accumulated here, each patching the last: one anchored to the card, one
+   adding a translate, one re-deriving the height from an aspect ratio. The
+   result covered the right area but centred its buttons against a box whose
+   background bled past the poster into the copy plate. */
 .tile__overlay {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 12px;
-  background: var(--fg-panel);
+  gap: 12px;
+  padding: 16px;
+  background: rgba(0, 0, 0, .8);
   opacity: 0;
   visibility: hidden;
-  transition: opacity .16s ease, visibility .16s ease;
+  transition: opacity .3s var(--fg-ease), visibility 0s linear .3s;
 }
 .tile:hover .tile__overlay,
 .tile:focus-within .tile__overlay { opacity: 1; visibility: visible; }
@@ -2657,7 +2696,7 @@ html[data-theme='light'] .wal__input {
   z-index: 1000;
   padding: 6px 12px;
   background: #0c0d0e;
-  border: 2px solid #b85314;
+  border: 2px solid #0b7a2a;
   border-radius: 9999px;
   box-shadow: 0 12px 34px rgba(0, 0, 0, .55);
   max-width: calc(100vw - 24px);
@@ -2697,7 +2736,7 @@ html[data-theme='light'] .wal__input {
   top: 0;
   left: 0;
   height: 100%;
-  background: #b85314;
+  background: #0b7a2a;
   border-radius: 9999px;
   transition: transform .2s ease-in-out, width .2s ease-in-out;
   pointer-events: none;
@@ -2722,11 +2761,11 @@ html[data-theme='light'] .wal__input {
   transition: color .2s ease-in-out;
 }
 .dock2__item:hover { color: #ffffff; }
-/* White on #b85314 is 4.9:1 — passes AA. */
+/* White on #0b7a2a is 4.9:1 — passes AA. */
 .dock2__item--on { color: #ffffff; font-weight: 700; }
 .dock2__item:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, .45);
+  box-shadow: 0 0 0 3px rgba(0, 231, 1, .45);
 }
 .dock2__icon { display: grid; place-items: center; line-height: 0; }
 
@@ -2775,22 +2814,38 @@ html[data-theme='light'] .wal__input {
   border-radius: 50%;
   box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
   cursor: pointer;
+  /* Two independent offsets composed into one transform: `--fab-lift` raises
+     the button clear of the dock, `--fab-hide` slides it off-screen. Kept as
+     separate variables because the raise and the hide are set by different
+     rules — a single `transform` in each would have the later rule silently
+     cancel the earlier one. */
+  --fab-lift: 0px;
+  --fab-hide: 0px;
+  transform: translateY(calc(var(--fab-lift) + var(--fab-hide)));
   transition:
-    transform .3s cubic-bezier(.16, 1, .3, 1),
-    opacity .2s ease,
+    transform .3s ease-in-out,
+    opacity .3s ease-in-out,
     border-color .15s ease,
     background .15s ease;
 }
 /* Lifted clear of the dock while the dock is on screen. */
-.chat-fab--raised { transform: translateY(-72px); }
+.chat-fab--raised { --fab-lift: -72px; }
+
+/* Scrolled down: pushed below the viewport edge and made inert, so it cannot
+   be tabbed to or clicked while off-screen. */
+.chat-fab--hidden {
+  --fab-hide: 96px;
+  opacity: 0;
+  pointer-events: none;
+}
 .chat-fab:hover { background: var(--fg-hover); border-color: var(--fg-accent); }
-.chat-fab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .45); }
+.chat-fab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .45); }
 
 /* Withdrawn while the chat panel is open. */
 .chat-fab--gone {
   opacity: 0;
   pointer-events: none;
-  transform: translateY(12px) scale(.9);
+  --fab-hide: 12px;
 }
 
 /* Orange dot, revealed on hover/focus. Deliberately not an unread count —
@@ -2820,7 +2875,7 @@ html[data-theme='light'] .wal__input {
    same offset, so the raised position needs a little more clearance. */
 @media (max-width: 640px) {
   .chat-fab { right: 16px; bottom: 16px; width: 48px; height: 48px; }
-  .chat-fab--raised { transform: translateY(-70px); }
+  .chat-fab--raised { --fab-lift: -70px; }
 }
 
 /* Fade the trailing edge of the pill row so a clipped pill reads as "more to
@@ -3002,7 +3057,7 @@ html[data-theme='light'] .wal__input {
   transition: background .15s ease;
 }
 .glm__close:hover { background: var(--fg-hover-2); }
-.glm__close:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .35); }
+.glm__close:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .35); }
 
 /* The inner viewport: a preview of the game, not a second host for it. */
 .glm__stage {
@@ -3044,7 +3099,7 @@ html[data-theme='light'] .wal__input {
   transition: border-color .15s ease, background .15s ease;
 }
 .glm__topup:hover { background: var(--fg-hover-2); border-color: var(--fg-accent); }
-.glm__topup:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .35); }
+.glm__topup:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .35); }
 
 .glm__actions { display: flex; gap: 10px; }
 .glm__play, .glm__fair {
@@ -3064,14 +3119,14 @@ html[data-theme='light'] .wal__input {
   box-shadow: var(--fg-glow-accent);
 }
 .glm__play:hover { background: var(--fg-accent-deep); }
-.glm__play:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .45); }
+.glm__play:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .45); }
 .glm__fair {
   color: var(--fg-muted);
   background: transparent;
   border: 1px solid var(--fg-line);
 }
 .glm__fair:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
-.glm__fair:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .35); }
+.glm__fair:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .35); }
 
 .glm__foot { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--fg-dim); text-align: center; }
 
@@ -3124,7 +3179,7 @@ html[data-theme='light'] .wal__input {
   background: rgba(0, 0, 0, .22);
   border-radius: 999px;
 }
-.chick__step:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .45); }
+.chick__step:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .45); }
 
 .chick__opts, .chick__ladder { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .chick__opts-label {
@@ -3159,7 +3214,7 @@ html[data-theme='light'] .wal__input {
 }
 .chick__diff--on small { color: rgba(14, 15, 18, .72); }
 .chick__diff:disabled { opacity: .55; cursor: not-allowed; }
-.chick__diff:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 0, .35); }
+.chick__diff:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .35); }
 
 .chick__bar {
   height: 7px;
@@ -3239,7 +3294,7 @@ html[data-theme='light'] .wal__input {
      they come from the same hand. */
   --fg-ease: cubic-bezier(.2, .7, .3, 1);
 
-  --fg-glow-soft: 0 10px 30px -10px rgba(255, 107, 0, .45);
+  --fg-glow-soft: 0 10px 30px -10px rgba(0, 231, 1, .45);
 }
 
 /* ── Micro-interactions ──────────────────────────────────
@@ -3300,7 +3355,7 @@ html[data-theme='light'] .wal__input {
 }
 .tile:hover {
   transform: translateY(-4px);
-  box-shadow: var(--fg-bevel), var(--fg-glow-soft), 0 0 0 1px rgba(255, 107, 0, .28);
+  box-shadow: var(--fg-bevel), var(--fg-glow-soft), 0 0 0 1px rgba(0, 231, 1, .28);
 }
 .tile__icon { transition: transform .22s var(--fg-ease); }
 .tile:hover .tile__icon { transform: scale(1.08) translateY(-1px); }
@@ -3308,20 +3363,11 @@ html[data-theme='light'] .wal__input {
 /* The overlay fades AND rises, so the reveal has direction instead of just
    appearing. `visibility` stays stepped so it flips at the end of the fade
    out and the buttons are never clickable while invisible. */
-.tile__overlay {
-  transform: translateY(6px);
-  transition:
-    opacity .2s var(--fg-ease),
-    transform .2s var(--fg-ease),
-    visibility 0s linear .2s;
-}
 .tile:hover .tile__overlay,
 .tile:focus-within .tile__overlay {
-  transform: translateY(0);
-  transition:
-    opacity .2s var(--fg-ease),
-    transform .2s var(--fg-ease),
-    visibility 0s;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .3s var(--fg-ease), visibility 0s;
 }
 
 /* ── Spacing ─────────────────────────────────────────────
@@ -3678,10 +3724,10 @@ html[data-theme='light'] .wal__input {
 
 /* The live target — where the next Cross lands. */
 .lanes__col--next {
-  background: rgba(255, 107, 0, .12);
-  box-shadow: inset 0 0 0 1px rgba(255, 107, 0, .45);
+  background: rgba(0, 231, 1, .12);
+  box-shadow: inset 0 0 0 1px rgba(0, 231, 1, .45);
 }
-.lanes__col--next .lanes__value b { color: #ff9d4d; }
+.lanes__col--next .lanes__value b { color: #5cff5d; }
 
 .lanes__col--ahead .lanes__value b { color: #c9cce4; }
 
@@ -4021,7 +4067,7 @@ html[data-theme='light'] .wal__input {
 .streak__close:hover { color: var(--fg-text); }
 
 .streak__head { display: flex; align-items: center; gap: 11px; }
-.streak__flame { display: flex; color: #ff6b00; }
+.streak__flame { display: flex; color: #00e701; }
 .streak__day { display: block; font-size: 15px; font-weight: 800; color: var(--fg-text); }
 .streak__sub { font-size: 11.5px; color: var(--fg-muted); }
 
@@ -4034,7 +4080,7 @@ html[data-theme='light'] .wal__input {
 }
 .streak__fill {
   height: 100%;
-  background: linear-gradient(90deg, #ff6b00, #ffa04d);
+  background: linear-gradient(90deg, #00e701, #ffa04d);
   border-radius: 3px;
   transition: width .5s cubic-bezier(.16, 1, .3, 1);
 }
@@ -4054,8 +4100,8 @@ html[data-theme='light'] .wal__input {
   background: var(--fg-line-2);
 }
 .streak__stop--on .streak__dot {
-  background: #ff6b00;
-  box-shadow: 0 0 8px rgba(255, 107, 0, .7);
+  background: #00e701;
+  box-shadow: 0 0 8px rgba(0, 231, 1, .7);
 }
 .streak__label { font-size: 10px; color: var(--fg-dim); font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
 .streak__stop--on .streak__label { color: var(--fg-text); }
@@ -4128,9 +4174,297 @@ html[data-theme='light'] .wal__input {
 .rsm__skip:hover:not(:disabled) { background: #262b35; }
 .rsm__pay {
   color: #0e0f12;
-  background: #ff6b00;
+  background: #00e701;
   border: 0;
 }
-.rsm__pay:hover:not(:disabled) { background: #f25c00; }
+.rsm__pay:hover:not(:disabled) { background: #00c400; }
 .rsm__skip:disabled, .rsm__pay:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ── Game poster cards ───────────────────────────────────
+   Art fills the top, copy sits on a dark plate below. */
+.tile__art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  /* Matches the source art's own ~2:3 shape (444x658, 296x436, …). At 4/5 the
+     box was wider than the sources, so `cover` cropped top and bottom and cut
+     the artwork's baked-in game titles in half. A fixed ratio still keeps the
+     grid rows level. */
+  aspect-ratio: 2 / 3;
+  background: #0b0c10;
+  overflow: hidden;
+}
+
+/* `cover` rather than `contain`: the source art is not a uniform size, and
+   letterboxing would leave uneven bars between cards. */
+.tile__img {
+  object-fit: cover;
+  object-position: center;
+  transition: transform .35s var(--fg-ease);
+}
+.tile:hover .tile__img { transform: scale(1.05); }
+
+/* The copy plate. A gradient rather than a flat fill so the art fades into the
+   text instead of meeting it at a hard line. */
+.tile__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 13px 13px;
+  background: linear-gradient(180deg, rgba(11, 12, 16, .55), var(--fg-panel) 42%);
+  border-top: 1px solid rgba(255, 255, 255, .04);
+  /* Fixed height so a card with a text title (the icon fallback) is not taller
+     than one whose title lives in the artwork — mixed heights break the row. */
+  min-height: 62px;
+  justify-content: center;
+}
+.tile__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-text);
+  letter-spacing: .01em;
+}
+.tile__blurb {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  /* Two lines maximum, so a long blurb cannot make one card taller than its
+     neighbours and break the row. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Stand-in for a missing poster: icon over a title, filling the same box the
+   art would occupy. */
+.tile__fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  background: var(--fg-plate), var(--fg-panel-2);
+}
+.tile__fallback-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-text);
+  letter-spacing: .01em;
+}
+
+/* Badges and the emblem float over the art, so they need lifting above it. */
+.tile__badge, .tile__emblem { z-index: 3; }
+
+/* Wider columns: a poster needs more room than the old 168px icon square. */
+.grid { grid-template-columns: repeat(auto-fill, minmax(186px, 1fr)); }
+
+/* ═══════════════════════════════════════════════════════════
+   Slate layout — fixed rail + sticky header
+   ═════════════════════════════════════════════════════════ */
+
+.shell { display: flex; align-items: flex-start; }
+
+/* Docked on desktop, an overlay drawer below 1024px. Sticky rather than fixed
+   so it scrolls with the page but holds position under the sticky header. */
+.rail {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 57px;
+  flex: 0 0 240px;
+  width: 240px;
+  height: calc(100vh - 57px);
+  padding: 14px 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--fg-panel);
+  scrollbar-width: thin;
+}
+.rail::-webkit-scrollbar { width: 6px; }
+.rail::-webkit-scrollbar-thumb { background: var(--fg-line-2); border-radius: 3px; }
+
+.rail__section { display: flex; flex-direction: column; gap: 2px; }
+
+.rail__link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color .2s var(--fg-ease), color .2s var(--fg-ease);
+}
+.rail__link:hover { background: var(--fg-hover); color: var(--fg-text); }
+.rail__link--on { background: var(--fg-hover); color: var(--fg-text); }
+.rail__link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--fg-accent);
+}
+.rail__game-icon { display: inline-flex; filter: grayscale(1); opacity: .8; }
+.rail__link--on .rail__game-icon,
+.rail__link:hover .rail__game-icon { filter: none; opacity: 1; }
+
+.rail__divider {
+  height: 1px;
+  margin: 12px 4px;
+  background: var(--fg-line);
+}
+.rail__heading {
+  margin: 0 0 6px;
+  padding: 0 11px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.rail__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: rgba(0, 0, 0, .55);
+}
+
+@media (max-width: 1024px) {
+  .rail {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 50;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform .26s var(--fg-ease);
+    box-shadow: 8px 0 32px rgba(0, 0, 0, .45);
+  }
+  .rail--open { transform: translateX(0); }
+}
+@media (min-width: 1025px) {
+  /* Docked: the scrim and its click-to-close only apply to the drawer. */
+  .rail__scrim { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail { transition: none; }
+}
+
+/* The hamburger is drawer-only, so it disappears once the rail is docked. */
+.dash__burger {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  color: var(--fg-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.dash__burger:hover { background: var(--fg-hover); color: var(--fg-text); }
+@media (min-width: 1025px) { .dash__burger { display: none; } }
+
+/* ── Header search ─────────────────────────────────────── */
+.dash__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  max-width: 420px;
+  min-width: 0;
+  padding: 0 12px;
+  height: 36px;
+  color: var(--fg-dim);
+  background: var(--fg-bg);
+  border-radius: 999px;
+}
+.dash__search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--fg-text);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+.dash__search input::placeholder { color: var(--fg-dim); }
+.dash__search:focus-within { box-shadow: 0 0 0 2px var(--fg-line-2); }
+@media (max-width: 720px) { .dash__search { display: none; } }
+
+/* ── Blocky surfaces ───────────────────────────────────────
+   Borders resolve to the panel colour so cards read as blocks rather than
+   outlined boxes — the single change that most defines this look. */
+.tile,
+.feed,
+.dock__panel,
+.game__panel {
+  border-color: transparent;
+}
+.tile { box-shadow: none; }
+.tile:hover {
+  border-color: transparent;
+  box-shadow: 0 12px 28px -8px rgba(0, 0, 0, .55);
+}
+.tile__body { background: var(--fg-panel); }
+
+/* The header is a solid bar over the rail, not a translucent plate. */
+.dash__header {
+  background: var(--fg-panel);
+  border-bottom: 1px solid var(--fg-line);
+  box-shadow: none;
+}
+
+.dash__main { flex: 1 1 auto; min-width: 0; }
+
+/* ── Compact feed (sidebar) ──────────────────────────────
+   The same component as the full feed, sized for a ~240px column. */
+.feed--compact {
+  position: static;
+  max-width: none;
+  margin: 0;
+  padding: 12px 13px;
+  border-radius: 14px;
+  -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+}
+.feed--compact .feed__header { display: block; }
+.feed--compact .feed__header h3 { font-size: 13px; }
+.feed--compact .feed__subtitle { display: none; }
+.feed--compact .feed__columns { font-size: 9.5px; padding: 0 6px 6px; margin-top: 10px; }
+.feed--compact .feed__list { max-height: 320px; margin-top: 4px; }
+.feed--compact .feed__row { padding: 8px 6px; font-size: 12px; gap: 6px; }
+.feed--compact .feed__name { font-size: 11.5px; }
+.feed--compact .feed__payout { font-size: 11.5px; }
+.feed--compact .feed__icon svg { width: 14px; height: 14px; }
+.feed--compact .feed__empty { padding: 12px 6px; font-size: 12px; }
+
+/* ── Game card: contained overlay ────────────────────────
+   The overlay is clipped to the art box rather than the whole card, so the
+   Play/How-it-works buttons cannot overhang the copy plate or push the card's
+   height when they appear. */
+.tile__art { border-radius: 16px 16px 0 0; }
+.tile__play,
+.tile__demo { max-width: 150px; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The button still leaves and returns — that is the behaviour, not decoration
+     — but it snaps rather than sliding. */
+  .chat-fab { transition: opacity .01s, border-color .15s ease, background .15s ease; }
+}
+
+@keyframes chicken-road-drive {
+  from { transform: translateY(-160px) scale(.8); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
 

@@ -68,7 +68,7 @@ const CSS = `
   font-size: 16px; font-variant-numeric: tabular-nums; color: var(--fg-text);
   background: #10161d; border: 1px solid var(--fg-line); border-radius: 8px; outline: none;
   transition: border-color .15s ease, box-shadow .15s ease; }
-.fg-bet__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255,107,0,.18); }
+.fg-bet__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.18); }
 .fg-bet__input[aria-invalid="true"] { border-color: var(--fg-red); }
 .fg-bet__input:disabled { opacity: .55; cursor: not-allowed; }
 .fg-bet__currency { position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
@@ -78,7 +78,7 @@ const CSS = `
   color: var(--fg-text); background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: 8px;
   cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease; }
 .fg-bet__mod:hover:not(:disabled) { background: var(--fg-hover-2); color: #fff; }
-.fg-bet__mod:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(255,107,0,.18); }
+.fg-bet__mod:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.18); }
 .fg-bet__mod:disabled { opacity: .45; cursor: not-allowed; }
 .fg-bet__meta { display: flex; justify-content: space-between; gap: 12px;
   font-size: 12px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
@@ -88,7 +88,7 @@ const CSS = `
   border-radius: 8px; cursor: pointer; transition: filter .15s ease, transform .06s ease; }
 .fg-bet__action:hover:not(:disabled) { filter: brightness(1.08); }
 .fg-bet__action:active:not(:disabled) { transform: translateY(1px); }
-.fg-bet__action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,107,0,.35); }
+.fg-bet__action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0,231,1,.35); }
 .fg-bet__action:disabled { opacity: .5; cursor: not-allowed; }
 .fg-bet__action--cashout { color: #1a1204; background: #f5b83d; }
 .fg-bet__action--cashout:focus-visible { box-shadow: 0 0 0 3px rgba(245,184,61,.35); }

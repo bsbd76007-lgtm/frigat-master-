@@ -1,13 +1,5 @@
 {
-  "/api/session/route": "app/api/session/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/admin/users/page": "app/admin/users/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/admin/withdrawals/page": "app/admin/withdrawals/page.js",
-  "/admin/game-analytics/page": "app/admin/game-analytics/page.js",
-  "/admin/risk-control/page": "app/admin/risk-control/page.js",
-  "/(dashboard)/games/chicken/page": "app/(dashboard)/games/chicken/page.js",
-  "/admin/security/page": "app/admin/security/page.js",
-  "/admin/audit-logs/page": "app/admin/audit-logs/page.js"
+  "/(dashboard)/games/chicken/page": "app/(dashboard)/games/chicken/page.js"
 }

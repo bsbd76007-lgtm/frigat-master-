@@ -57,7 +57,7 @@ export function DiceIcon({ size = 40, title, ...rest }: GameIconProps) {
       </defs>
 
       {/* Accent pool under the die — the neon the rest of the set shares. */}
-      <ellipse cx="24" cy="39.5" rx="13" ry="3.4" fill="#ff6b00" opacity=".18" filter={`url(#${glow})`} />
+      <ellipse cx="24" cy="39.5" rx="13" ry="3.4" fill="#00e701" opacity=".18" filter={`url(#${glow})`} />
 
       <g stroke="#0a0f14" strokeWidth="1.1" strokeLinejoin="round">
         <polygon points={LEFT} fill={`url(#${left})`} />

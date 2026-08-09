@@ -136,6 +136,12 @@ export default function CrashPage() {
             currency={balance.currency}
             canCashout={canCashout}
             cashoutMultiplier={canCashout ? multiplier : null}
+            /* The live value of cashing out right now. The button showed only
+               the multiplier before, leaving the player to do the arithmetic
+               on the one control that is time-critical. */
+            cashoutAmount={
+              canCashout ? (Number(amount) * multiplier).toFixed(2) : null
+            }
             onBet={() => {
               setBusy(true);
               send('BET', 'CRASH', { amount, currency: balance.currency });
@@ -146,11 +152,17 @@ export default function CrashPage() {
             }}
             disabled={!canBet && !canCashout}
             busy={busy}
+            /* `hasBet` is tested BEFORE the phase: the previous order checked
+               `phase === 'BETTING'` first, so a player who had already bet
+               still read "Place bet" on a disabled button for the whole
+               betting window — no confirmation their stake had landed. */
             betLabel={
-              phase === 'BETTING'
-                ? 'Place bet'
-                : hasBet
-                  ? 'Bet placed'
+              hasBet
+                ? phase === 'BETTING'
+                  ? 'Bet placed · waiting for round'
+                  : 'Bet placed'
+                : phase === 'BETTING'
+                  ? 'Place bet'
                   : 'Waiting for next round'
             }
           />

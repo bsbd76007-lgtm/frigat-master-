@@ -11,12 +11,12 @@ import {
 } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Navbar } from '@/components/nav/Navbar';
+import { Sidebar } from '@/components/nav/Sidebar';
 import { ProvablyFairModal } from '@/components/games/ProvablyFairModal';
 import ChatSidebar from '@/components/chat/ChatSidebar';
 import StreakProgressBar from '@/components/streak/StreakProgressBar';
 import RestoreStreakModal from '@/components/streak/RestoreStreakModal';
 import { ChatFab } from '@/components/chat/ChatFab';
-import LiveBetsFeed from '@/components/feed/LiveBetsFeed';
 
 import { subscribeToPanels } from '@/lib/appPanels';
 /**
@@ -66,6 +66,9 @@ function DashboardChrome({ children }: { children: ReactNode }) {
   } = useGameSocket();
   const { t } = useLanguage();
   const [chatOpen, setChatOpen] = useState(false);
+  // Open by default on desktop where the rail is docked; the media query in
+  // CSS hides it on mobile until the hamburger sets this true.
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
   useEffect(
     () =>
@@ -78,10 +81,16 @@ function DashboardChrome({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <Navbar />
-      <main className="dash__main">{token ? children : <SignInGate />}</main>
+      <Navbar
+        onMenuToggle={() => setIsNavOpen((v) => !v)}
+        menuOpen={isNavOpen}
+      />
 
-      <LiveBetsFeed />
+      <div className="shell">
+        <Sidebar open={isNavOpen} onClose={() => setIsNavOpen(false)} />
+        <main className="dash__main">{token ? children : <SignInGate />}</main>
+      </div>
+
       {/* Hidden while the panel is open — the sidebar carries its own close,
           and a launcher for an already-open panel is a dead control. */}
       <StreakProgressBar />
