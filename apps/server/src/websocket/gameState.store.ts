@@ -30,6 +30,11 @@ export interface ChickenState {
   active: boolean;
 }
 
+/**
+ * A player's stake in their own crash round. Crash is single-player: each bet
+ * belongs to exactly one round owned by that user, so bets are cleared one at
+ * a time as each round settles — never wholesale.
+ */
 export interface CrashBet {
   userId: string;
   betTransactionId: string;
@@ -70,11 +75,11 @@ class GameStateStore {
   getCrashBet(userId: string): CrashBet | undefined {
     return this.crashBets.get(userId);
   }
+  clearCrashBet(userId: string) {
+    this.crashBets.delete(userId);
+  }
   allCrashBets(): CrashBet[] {
     return [...this.crashBets.values()];
-  }
-  resetCrashRound() {
-    this.crashBets.clear();
   }
 }
 

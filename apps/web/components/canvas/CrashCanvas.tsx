@@ -11,7 +11,19 @@ import {
 } from '@/lib/useCanvasRenderer';
 export const CRASH_GROWTH_RATE_PER_SEC = CRASH.growthRatePerSec;
 
-export type CrashPhase = 'IDLE' | 'BETTING' | 'RUNNING' | 'CRASHED';
+/**
+ * Crash is single-player: a round runs only while this player has a stake in
+ * it. 'BETTING' is retained for the shared-round shape but is no longer
+ * reached — there is no betting window to wait through. 'CASHED_OUT' is the
+ * round ending because the player took the money, which must not draw the
+ * bust explosion.
+ */
+export type CrashPhase =
+  | 'IDLE'
+  | 'BETTING'
+  | 'RUNNING'
+  | 'CRASHED'
+  | 'CASHED_OUT';
 
 export interface CrashCanvasProps {
   phase: CrashPhase;
@@ -96,7 +108,11 @@ export function CrashCanvas({
   }, [phase, reducedMotion]);
 
   const displayMultiplier =
-    phase === 'CRASHED' && crashPoint != null ? crashPoint : multiplier;
+    phase === 'CRASHED' && crashPoint != null
+      ? crashPoint
+      : phase === 'CASHED_OUT' && cashedOutAt != null
+        ? cashedOutAt
+        : multiplier;
 
   const draw = useMemo(
     () =>
@@ -154,8 +170,16 @@ export function CrashCanvas({
         }
 
         const busted = phase === 'CRASHED';
-        const curveColor = busted ? COLORS.bust : COLORS.live;
-        const showCurve = phase === 'RUNNING' || busted;
+        const cashed = phase === 'CASHED_OUT';
+        // The round is over in both end states; only a bust keeps climbing to
+        // the crash point and detonates.
+        const ended = busted || cashed;
+        const curveColor = busted
+          ? COLORS.bust
+          : cashed
+            ? COLORS.cashed
+            : COLORS.live;
+        const showCurve = phase === 'RUNNING' || ended;
 
         if (showCurve) {
           const samples = 120;
@@ -166,7 +190,14 @@ export function CrashCanvas({
           }
 
           const fill = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
-          fill.addColorStop(0, busted ? 'rgba(240,97,109,.28)' : 'rgba(45,212,167,.26)');
+          fill.addColorStop(
+            0,
+            busted
+              ? 'rgba(240,97,109,.28)'
+              : cashed
+                ? 'rgba(245,184,61,.26)'
+                : 'rgba(45,212,167,.26)'
+          );
           fill.addColorStop(1, 'rgba(13,19,25,0)');
           ctx.beginPath();
           ctx.moveTo(points[0][0], padTop + plotH);
@@ -211,7 +242,7 @@ export function CrashCanvas({
             ctx.fillText(`cashed ${cashedOutAt.toFixed(2)}×`, padLeft + 6, y - 3);
           }
 
-          if (!busted) {
+          if (!ended) {
             const prev = points[Math.max(0, points.length - 6)];
             const angle = Math.atan2(headY - prev[1], headX - prev[0]);
 
@@ -243,6 +274,15 @@ export function CrashCanvas({
             ctx.fill();
             ctx.shadowBlur = 0;
             ctx.restore();
+          } else if (cashed) {
+            // A held marker where the player got out — no explosion.
+            ctx.beginPath();
+            ctx.arc(headX, headY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = COLORS.cashed;
+            ctx.shadowColor = COLORS.cashed;
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.shadowBlur = 0;
           } else {
             const since = crashedAtRef.current
               ? performance.now() - crashedAtRef.current
@@ -295,9 +335,10 @@ export function CrashCanvas({
           ctx.font = `12px ${FONT}`;
           ctx.fillText('Place your bet', cx, cy + 38);
         } else if (phase === 'IDLE') {
+          // Nothing is running and nothing will until this player bets.
           ctx.fillStyle = COLORS.muted;
           ctx.font = `600 14px ${FONT}`;
-          ctx.fillText('Waiting for round…', cx, cy);
+          ctx.fillText('Place a bet to start a round', cx, cy);
         } else {
           const shake =
             busted && !reducedMotion
@@ -315,9 +356,17 @@ export function CrashCanvas({
 
           ctx.save();
           ctx.translate(shake, 0);
-          ctx.fillStyle = busted ? COLORS.bust : COLORS.text;
+          ctx.fillStyle = busted
+            ? COLORS.bust
+            : cashed
+              ? COLORS.cashed
+              : COLORS.text;
           ctx.font = `700 58px ${FONT}`;
-          ctx.shadowColor = busted ? COLORS.bust : COLORS.live;
+          ctx.shadowColor = busted
+            ? COLORS.bust
+            : cashed
+              ? COLORS.cashed
+              : COLORS.live;
           ctx.shadowBlur = 18;
           ctx.fillText(`${live.toFixed(2)}×`, cx, cy);
           ctx.shadowBlur = 0;
@@ -326,6 +375,10 @@ export function CrashCanvas({
             ctx.fillStyle = COLORS.bust;
             ctx.font = `700 14px ${FONT}`;
             ctx.fillText('CRASHED', cx, cy + 44);
+          } else if (cashed) {
+            ctx.fillStyle = COLORS.cashed;
+            ctx.font = `700 14px ${FONT}`;
+            ctx.fillText('CASHED OUT', cx, cy + 44);
           }
           ctx.restore();
         }
@@ -344,11 +397,13 @@ export function CrashCanvas({
   const label =
     phase === 'CRASHED'
       ? `Crash round busted at ${(crashPoint ?? multiplier).toFixed(2)}x`
-      : phase === 'RUNNING'
-        ? `Crash multiplier ${multiplier.toFixed(2)}x and rising`
-        : phase === 'BETTING'
-          ? 'Crash betting window open'
-          : 'Waiting for the next crash round';
+      : phase === 'CASHED_OUT'
+        ? `Cashed out at ${(cashedOutAt ?? multiplier).toFixed(2)}x`
+        : phase === 'RUNNING'
+          ? `Crash multiplier ${multiplier.toFixed(2)}x and rising`
+          : phase === 'BETTING'
+            ? 'Crash betting window open'
+            : 'Place a bet to start a crash round';
 
   return (
     <canvas

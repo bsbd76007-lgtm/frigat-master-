@@ -43,7 +43,8 @@ import { gameState } from './gameState.store';
 import { publicHandle } from '../routes/games/bets.routes';
 import type { ChickenState } from './gameState.store';
 import * as chicken from '../engines/chicken.engine';
-import { CrashRoundManager } from './crashRound.manager';
+import { CrashRoundManager, type CrashRound } from './crashRound.manager';
+import { computeCrashPoint } from '../engines/crash.engine';
 import type { ClientMessage, ServerMessage } from '../types/engine.types';
 
 const D = Prisma.Decimal;
@@ -76,6 +77,17 @@ export function pushBalanceToUser(userId: string, balance: string) {
 
 function send(ws: WebSocket, msg: ServerMessage) {
   if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
+}
+/**
+ * Sends to every socket a user has open. Single-player game frames are
+ * addressed this way rather than broadcast, and a player with the game open in
+ * two tabs must see the same round in both.
+ */
+function sendToUser(userId: string, msg: ServerMessage) {
+  const payload = JSON.stringify(msg);
+  for (const [ws, meta] of connectionMeta) {
+    if (meta.userId === userId && ws.readyState === ws.OPEN) ws.send(payload);
+  }
 }
 function broadcastAll(type: string, data: Record<string, unknown>) {
   const payload = JSON.stringify({ type, data });
@@ -133,22 +145,18 @@ function randomDecimal(min: number, max: number): string {
   return new Prisma.Decimal(value).toFixed(8);
 }
 
+/**
+ * Crash rounds are per-player, so every frame is addressed to the one player
+ * who owns the round — a tick is not a broadcast. `settleCrashBust` runs when
+ * a round reaches its crash point without a cash-out.
+ */
 const crashManager = new CrashRoundManager(
-  (event, data) => broadcastAll(event, data),
-  async () => {
-    for (const bet of gameState.allCrashBets()) {
-      if (!bet.settled) {
-        bet.settled = true;
-        accrueAffiliate({
-          userId: bet.userId,
-          betId: bet.betTransactionId,
-          stake: bet.amount,
-          currency: bet.currency,
-        });
-      }
-    }
-    gameState.resetCrashRound();
-  }
+  (round) =>
+    sendToUser(round.userId, {
+      type: 'CRASH_TICK',
+      data: { roundId: round.roundId, multiplier: round.currentMultiplier },
+    }),
+  (round) => settleCrashBust(round)
 );
 
 // ─────────────────────────────────────────────
@@ -895,32 +903,133 @@ async function settleChicken(
     payout,
   });
 }
+/**
+ * Bets being placed right now, before their round exists in the manager.
+ * `processBet` and the seed lookup both await, and two BET frames sent back to
+ * back would each pass the "no round running" check during that gap and debit
+ * the player twice for one round. Held synchronously, so there is no window.
+ */
+const crashBetsInFlight = new Set<string>();
+
 async function handleCrashBet(
   ws: WebSocket,
   userId: string,
   payload: Record<string, unknown>
 ) {
-  if (!crashManager.isAcceptingBets()) {
-    return fail(ws, 'Betting is closed for this round', 'BETTING_CLOSED');
+  if (crashBetsInFlight.has(userId)) {
+    return fail(ws, 'Your bet is already being placed', 'BET_IN_FLIGHT');
   }
-  if (gameState.getCrashBet(userId)) {
-    return fail(ws, 'You already have a bet in this round', 'ALREADY_BET');
+  if (crashManager.isRunning(userId)) {
+    return fail(ws, 'Your round is still running', 'ROUND_IN_PROGRESS');
+  }
+  const previous = gameState.getCrashBet(userId);
+  if (previous && !previous.settled) {
+    return fail(ws, 'Your last bet is still settling', 'ALREADY_BET');
   }
 
   const amount = String(payload.amount ?? '');
   const currency = String(payload.currency ?? 'USD');
-  const bet = await processBet({ userId, amount, gameType: 'CRASH', currency });
 
-  gameState.addCrashBet({
-    userId,
-    betTransactionId: bet.transactionId,
-    amount,
-    currency,
-    settled: false,
+  crashBetsInFlight.add(userId);
+  try {
+    const bet = await processBet({ userId, amount, gameType: 'CRASH', currency });
+
+    // The crash point comes from the player's active seed pair, whose hash was
+    // published when the pair was created and whose nonce advances once per
+    // bet. Resolving it here — after the debit, as every other game in this
+    // file does — cannot bias the outcome: the server seed is already
+    // committed and the nonce is not ours to choose.
+    const seed = await nextSeedContext(userId);
+    const crashPoint = computeCrashPoint(seed);
+
+    gameState.addCrashBet({
+      userId,
+      betTransactionId: bet.transactionId,
+      amount,
+      currency,
+      settled: false,
+    });
+
+    const round = crashManager.start(userId, seed, crashPoint);
+
+    send(ws, {
+      type: 'BET_ACCEPTED',
+      data: {
+        gameType: 'CRASH',
+        amount,
+        balance: bet.balance,
+        roundId: round.roundId,
+        hashedServerSeed: seed.hashedServerSeed,
+        clientSeed: seed.clientSeed,
+        nonce: seed.nonce,
+      },
+    });
+    send(ws, { type: 'BALANCE', data: { balance: bet.balance } });
+
+    // The curve starts on the player's click; there is no betting window.
+    sendToUser(userId, {
+      type: 'CRASH_ROUND_START',
+      data: {
+        roundId: round.roundId,
+        phase: 'RUNNING',
+        hashedServerSeed: seed.hashedServerSeed,
+        clientSeed: seed.clientSeed,
+        nonce: seed.nonce,
+      },
+    });
+  } finally {
+    crashBetsInFlight.delete(userId);
+  }
+}
+
+/**
+ * Replays a live round to a reconnecting client, for the same reason Chicken
+ * has a resume path: the round lives on the server, a reload wipes the page's
+ * copy, and without this the player is left with a debited stake and no way to
+ * send CASHOUT before the round busts.
+ */
+function handleCrashResume(ws: WebSocket, userId: string) {
+  const round = crashManager.get(userId);
+  const bet = gameState.getCrashBet(userId);
+
+  if (!round || !bet || bet.settled) {
+    return send(ws, { type: 'RESUME_NONE', data: { gameType: 'CRASH' } });
+  }
+
+  send(ws, {
+    type: 'BET_ACCEPTED',
+    data: {
+      gameType: 'CRASH',
+      amount: bet.amount,
+      roundId: round.roundId,
+      hashedServerSeed: round.seed.hashedServerSeed,
+      clientSeed: round.seed.clientSeed,
+      nonce: round.seed.nonce,
+      resumed: true,
+    },
   });
 
-  send(ws, { type: 'BET_ACCEPTED', data: { gameType: 'CRASH', amount, balance: bet.balance } });
-  send(ws, { type: 'BALANCE', data: { balance: bet.balance } });
+  send(ws, {
+    type: 'CRASH_ROUND_START',
+    data: {
+      roundId: round.roundId,
+      phase: 'RUNNING',
+      hashedServerSeed: round.seed.hashedServerSeed,
+      clientSeed: round.seed.clientSeed,
+      nonce: round.seed.nonce,
+      resumed: true,
+    },
+  });
+
+  // Restores the curve mid-flight, which CRASH_ROUND_START alone would leave
+  // sitting at 1.00×.
+  send(ws, {
+    type: 'CRASH_TICK',
+    data: {
+      roundId: round.roundId,
+      multiplier: crashManager.liveMultiplier(userId),
+    },
+  });
 }
 
 async function handleCrashCashout(ws: WebSocket, userId: string) {
@@ -928,15 +1037,36 @@ async function handleCrashCashout(ws: WebSocket, userId: string) {
   if (!bet || bet.settled) {
     return fail(ws, 'No active crash bet', 'NO_ACTIVE_BET');
   }
-  if (!crashManager.isRunning()) {
+
+  const round = crashManager.get(userId);
+  if (!round) {
     return fail(ws, 'Round is not running', 'NOT_RUNNING');
   }
 
-  const multiplier = crashManager.liveMultiplier;
-  const crashPoint = crashManager.crashPoint ?? multiplier;
-  if (multiplier >= crashPoint) {
+  const multiplier = crashManager.liveMultiplier(userId);
+  if (multiplier >= round.crashPoint) {
     return fail(ws, 'Too late — already crashed', 'ALREADY_CRASHED');
   }
+
+  // Stop the curve first, synchronously. The round is over at the instant the
+  // player takes it, so nothing ticks past the multiplier they were paid and a
+  // second CASHOUT finds no round. Marking the bet settled in the same breath
+  // closes the double-payout window across the awaits below.
+  crashManager.end(userId);
+  bet.cashedOutAt = multiplier;
+  bet.settled = true;
+
+  sendToUser(userId, {
+    type: 'CRASH_ROUND_END',
+    data: {
+      roundId: round.roundId,
+      cashedOut: true,
+      multiplier,
+      // Where the curve would have gone. Safe once the round is settled, and
+      // it keeps the round in the history strip, which keys off crashPoint.
+      crashPoint: round.crashPoint,
+    },
+  });
 
   const payout = await payoutOf('CRASH', bet.amount, multiplier);
   const credited = await processWin({
@@ -945,8 +1075,8 @@ async function handleCrashCashout(ws: WebSocket, userId: string) {
     payoutAmount: payout,
     currency: bet.currency,
   });
-  bet.cashedOutAt = multiplier;
-  bet.settled = true;
+
+  gameState.clearCrashBet(userId);
 
   accrueAffiliate({
     userId,
@@ -954,6 +1084,14 @@ async function handleCrashCashout(ws: WebSocket, userId: string) {
     stake: bet.amount,
     payout,
     currency: bet.currency,
+  });
+
+  await recordCrashSession({
+    round,
+    betAmount: bet.amount,
+    payout,
+    multiplier,
+    cashout: true,
   });
 
   send(ws, {
@@ -976,6 +1114,88 @@ async function handleCrashCashout(ws: WebSocket, userId: string) {
     betAmount: bet.amount,
     multiplier,
     payout,
+  });
+}
+
+/** The round reached its crash point with the stake still on the table. */
+async function settleCrashBust(round: CrashRound) {
+  const { userId } = round;
+  const bet = gameState.getCrashBet(userId);
+  if (!bet || bet.settled) return;
+
+  bet.settled = true;
+  gameState.clearCrashBet(userId);
+
+  sendToUser(userId, {
+    type: 'CRASH_ROUND_END',
+    data: {
+      roundId: round.roundId,
+      cashedOut: false,
+      crashPoint: round.crashPoint,
+    },
+  });
+
+  const balance = await getBalance(userId, bet.currency);
+  sendToUser(userId, {
+    type: 'GAME_RESULT',
+    data: {
+      gameType: 'CRASH',
+      win: false,
+      // The realised multiplier is 0 — the player took nothing. The crash
+      // point rides alongside it, as Mines and Chicken carry their reveal.
+      multiplier: 0,
+      crashPoint: round.crashPoint,
+      payout: '0',
+      balance,
+    },
+  });
+
+  accrueAffiliate({
+    userId,
+    betId: bet.betTransactionId,
+    stake: bet.amount,
+    currency: bet.currency,
+  });
+
+  await recordCrashSession({
+    round,
+    betAmount: bet.amount,
+    payout: '0',
+    multiplier: round.crashPoint,
+    cashout: false,
+  });
+}
+
+/**
+ * Writes the round to game history. The shared-round game never recorded one:
+ * a round belonged to many players at once, so it fitted no single row. A
+ * per-player round does, which is also what makes it verifiable later — the
+ * seed and nonce here are what a player replays against the revealed pair.
+ */
+async function recordCrashSession(input: {
+  round: CrashRound;
+  betAmount: string;
+  payout: string;
+  multiplier: number;
+  cashout: boolean;
+}) {
+  const { round } = input;
+  await prisma.gameSession.create({
+    data: {
+      userId: round.userId,
+      gameType: 'CRASH',
+      betAmount: new D(input.betAmount),
+      payout: new D(input.payout),
+      multiplier: input.multiplier,
+      serverSeed: round.seed.serverSeed,
+      clientSeed: round.seed.clientSeed,
+      nonce: round.seed.nonce,
+      resultData: {
+        cashout: input.cashout,
+        crashPoint: round.crashPoint,
+        roundId: round.roundId,
+      } as Prisma.InputJsonValue,
+    },
   });
 }
 
@@ -1002,8 +1222,9 @@ async function route(ws: WebSocket, userId: string, msg: ClientMessage, username
       return handleChickenStep(ws, userId, payload);
 
     case 'RESUME':
-      if (gameType !== 'CHICKEN') return fail(ws, 'RESUME is only valid for CHICKEN');
-      return handleChickenResume(ws, userId);
+      if (gameType === 'CHICKEN') return handleChickenResume(ws, userId);
+      if (gameType === 'CRASH') return handleCrashResume(ws, userId);
+      return fail(ws, `RESUME is not supported for ${gameType}`);
 
     case 'CHAT':
       return handleChat(ws, userId, username, payload);
@@ -1112,5 +1333,7 @@ export function registerSocketServer(app: FastifyInstance) {
     });
   });
 
-  app.ready().then(() => crashManager.start());
+  // No round loop is started here. Crash rounds are per-player and begin only
+  // when that player sends BET; an idle server runs no crash timers at all.
+  app.addHook('onClose', async () => crashManager.stopAll());
 }

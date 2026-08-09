@@ -35,8 +35,6 @@ interface DepositInvoice {
 
 const AMOUNT_PATTERN = /^\d{1,10}(\.\d{1,8})?$/;
 
-const MOCK_DEPOSIT_AMOUNT = '50';
-
 const QUICK_AMOUNTS = ['10', '25', '50', '100'] as const;
 
 const URI_SCHEME: Partial<Record<CurrencyCode, string>> = {
@@ -143,8 +141,11 @@ export default function DepositModal({ open }: { open: boolean }) {
     }
   }, [amount, amountValid, currency, loading, balance.balance]);
 
+  // Credits whatever is in the amount field, not a fixed stake — the sandbox
+  // button is there to exercise the real deposit path, which is only useful if
+  // the tester controls the figure. The server re-validates and caps it.
   const simulateDeposit = useCallback(async () => {
-    if (loading) return;
+    if (loading || !amountValid) return;
     setLoading(true);
     setError(null);
     setMockCredited(null);
@@ -154,9 +155,11 @@ export default function DepositModal({ open }: { open: boolean }) {
         paymentEndpoint('/api/payments/mock-deposit'),
         {
           method: 'POST',
-          body: JSON.stringify({ amount: MOCK_DEPOSIT_AMOUNT, currency }),
+          body: JSON.stringify({ amount, currency }),
         }
       );
+      // Echo the server's figure, not the input — it is the amount actually
+      // credited if the backend ever normalises or clamps it.
       setMockCredited(result.amount);
     } catch (err) {
       setError(
@@ -167,7 +170,7 @@ export default function DepositModal({ open }: { open: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, [currency, loading]);
+  }, [amount, amountValid, currency, loading]);
 
   const copy = useCallback(async (text: string, which: 'address' | 'amount') => {
     try {
@@ -322,7 +325,7 @@ export default function DepositModal({ open }: { open: boolean }) {
             type="button"
             className="wal__btn wal__btn--test"
             onClick={simulateDeposit}
-            disabled={loading}
+            disabled={!amountValid || loading}
           >
             {loading ? 'Crediting…' : 'Simulate Test Deposit (Instant)'}
           </button>

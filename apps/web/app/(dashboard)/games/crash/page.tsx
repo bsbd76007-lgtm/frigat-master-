@@ -1,8 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+/**
+ * FRIGAT — Crash (single-player)
+ *
+ * A round exists only when this player starts one. The page sends BET, the
+ * server opens a round addressed to this user alone, ticks it, and ends it on
+ * either the cash-out or the crash point. Nothing runs between rounds, so the
+ * player picks their own moment to start the next one.
+ */
 
-import { CRASH } from '@frigat/shared/constants';
+import { useEffect, useMemo, useState } from 'react';
 
 import { CrashCanvas, type CrashPhase } from '@/components/canvas/CrashCanvas';
 import { BetControls } from '@/components/games/BetControls';
@@ -19,66 +26,73 @@ export default function CrashPage() {
   const [cashedOutAt, setCashedOutAt] = useState<number | null>(null);
   const [hasBet, setHasBet] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [msRemaining, setMsRemaining] = useState<number | null>(null);
-  const deadlineRef = useRef<number | null>(null);
 
   useEffect(() => {
     const off = [
-      subscribe('CRASH_ROUND_START', (data) => {
-        setPhase('BETTING');
+      // The round is already running by the time this lands — the server opens
+      // it on the player's BET, so there is no betting window to count down.
+      subscribe('CRASH_ROUND_START', () => {
+        setPhase('RUNNING');
         setMultiplier(1);
         setCrashPoint(null);
         setCashedOutAt(null);
-        setHasBet(false);
         setBusy(false);
-        const window = typeof data.bettingWindowMs === 'number'
-          ? data.bettingWindowMs
-          : CRASH.bettingWindowMs;
-        deadlineRef.current = Date.now() + window;
-        setMsRemaining(window);
-      }),
-      subscribe('STATE_UPDATE', (data) => {
-        if (data.phase === 'RUNNING') {
-          setPhase('RUNNING');
-          deadlineRef.current = null;
-          setMsRemaining(null);
-        }
       }),
       subscribe('CRASH_TICK', (data) => {
         if (typeof data.multiplier === 'number') setMultiplier(data.multiplier);
       }),
       subscribe('CRASH_ROUND_END', (data) => {
+        // Either ending frees the player to start another round, so the stake
+        // is released here rather than waiting on a next-round signal.
+        setHasBet(false);
+        setBusy(false);
+
+        if (data.cashedOut) {
+          setPhase('CASHED_OUT');
+          if (typeof data.multiplier === 'number') {
+            setCashedOutAt(data.multiplier);
+            setMultiplier(data.multiplier);
+          }
+          return;
+        }
+
         setPhase('CRASHED');
         if (typeof data.crashPoint === 'number') {
           setCrashPoint(data.crashPoint);
           setMultiplier(data.crashPoint);
         }
-        setBusy(false);
       }),
       subscribe('BET_ACCEPTED', (data) => {
-        if (data.gameType === 'CRASH') {
-          setHasBet(true);
-          setBusy(false);
-        }
+        if (data.gameType !== 'CRASH') return;
+        setHasBet(true);
+        setBusy(false);
+        // On a resume the live stake is the server's, not whatever is sitting
+        // in the input — the cash-out quote is computed from this.
+        if (typeof data.amount === 'string') setAmount(data.amount);
       }),
       subscribe('GAME_RESULT', (data) => {
         if (data.gameType !== 'CRASH') return;
-        if (typeof data.multiplier === 'number') setCashedOutAt(data.multiplier);
         setBusy(false);
+        // Only a win carries a cash-out multiplier; a bust reports the crash
+        // point here, which must not be shown as the player's exit.
+        if (data.win && typeof data.multiplier === 'number') {
+          setCashedOutAt(data.multiplier);
+        }
+      }),
+      subscribe('RESUME_NONE', () => {
+        /* no live round to restore — the idle screen is already correct */
       }),
       subscribe('ERROR', () => setBusy(false)),
     ];
     return () => off.forEach((fn) => fn());
   }, [subscribe]);
 
+  // A reload mid-round leaves the stake committed server-side; without this the
+  // page would sit idle with no way to cash out before the round busts.
   useEffect(() => {
-    if (phase !== 'BETTING') return;
-    const id = setInterval(() => {
-      if (deadlineRef.current === null) return;
-      setMsRemaining(Math.max(0, deadlineRef.current - Date.now()));
-    }, 100);
-    return () => clearInterval(id);
-  }, [phase]);
+    if (!socket.isOpen) return;
+    send('RESUME', 'CRASH');
+  }, [socket.isOpen, send]);
 
   const history = useMemo(
     () =>
@@ -91,12 +105,15 @@ export default function CrashPage() {
   );
 
   /* Action-button state machine, in priority order:
-     1. BETTING + no bet yet     → "Place bet"
-     2. RUNNING + live bet       → green "Cashout" with the live payout
-     3. anything else (already cashed out, or no bet in the active round)
-                                 → disabled "Waiting for next round" */
+     1. no round running        → "Place bet", which starts one
+     2. RUNNING + live bet      → green "Cashout" with the live payout
+     3. otherwise (a round in flight the player is not in) → disabled
+
+     Every ending returns to state 1 on the same frame that ends the round, so
+     the player can immediately start another on their own timing. */
   const hasCashedOut = cashedOutAt !== null;
-  const canBet = phase === 'BETTING' && !hasBet;
+  const roundOver = phase === 'CRASHED' || phase === 'CASHED_OUT';
+  const canBet = !hasBet && (phase === 'IDLE' || roundOver);
   const canCashout = phase === 'RUNNING' && hasBet && !hasCashedOut;
 
   return (
@@ -110,7 +127,6 @@ export default function CrashPage() {
           phase={phase}
           multiplier={multiplier}
           crashPoint={crashPoint}
-          bettingMsRemaining={msRemaining}
           cashedOutAt={cashedOutAt}
           height={360}
         />
@@ -159,17 +175,10 @@ export default function CrashPage() {
             }}
             disabled={!canBet && !canCashout}
             busy={busy}
-            /* Reached only when the cashout button is not showing. A player who
-               has bet but is still inside the betting window gets explicit
-               confirmation their stake landed; every other case is the
-               waiting state. */
-            betLabel={
-              canBet
-                ? 'Place bet'
-                : hasBet && !hasCashedOut && phase === 'BETTING'
-                  ? 'Bet placed · waiting for round'
-                  : 'Waiting for next round'
-            }
+            /* Reached only when the cashout button is not showing. With
+               per-player rounds the fallback is the brief gap while a bet is
+               being accepted — there is no next round to wait for. */
+            betLabel={canBet ? 'Place bet' : 'Round in progress'}
           />
         </>
       }
