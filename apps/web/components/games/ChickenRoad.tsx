@@ -144,7 +144,7 @@ export default function ChickenRoad() {
   const rowIndexes = Array.from({ length: GAME_CONFIG.ROWS }, (_, i) => GAME_CONFIG.ROWS - 1 - i);
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] select-none rounded-2xl bg-[#131b26] p-4 text-white shadow-2xl flex flex-col lg:flex-row gap-6">
+    <div className="w-full max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-6 min-h-[700px] select-none rounded-2xl bg-[#131b26] p-4 text-white shadow-2xl">
       {/* ---------- Board ---------- */}
       <div className="relative flex flex-1 min-h-[700px] w-full overflow-hidden rounded-xl bg-[#1a2130]">
           <div
