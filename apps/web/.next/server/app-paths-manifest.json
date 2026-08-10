@@ -1,5 +1,11 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
+  "/api/session/route": "app/api/session/route.js",
+  "/(dashboard)/referrals/page": "app/(dashboard)/referrals/page.js",
+  "/(auth)/register/page": "app/(auth)/register/page.js",
+  "/(dashboard)/games/roulette/page": "app/(dashboard)/games/roulette/page.js",
   "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/(dashboard)/games/chicken/page": "app/(dashboard)/games/chicken/page.js"
+  "/(dashboard)/games/mines/page": "app/(dashboard)/games/mines/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/risk-control/page": "app/admin/risk-control/page.js"
 }

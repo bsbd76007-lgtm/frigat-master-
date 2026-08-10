@@ -50,6 +50,42 @@ export const GAME_CONFIG = {
 
 export type Phase = 'IDLE' | 'PLAYING' | 'WON' | 'LOST';
 
+/**
+ * Board geometry as fractions of the stage height. The canvas and the DOM
+ * overlay both derive from these, so the coins and barriers can never drift
+ * away from the asphalt they are supposed to sit on.
+ */
+const LAYOUT = {
+  topGrass: 0.12,
+  bottomGrass: 0.18,
+  /** The chicken climbs left of centre so the coins stay readable. */
+  chickenX: 0.26,
+} as const;
+
+const ROAD_HEIGHT = 1 - LAYOUT.topGrass - LAYOUT.bottomGrass;
+const LANE_HEIGHT = ROAD_HEIGHT / GAME_CONFIG.lanes;
+
+/** Centre of a lane, as a fraction of stage height from the top. */
+function laneCentreFraction(lane: number): number {
+  if (lane === 0) return 1 - LAYOUT.bottomGrass / 2;
+  return LAYOUT.topGrass + ROAD_HEIGHT - (lane - 0.5) * LANE_HEIGHT;
+}
+
+/** The line a player crosses to clear `lane` — where its barrier lands. */
+function laneEdgeFraction(lane: number): number {
+  return laneCentreFraction(lane) - LANE_HEIGHT / 2;
+}
+
+/**
+ * Per-lane crossing chance implied by the ladder: the step from one rung's
+ * break-even probability to the next. Derived rather than hardcoded so the
+ * badge can never disagree with what the lane actually pays.
+ */
+export function crossingChanceAt(lane: number): number {
+  const survivalTo = (l: number) => (l <= 0 ? 1 : 0.99 / multiplierAt(l));
+  return survivalTo(lane) / survivalTo(lane - 1);
+}
+
 interface Car {
   lane: number;
   /** Centre x, in canvas pixels. */
@@ -162,6 +198,74 @@ const CSS = `
   text-transform: uppercase; color: #0f172a; background: rgba(255,255,255,.82);
   border-radius: 999px; }
 
+/* ── Overlay: coins and barriers, aligned to the canvas geometry ───────── */
+.chr__overlay { position: absolute; inset: 0; pointer-events: none; }
+
+/* Golden coin: a struck disc with a milled rim and a raised face. */
+.chr__coin { position: absolute; left: 50%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  width: 62px; height: 62px; margin-left: -31px; margin-top: -31px;
+  border-radius: 50%; text-align: center;
+  background:
+    radial-gradient(circle at 50% 32%, #fff3c4 0%, #ffd76a 34%, #e8a935 62%, #b8791c 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,.85),
+    inset 0 -5px 9px rgba(120,71,10,.65),
+    0 0 0 3px #c98a25,
+    0 0 0 5px #8a5c14,
+    0 6px 14px rgba(0,0,0,.45);
+  transition: transform .3s ease, filter .3s ease, opacity .3s ease; }
+/* Milled edge: fine ticks masked to the rim only. */
+.chr__coin::before { content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg,
+    rgba(255,255,255,.5) 0deg 3deg, rgba(120,71,10,.45) 3deg 6deg);
+  opacity: .5; -webkit-mask: radial-gradient(circle, transparent 0 88%, #000 88%);
+  mask: radial-gradient(circle, transparent 0 88%, #000 88%); }
+/* Inner ring, so the face reads as struck rather than flat. */
+.chr__coin::after { content: ''; position: absolute; inset: 8px; border-radius: 50%;
+  border: 1px solid rgba(120,71,10,.4); pointer-events: none; }
+
+.chr__coin-pct { position: relative; z-index: 1; font-size: 15px; font-weight: 900;
+  line-height: 1; color: #4a2f06; text-shadow: 0 1px 0 rgba(255,255,255,.55); }
+.chr__coin-mult { position: relative; z-index: 1; margin-top: 2px; font-size: 10.5px;
+  font-weight: 800; line-height: 1; color: #6b451a;
+  text-shadow: 0 1px 0 rgba(255,255,255,.45); }
+
+.chr__coin--cleared { filter: saturate(.55) brightness(.8); transform: scale(.9); }
+.chr__coin--next { animation: chr-coin-bob 1.9s ease-in-out infinite; }
+
+/* Concrete barrier: lifted clear until its lane is crossed, then it drops. */
+.chr__barrier { position: absolute; left: 6%; right: 6%; height: 15px; margin-top: -7px;
+  border-radius: 3px; opacity: 0; transform: translateY(-26px);
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,.16) 0 2px, transparent 2px 26px),
+    linear-gradient(180deg, #d8dce3 0%, #a9b1bb 55%, #7d848e 100%);
+  border: 1px solid rgba(15,23,42,.5);
+  box-shadow: 0 4px 10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.55); }
+/* Hazard flashes, so it reads as roadworks at a glance. */
+.chr__barrier::after { content: ''; position: absolute; inset: 4px 8px; border-radius: 2px;
+  background: repeating-linear-gradient(115deg, #e33a3a 0 9px, #f8fafc 9px 18px);
+  opacity: .9; }
+.chr__barrier--down { animation: chr-thud .42s cubic-bezier(.34,1.3,.5,1) forwards; }
+
+@keyframes chr-coin-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.04); }
+}
+/* Falls onto the crack mark and settles. */
+@keyframes chr-thud {
+  0% { transform: translateY(-26px) scaleY(.9); opacity: 0; }
+  55% { transform: translateY(0) scaleY(1.12); opacity: 1; }
+  75% { transform: translateY(-3px) scaleY(.96); opacity: 1; }
+  100% { transform: translateY(0) scaleY(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chr__coin--next { animation: none; }
+  /* The barrier still lands — that is state, not decoration — it just snaps. */
+  .chr__barrier--down { animation: none; opacity: 1; transform: translateY(0); }
+}
+
 /* ── Panel ─────────────────────────────────────────── */
 .chr__panel { display: flex; flex-direction: column; gap: 16px; width: 100%;
   max-width: 700px; min-width: 0; flex: 0 0 auto; padding: 24px; box-sizing: border-box;
@@ -263,6 +367,7 @@ export default function ChickenRoad() {
   const multiplier = multiplierAt(lane);
   const payout = Number((bet * multiplier).toFixed(2));
   const maxBet = Math.min(GAME_CONFIG.maxBet, Math.max(credit, GAME_CONFIG.minBet));
+  const laneList = Array.from({ length: GAME_CONFIG.lanes }, (_, i) => i + 1);
 
   const betError = useMemo(() => {
     if (!Number.isFinite(bet) || bet < GAME_CONFIG.minBet) {
@@ -364,17 +469,14 @@ export default function ChickenRoad() {
       const dt = Math.min(delta, 50) / 1000;
 
       // Vertical bands: top verge, the road, bottom verge.
-      const topGrass = height * 0.12;
-      const bottomGrass = height * 0.18;
+      const topGrass = height * LAYOUT.topGrass;
+      const bottomGrass = height * LAYOUT.bottomGrass;
       const roadTop = topGrass;
-      const roadHeight = height - topGrass - bottomGrass;
-      const laneHeight = roadHeight / GAME_CONFIG.lanes;
+      const roadHeight = height * ROAD_HEIGHT;
+      const laneHeight = height * LANE_HEIGHT;
 
       /** Lane 0 is the bottom verge; 1..N climb up the road. */
-      const laneCentre = (l: number) =>
-        l === 0
-          ? height - bottomGrass / 2
-          : roadTop + roadHeight - (l - 0.5) * laneHeight;
+      const laneCentre = (l: number) => laneCentreFraction(l) * height;
 
       // ── Ground ──
       ctx.fillStyle = '#7c8b9e';
@@ -427,36 +529,11 @@ export default function ChickenRoad() {
         );
       }
 
-      // ── Multiplier badges, sitting on each lane boundary ──
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      for (let l = 1; l <= GAME_CONFIG.lanes; l += 1) {
-        const y = laneCentre(l) - laneHeight / 2;
-        const text = `${multiplierAt(l).toFixed(2)}x`;
-        ctx.font = `700 ${Math.max(10, width * 0.026)}px ui-sans-serif, system-ui, sans-serif`;
-        const w = ctx.measureText(text).width + 18;
-        const h = Math.max(18, width * 0.042);
-        const x = width - w / 2 - 12;
-
-        ctx.fillStyle = l <= laneRef.current ? 'rgba(34,197,94,.92)' : 'rgba(15,23,42,.82)';
-        ctx.beginPath();
-        // roundRect is absent on older Safari; a throw here would kill the
-        // render loop on every frame, so fall back to a plain rect.
-        if (typeof ctx.roundRect === 'function') {
-          ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
-          ctx.fill();
-        } else {
-          ctx.fillRect(x - w / 2, y - h / 2, w, h);
-        }
-        ctx.fillStyle = l <= laneRef.current ? '#052e16' : '#e2e8f0';
-        ctx.fillText(text, x, y + 0.5);
-      }
-
       // ── Chicken ──
       const chickenScale = Math.max(3, Math.min(6, width / 100));
       const hopAge = hopAtRef.current ? performance.now() - hopAtRef.current : Infinity;
       const hop = hopAge < 300 ? Math.sin((hopAge / 300) * Math.PI) * laneHeight * 0.3 : 0;
-      const chickenX = width / 2;
+      const chickenX = width * LAYOUT.chickenX;
       const chickenY = laneCentre(laneRef.current) - hop;
 
       drawSprite(ctx, CHICKEN, chickenX, chickenY, chickenScale);
@@ -509,6 +586,39 @@ export default function ChickenRoad() {
       {/* ---------- Stage ---------- */}
       <div className="chr__stage">
         <canvas ref={canvasRef} className="chr__canvas" />
+
+        {/* Coins and barriers sit above the canvas but take no pointer events,
+            so the whole stage stays a single step control. Positions come from
+            the same fractions the canvas draws with. */}
+        <div className="chr__overlay" aria-hidden="true">
+          {laneList.map((l) => (
+            <div
+              key={`coin-${l}`}
+              className={[
+                'chr__coin',
+                l < lane ? 'chr__coin--cleared' : '',
+                isPlaying && l === lane + 1 ? 'chr__coin--next' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              style={{ top: `${(laneCentreFraction(l) * 100).toFixed(3)}%` }}
+            >
+              <span className="chr__coin-pct">
+                {Math.round(crossingChanceAt(l) * 100)}%
+              </span>
+              <span className="chr__coin-mult">{multiplierAt(l).toFixed(2)}x</span>
+            </div>
+          ))}
+
+          {laneList.map((l) => (
+            <div
+              key={`barrier-${l}`}
+              // Drops only once this lane is behind the chicken.
+              className={`chr__barrier${l < lane ? ' chr__barrier--down' : ''}`}
+              style={{ top: `${(laneEdgeFraction(l) * 100).toFixed(3)}%` }}
+            />
+          ))}
+        </div>
         <div className="chr__hud">
           <span className="chr__chip">
             Lane {lane} / {GAME_CONFIG.lanes}
