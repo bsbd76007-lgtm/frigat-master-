@@ -38,7 +38,6 @@ export interface CatalogueEntry {
 }
 
 export type GameEngineType =
-  | 'CHICKEN'
   | 'CRASH'
   | 'MINES'
   | 'ROULETTE'
@@ -46,7 +45,8 @@ export type GameEngineType =
   | 'PLINKO'
   | 'DICE'
   | 'LIMBO'
-  | 'KENO';
+  | 'KENO'
+  | 'CHICKEN';
 
 export const CATALOGUE: readonly CatalogueEntry[] = [
   {

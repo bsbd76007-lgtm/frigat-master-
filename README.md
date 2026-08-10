@@ -25,7 +25,7 @@ library:
 | **`packages/shared`** | Provably-fair primitives and types used by both | — |
 
 The architecture is **server-authoritative by design**. Every outcome — the
-crash point, the mine layout, the lane a chicken is hit in — is decided on the
+crash point, the mine layout, the tile a mine sits under — is decided on the
 server from a committed seed before the client renders a single frame. The
 browser animates a verdict it has already been handed; it never decides one.
 Editing the page can change what a player *sees*, never what they are *paid*.
@@ -54,7 +54,6 @@ the audited ledger.
 | Dice | `dice.engine.ts` | 99.0% | DOM |
 | Limbo | `limbo.engine.ts` | 99.0% | DOM |
 | Keno | `keno.engine.ts` | 98.0% | DOM grid |
-| Chicken Road | `chicken.engine.ts` | 99.0% | DOM lane board |
 
 > **Note on Roulette's RTP.** 97.3% is not a configured house edge but a
 > structural one: a single-zero wheel has 37 pockets and pays 36:1, so
@@ -62,24 +61,6 @@ the audited ledger.
 
 Live RTP is served from **`GET /api/games/rtp`** — the same constants the
 engines settle against, so the published figure cannot drift from reality.
-
-###  Chicken Road
-
-A multi-step crossing game in the same shape as Mines: `BET` opens a round and
-fixes the entire road from the seed, `STEP` advances one lane, `CASHOUT`
-settles at the running multiplier.
-
-- **Six-lane board** showing the full payout progression, driven by the
-  server's own `multiplierTable(difficulty)` — the client computes no payouts.
-- **Animated traffic** on a `requestAnimationFrame` loop with per-lane speeds
-  and directions, holding 120 FPS through 6× CPU throttling.
-- **Round recovery** — a mid-round page reload restores the live round via
-  `RESUME` rather than stranding a player with a debited stake.
-
-> The traffic is presentation only. The road is decided at bet time from the
-> server seed, so a car's on-screen position cannot make a lane safe or fatal.
-> If pixel overlap decided outcomes, pausing the loop in devtools would be an
-> exploit.
 
 ###  Live bets feed
 

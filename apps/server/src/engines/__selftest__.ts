@@ -13,7 +13,6 @@ import * as crash from './crash.engine';
 import * as mines from './mines.engine';
 import * as limbo from './limbo.engine';
 import * as keno from './keno.engine';
-import * as chicken from './chicken.engine';
 import { floatAt, provableShuffle } from './provable';
 import { KENO_PAYTABLE } from '@frigat/shared';
 import type { SeedContext } from '../types/engine.types';
@@ -245,82 +244,6 @@ check('every paytable row is calibrated to ~98% RTP', () => {
     }
     assert.ok(Math.abs(ev - 0.98) < 0.005, `picks=${picks} RTP=${ev}`);
   }
-});
-
-check('chicken: road is deterministic for a seed', () => {
-  const a = chicken.generateRoad('MEDIUM', ctx(7));
-  const b = chicken.generateRoad('MEDIUM', ctx(7));
-  assert.deepEqual(a, b);
-  assert.equal(a.length, chicken.LANE_COUNT);
-});
-
-check('chicken: isBlocked agrees with generateRoad', () => {
-  const road = chicken.generateRoad('HARD', ctx(11));
-  for (let lane = 0; lane < chicken.LANE_COUNT; lane += 1) {
-    assert.equal(chicken.isBlocked(lane, 'HARD', ctx(11)), road[lane]);
-  }
-});
-
-check('chicken: lane index is range-checked', () => {
-  assert.throws(() => chicken.isBlocked(-1, 'EASY', ctx(1)));
-  assert.throws(() => chicken.isBlocked(chicken.LANE_COUNT, 'EASY', ctx(1)));
-});
-
-check('chicken: multiplier starts at 1 and rises', () => {
-  for (const d of ['EASY', 'MEDIUM', 'HARD'] as const) {
-    assert.equal(chicken.multiplierAfter(d, 0), 1);
-    let previous = 1;
-    for (let n = 1; n <= chicken.LANE_COUNT; n += 1) {
-      const m = chicken.multiplierAfter(d, n);
-      assert.ok(m > previous, `${d} lane ${n}: ${m} <= ${previous}`);
-      previous = m;
-    }
-  }
-});
-
-check('chicken: harder difficulty pays more per lane', () => {
-  for (let n = 1; n <= 10; n += 1) {
-    assert.ok(chicken.multiplierAfter('HARD', n) > chicken.multiplierAfter('MEDIUM', n));
-    assert.ok(chicken.multiplierAfter('MEDIUM', n) > chicken.multiplierAfter('EASY', n));
-  }
-});
-
-check('chicken: every difficulty holds ~99% RTP', () => {
-  // EV of cashing out after exactly n lanes = P(survive n) * multiplier(n).
-  // With a neutral game that is (1-edge) at every n; the floor to 2dp pulls it
-  // very slightly below, never above.
-  for (const d of ['EASY', 'MEDIUM', 'HARD'] as const) {
-    const p = chicken.DIFFICULTY[d];
-    for (let n = 1; n <= 12; n += 1) {
-      const ev = Math.pow(1 - p, n) * chicken.multiplierAfter(d, n);
-      assert.ok(ev <= 0.99 + 1e-9, `${d} n=${n} RTP=${ev} exceeds 99%`);
-      assert.ok(ev > 0.98, `${d} n=${n} RTP=${ev} too low`);
-    }
-  }
-});
-
-check('chicken: observed hazard rate matches the difficulty', () => {
-  // The engine's fairness claim rests on floatAt being uniform, so the road
-  // must actually block at the advertised rate over many seeds.
-  for (const d of ['EASY', 'MEDIUM', 'HARD'] as const) {
-    let blocked = 0;
-    let total = 0;
-    for (let n = 0; n < 400; n += 1) {
-      for (const lane of chicken.generateRoad(d, ctx(n))) {
-        if (lane) blocked += 1;
-        total += 1;
-      }
-    }
-    const rate = blocked / total;
-    const want = chicken.DIFFICULTY[d];
-    assert.ok(Math.abs(rate - want) < 0.02, `${d}: observed ${rate}, want ${want}`);
-  }
-});
-
-check('chicken: multiplierTable matches multiplierAfter', () => {
-  const table = chicken.multiplierTable('MEDIUM');
-  assert.equal(table.length, chicken.LANE_COUNT);
-  table.forEach((m, i) => assert.equal(m, chicken.multiplierAfter('MEDIUM', i + 1)));
 });
 
 console.log(`\n✅ All ${passed} checks passed.`);

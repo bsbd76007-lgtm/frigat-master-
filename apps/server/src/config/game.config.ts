@@ -24,7 +24,6 @@ export const HOUSE_EDGE: Record<GameType, number> = {
   DICE: 0.01,
   LIMBO: 0.01,
   KENO: 0.02,
-  CHICKEN: 0.01,
 };
 
 export const ROULETTE_PAYOUTS = {

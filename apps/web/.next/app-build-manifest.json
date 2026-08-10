@@ -21,65 +21,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/games/chicken/page.js"
     ],
-    "/(dashboard)/games/roulette/page": [
+    "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/games/roulette/page.js"
-    ],
-    "/(dashboard)/games/mines/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/games/mines/page.js"
-    ],
-    "/(dashboard)/games/crash/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/games/crash/page.js"
-    ],
-    "/(auth)/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(auth)/login/page.js"
-    ],
-    "/(auth)/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(auth)/layout.js"
-    ],
-    "/(dashboard)/vip/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/vip/page.js"
-    ],
-    "/(dashboard)/referrals/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/referrals/page.js"
-    ],
-    "/(dashboard)/games/plinko/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/games/plinko/page.js"
-    ],
-    "/(dashboard)/games/coinflip/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/games/coinflip/page.js"
-    ],
-    "/(dashboard)/games/dice/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/games/dice/page.js"
-    ],
-    "/(dashboard)/games/limbo/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/games/limbo/page.js"
-    ],
-    "/(dashboard)/games/keno/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/games/keno/page.js"
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

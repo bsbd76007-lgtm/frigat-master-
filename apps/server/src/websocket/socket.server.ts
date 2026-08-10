@@ -41,8 +41,6 @@ import { capPayout, MaintenanceModeError, BetLimitError } from '../services/risk
 import { authenticateConnection, AuthError } from './auth.middleware';
 import { gameState } from './gameState.store';
 import { publicHandle } from '../routes/games/bets.routes';
-import type { ChickenState } from './gameState.store';
-import * as chicken from '../engines/chicken.engine';
 import { CrashRoundManager, type CrashRound } from './crashRound.manager';
 import { computeCrashPoint } from '../engines/crash.engine';
 import type { ClientMessage, ServerMessage } from '../types/engine.types';
@@ -635,274 +633,6 @@ async function handleMinesCashout(
   });
 }
 
-// ── Chicken Road ─────────────────────────────────────────────────────────────
-//
-// Same shape as Mines: the stake is debited on BET, the road is fixed from the
-// seed at that moment, and each STEP either advances the multiplier or ends the
-// round. The road is never sent to the client while the round is live — the
-// client learns one lane at a time, and only the lane it just stepped into.
-
-async function handleChickenStart(
-  ws: WebSocket,
-  userId: string,
-  payload: Record<string, unknown>
-) {
-  if (gameState.getChicken(userId)?.active) {
-    return fail(ws, 'You already have an active chicken game', 'GAME_IN_PROGRESS');
-  }
-
-  const amount = String(payload.amount ?? '');
-  const currency = String(payload.currency ?? 'USD');
-  const raw = (payload.params as any)?.difficulty ?? payload.difficulty ?? 'MEDIUM';
-  if (!chicken.isDifficulty(raw)) {
-    return fail(ws, `Unknown difficulty: ${String(raw)}`, 'BAD_REQUEST');
-  }
-  const difficulty = raw;
-
-  const bet = await processBet({ userId, amount, gameType: 'CHICKEN', currency });
-  const seed = await nextSeedContext(userId);
-  const road = chicken.generateRoad(difficulty, seed);
-
-  gameState.setChicken({
-    userId,
-    betTransactionId: bet.transactionId,
-    betAmount: amount,
-    currency,
-    difficulty,
-    road,
-    seed,
-    crossed: 0,
-    active: true,
-  });
-
-  send(ws, {
-    type: 'BET_ACCEPTED',
-    data: {
-      gameType: 'CHICKEN',
-      difficulty,
-      laneCount: chicken.LANE_COUNT,
-      multipliers: chicken.multiplierTable(difficulty),
-      hashedServerSeed: seed.hashedServerSeed,
-      clientSeed: seed.clientSeed,
-      nonce: seed.nonce,
-      balance: bet.balance,
-    },
-  });
-  send(ws, { type: 'BALANCE', data: { balance: bet.balance } });
-}
-
-async function handleChickenStep(
-  ws: WebSocket,
-  userId: string,
-  _payload: Record<string, unknown>
-) {
-  const state = gameState.getChicken(userId);
-  if (!state || !state.active) {
-    return fail(ws, 'No active chicken game', 'NO_ACTIVE_GAME');
-  }
-
-  const lane = state.crossed;
-  if (lane >= chicken.LANE_COUNT) {
-    return fail(ws, 'Already across the road', 'ROUND_COMPLETE');
-  }
-
-  if (state.road[lane]) {
-    state.active = false;
-    gameState.clearChicken(userId);
-
-    accrueAffiliate({
-      userId,
-      betId: state.betTransactionId,
-      stake: state.betAmount,
-      currency: state.currency,
-    });
-
-    await prisma.gameSession.create({
-      data: {
-        userId,
-        gameType: 'CHICKEN',
-        betAmount: new D(state.betAmount),
-        payout: new D(0),
-        multiplier: 0,
-        serverSeed: state.seed.serverSeed,
-        clientSeed: state.seed.clientSeed,
-        nonce: state.seed.nonce,
-        resultData: {
-          bust: true,
-          difficulty: state.difficulty,
-          hitLane: lane,
-          crossed: state.crossed,
-          road: state.road,
-        } as Prisma.InputJsonValue,
-      },
-    });
-
-    const balance = await getBalance(userId, state.currency);
-    return send(ws, {
-      type: 'GAME_RESULT',
-      data: {
-        gameType: 'CHICKEN',
-        win: false,
-        multiplier: 0,
-        payout: '0',
-        hitLane: lane,
-        crossed: state.crossed,
-        // Safe to reveal now the round is settled; lets the player check the
-        // whole road against the seed once it rotates.
-        road: state.road,
-        balance,
-      },
-    });
-  }
-
-  state.crossed += 1;
-  gameState.setChicken(state);
-
-  const multiplier = chicken.multiplierAfter(state.difficulty, state.crossed);
-  send(ws, {
-    type: 'STEP_RESULT',
-    data: {
-      gameType: 'CHICKEN',
-      safe: true,
-      lane,
-      crossed: state.crossed,
-      multiplier,
-      complete: state.crossed >= chicken.LANE_COUNT,
-    },
-  });
-
-  if (state.crossed >= chicken.LANE_COUNT) {
-    await settleChicken(ws, userId, state);
-  }
-}
-
-/**
- * Re-sends a live round to a reconnecting client.
- *
- * The round lives server-side, but the page holds its own copy of `crossed`,
- * the multiplier table and the difficulty. A reload wipes that copy while the
- * server round stays open, and the two never reconcile: the page renders the
- * idle screen, so it offers BET (rejected with GAME_IN_PROGRESS) and never
- * STEP or CASHOUT — the only two messages that can end the round. The player
- * is locked out permanently with the stake already debited.
- *
- * This replays exactly what BET_ACCEPTED carried, so the client can restore
- * itself. It does not reveal the road: `crossed` is what the player has
- * already been told, and the multiplier table is a function of difficulty
- * alone.
- */
-function handleChickenResume(ws: WebSocket, userId: string) {
-  const state = gameState.getChicken(userId);
-  if (!state || !state.active) {
-    return send(ws, { type: 'RESUME_NONE', data: { gameType: 'CHICKEN' } });
-  }
-
-  send(ws, {
-    type: 'BET_ACCEPTED',
-    data: {
-      gameType: 'CHICKEN',
-      difficulty: state.difficulty,
-      laneCount: chicken.LANE_COUNT,
-      multipliers: chicken.multiplierTable(state.difficulty),
-      hashedServerSeed: state.seed.hashedServerSeed,
-      clientSeed: state.seed.clientSeed,
-      nonce: state.seed.nonce,
-      resumed: true,
-    },
-  });
-
-  // Restores the running multiplier, which BET_ACCEPTED alone would leave at 1.
-  send(ws, {
-    type: 'STEP_RESULT',
-    data: {
-      gameType: 'CHICKEN',
-      crossed: state.crossed,
-      multiplier: chicken.multiplierAfter(state.difficulty, state.crossed),
-      resumed: true,
-    },
-  });
-}
-
-async function handleChickenCashout(ws: WebSocket, userId: string) {
-  const state = gameState.getChicken(userId);
-  if (!state || !state.active) {
-    return fail(ws, 'No active chicken game', 'NO_ACTIVE_GAME');
-  }
-  if (state.crossed < 1) {
-    return fail(ws, 'Cross at least one lane before cashing out', 'NOTHING_TO_CASH');
-  }
-  await settleChicken(ws, userId, state);
-}
-
-async function settleChicken(
-  ws: WebSocket,
-  userId: string,
-  state: ChickenState
-) {
-  const multiplier = chicken.multiplierAfter(state.difficulty, state.crossed);
-  const payout = new D(state.betAmount).mul(multiplier).toFixed(8);
-
-  const credited = await processWin({
-    userId,
-    betId: state.betTransactionId,
-    payoutAmount: payout,
-    currency: state.currency,
-  });
-
-  state.active = false;
-  gameState.clearChicken(userId);
-
-  accrueAffiliate({
-    userId,
-    betId: state.betTransactionId,
-    stake: state.betAmount,
-    payout,
-    currency: state.currency,
-  });
-
-  await prisma.gameSession.create({
-    data: {
-      userId,
-      gameType: 'CHICKEN',
-      betAmount: new D(state.betAmount),
-      payout: new D(payout),
-      multiplier,
-      serverSeed: state.seed.serverSeed,
-      clientSeed: state.seed.clientSeed,
-      nonce: state.seed.nonce,
-      resultData: {
-        cashout: true,
-        difficulty: state.difficulty,
-        crossed: state.crossed,
-        road: state.road,
-      } as Prisma.InputJsonValue,
-    },
-  });
-
-  send(ws, {
-    type: 'GAME_RESULT',
-    data: {
-      gameType: 'CHICKEN',
-      win: true,
-      multiplier,
-      payout,
-      crossed: state.crossed,
-      road: state.road,
-      balance: credited.balance,
-    },
-  });
-  send(ws, { type: 'BALANCE', data: { balance: credited.balance } });
-
-  const meta = connectionMeta.get(ws);
-  await broadcastLiveBet({
-    userId: state.userId,
-    username: meta?.username ?? 'player',
-    gameType: 'CHICKEN',
-    betAmount: state.betAmount,
-    multiplier,
-    payout,
-  });
-}
 /**
  * Bets being placed right now, before their round exists in the manager.
  * `processBet` and the seed lookup both await, and two BET frames sent back to
@@ -983,10 +713,9 @@ async function handleCrashBet(
 }
 
 /**
- * Replays a live round to a reconnecting client, for the same reason Chicken
- * has a resume path: the round lives on the server, a reload wipes the page's
- * copy, and without this the player is left with a debited stake and no way to
- * send CASHOUT before the round busts.
+ * Replays a live round to a reconnecting client: the round lives on the
+ * server, a reload wipes the page's copy, and without this the player is left
+ * with a debited stake and no way to send CASHOUT before the round busts.
  */
 function handleCrashResume(ws: WebSocket, userId: string) {
   const round = crashManager.get(userId);
@@ -1142,7 +871,7 @@ async function settleCrashBust(round: CrashRound) {
       gameType: 'CRASH',
       win: false,
       // The realised multiplier is 0 — the player took nothing. The crash
-      // point rides alongside it, as Mines and Chicken carry their reveal.
+      // point rides alongside it, the way Mines carries its reveal.
       multiplier: 0,
       crashPoint: round.crashPoint,
       payout: '0',
@@ -1209,7 +938,6 @@ async function route(ws: WebSocket, userId: string, msg: ClientMessage, username
       if (!actualGameType) return fail(ws, `${type} requires a gameType`, 'BAD_REQUEST');
       if (actualGameType === 'MINES') return handleMinesStart(ws, userId, payload);
       if (actualGameType === 'CRASH') return handleCrashBet(ws, userId, payload);
-      if (actualGameType === 'CHICKEN') return handleChickenStart(ws, userId, payload);
       if (isInstantGame(actualGameType)) return handleInstantBet(ws, userId, actualGameType, payload);
       return fail(ws, `Unsupported game for ${type}: ${actualGameType}`);
 
@@ -1217,12 +945,7 @@ async function route(ws: WebSocket, userId: string, msg: ClientMessage, username
       if (gameType !== 'MINES') return fail(ws, 'REVEAL_TILE is only valid for MINES');
       return handleMinesReveal(ws, userId, payload);
 
-    case 'STEP':
-      if (gameType !== 'CHICKEN') return fail(ws, 'STEP is only valid for CHICKEN');
-      return handleChickenStep(ws, userId, payload);
-
     case 'RESUME':
-      if (gameType === 'CHICKEN') return handleChickenResume(ws, userId);
       if (gameType === 'CRASH') return handleCrashResume(ws, userId);
       return fail(ws, `RESUME is not supported for ${gameType}`);
 
@@ -1232,7 +955,6 @@ async function route(ws: WebSocket, userId: string, msg: ClientMessage, username
     case 'CASHOUT':
       if (gameType === 'MINES') return handleMinesCashout(ws, userId, payload);
       if (gameType === 'CRASH') return handleCrashCashout(ws, userId);
-      if (gameType === 'CHICKEN') return handleChickenCashout(ws, userId);
       return fail(ws, `CASHOUT not supported for ${gameType}`);
 
     default:

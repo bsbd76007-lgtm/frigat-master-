@@ -1,8 +1,5 @@
 {
-  "/(dashboard)/games/chicken/page": "app/(dashboard)/games/chicken/page.js",
-  "/(dashboard)/games/keno/page": "app/(dashboard)/games/keno/page.js",
-  "/(dashboard)/games/crash/page": "app/(dashboard)/games/crash/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/(dashboard)/vip/page": "app/(dashboard)/vip/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js"
+  "/(dashboard)/games/chicken/page": "app/(dashboard)/games/chicken/page.js"
 }

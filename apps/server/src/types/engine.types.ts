@@ -19,7 +19,6 @@ export type ClientActionType =
   | 'CASHOUT'
   | 'SPIN'
   | 'REVEAL_TILE'
-  | 'STEP'
   | 'RESUME'
   | 'CHAT';
 
@@ -32,7 +31,6 @@ export interface ClientMessage {
 export type ServerEventType =
   | 'BET_ACCEPTED'
   | 'GAME_RESULT'
-  | 'STEP_RESULT'
   | 'RESUME_NONE'
   | 'STATE_UPDATE'
   | 'BALANCE'

@@ -8,7 +8,7 @@
  * without stopping it for everyone.
  *
  * Fairness is unchanged in substance but moves to the per-user seed pair that
- * Mines and Chicken already use: the server seed's hash is published when the
+ * Mines already uses: the server seed's hash is published when the
  * pair is created (long before this round), each round consumes the next
  * nonce, and the seed is revealed on rotation. The crash point is therefore
  * fixed by a commitment the player already holds, not chosen at bet time.
