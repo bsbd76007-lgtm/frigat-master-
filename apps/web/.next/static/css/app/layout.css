@@ -13,33 +13,53 @@
 :root,
 html[data-theme='dark'] {
   /* ── Slate ramp ──
-     Deep navy-charcoal base, one step up for panels, a third for raised pills.
-     Borders resolve to the panel step so surfaces read as blocks of colour
-     rather than outlined boxes. */
-  --fg-bg: #0f212e;
-  --fg-panel: #1a2c38;
-  --fg-panel-2: #162835;
-  --fg-line: #213743;
-  --fg-line-2: #2f4553;
-  --fg-hover: #213743;
-  --fg-hover-2: #2f4553;
-  --fg-header: rgba(15, 33, 46, .94);
+     Muted charcoal-slate rather than the old navy: the hue is pulled toward
+     neutral so a warm accent sits on it without the two fighting. Borders
+     resolve to the panel step so surfaces read as blocks of colour rather
+     than outlined boxes. */
+  --fg-bg: #0b0e14;
+  --fg-panel: #181f2c;
+  --fg-panel-2: #141a25;
+  /* One step below the page for recessed things — inputs, wells, insets. */
+  --fg-sunken: #070a0f;
+  --fg-line: #2a3547;
+  --fg-line-2: #3a4759;
+  --fg-hover: #212a39;
+  --fg-hover-2: #2a3547;
+  --fg-header: rgba(11, 14, 20, .94);
+  /* Text ramp: primary / secondary / muted.
+     NOTE on the muted step — #64748b measures ~3.0:1 against --fg-bg, under
+     the 4.5:1 AA needs for small text. It is the intended tone for the design
+     system and is used for de-emphasised labels, placeholders and disabled
+     states only; nothing a player must read to act sits on it. */
   --fg-text: #ffffff;
-  --fg-muted: #b1bad3;
-  --fg-dim: #8592a6;
+  --fg-muted: #94a3b8;
+  --fg-dim: #64748b;
 
-  /* Bright green: every CTA and active state.
-     Text on this colour must be DARK — measured 12.43:1 against #0f212e-black
-     versus 1.69:1 against white, so a white label here would fail WCAG AA
-     outright. Every rule that paints a button green pairs it with --fg-bg. */
-  --fg-accent: #00e701;
-  --fg-accent-deep: #00c400;
+  /* Amber: every CTA and active state. Replaces the old #f59e0b neon, which
+     was a fully-saturated green — the single loudest thing on any screen.
+     Amber carries the same "press this" weight at a fraction of the chroma.
 
-  /* Gold stays for badges and gilt trim — subordinate to orange now, so it
-     reads as an accent on badges rather than as the heading colour. */
-  --fg-gold: #f0c14b;
-  --fg-gold-deep: #d1a733;
-  --fg-red: #f0616d;
+     Text on this colour must be DARK. #f59e0b measures 10.9:1 against the
+     page black and 2.2:1 against white, so a white label here would fail AA
+     outright. Every rule that paints a button amber pairs it with --fg-bg. */
+  --fg-accent: #f59e0b;
+  --fg-accent-deep: #d97706;
+
+  /* Gold is now a near neighbour of the accent rather than a competing hue,
+     so gilt trim and badges read as the same family. */
+  --fg-gold: #e0b055;
+  --fg-gold-soft: #f0cb85;
+  --fg-gold-deep: #b8862f;
+  /* Desaturated from #c25560 — still unmistakably a loss, without the glare. */
+  --fg-red: #c25560;
+
+  /* Positive/outcome greens, deliberately NOT the accent. The accent is what
+     the player can press; a win readout is reporting, not inviting. Muted to
+     a sage rather than the old #4e9e7a, so a win reads as good news instead
+     of as a second call to action. */
+  --fg-pos: #4e9e7a;
+  --fg-pos-soft: #86bda6;
 
   /* Shared metallic treatments. Defined once as tokens so a panel, a button
      and a card edge all catch the light from the same direction — mixing
@@ -48,8 +68,8 @@ html[data-theme='dark'] {
   --fg-charge: linear-gradient(180deg, var(--fg-accent) 0%, var(--fg-accent-deep) 100%);
   --fg-plate: linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(0, 0, 0, .18) 100%);
   --fg-bevel: inset 0 1px 0 rgba(255, 255, 255, .07), inset 0 -1px 0 rgba(0, 0, 0, .35);
-  --fg-glow-accent: 0 0 18px rgba(0, 231, 1, .38);
-  --fg-glow-gold: 0 0 18px rgba(240, 193, 75, .3);
+  --fg-glow-accent: 0 0 18px rgba(245, 158, 11, .32);
+  --fg-glow-gold: 0 0 18px rgba(224, 176, 85, .28);
 
   /* Brushed-metal texture. A repeating micro-gradient rather than an image:
      no network request, no raster to go blurry on a HiDPI screen, and it
@@ -72,17 +92,18 @@ html[data-theme='dark'] {
 /* Dim: the same hues lifted off pure black — easier on the eyes in a lit room
    without the glare of the light theme. */
 html[data-theme='dim'] {
-  --fg-bg: #15202b;
-  --fg-panel: #1c2a37;
-  --fg-panel-2: #192531;
-  --fg-line: #31414f;
-  --fg-line-2: #46586a;
-  --fg-hover: #24333f;
-  --fg-hover-2: #31414f;
-  --fg-header: rgba(28, 42, 55, .92);
-  --fg-text: #f0f4f8;
-  --fg-muted: #9db0c2;
-  --fg-dim: #7d90a3;
+  --fg-bg: #0f172a;
+  --fg-panel: #1e293b;
+  --fg-panel-2: #1a2334;
+  --fg-sunken: #0b111f;
+  --fg-line: #334155;
+  --fg-line-2: #475569;
+  --fg-hover: #273449;
+  --fg-hover-2: #334155;
+  --fg-header: rgba(15, 23, 42, .92);
+  --fg-text: #ffffff;
+  --fg-muted: #94a3b8;
+  --fg-dim: #64748b;
   /* Lighter surfaces than dark, so the plate highlight is eased back to stop
      every panel looking wet. Brass, teal and glows are inherited unchanged. */
   --fg-plate: linear-gradient(180deg, rgba(255, 255, 255, .04) 0%, rgba(0, 0, 0, .14) 100%);
@@ -99,6 +120,10 @@ html[data-theme='light'] {
   --fg-bg: #f4f6f9;
   --fg-panel: #ffffff;
   --fg-panel-2: #eef1f5;
+  /* Recessed on a light page means slightly *darker* than the card, not
+     near-black — without this the field would inherit the dark theme's value
+     and every input would be a black hole. */
+  --fg-sunken: #e9edf3;
   --fg-line: #d8dee7;
   --fg-line-2: #b6c0cd;
   --fg-hover: #e7ebf1;
@@ -107,16 +132,20 @@ html[data-theme='light'] {
   --fg-text: #10161d;
   --fg-muted: #55616f;
   --fg-dim: #76828f;
-  /* Vibrant orange on white is only 2.86:1 — fine as a large-button fill, but
-     it fails as text or as a thin control edge. The light theme darkens it to
-     #c94a00 (4.71:1) so the same hue survives as body-sized text. */
-  --fg-accent: #c94a00;
-  --fg-accent-deep: #a83e00;
+  /* Amber on white is only 1.9:1 — fine as a large-button fill, but it fails
+     as text or as a thin control edge. The light theme darkens it to #b45309
+     (4.6:1) so the same hue survives at body size. */
+  --fg-accent: #b45309;
+  --fg-accent-deep: #92400e;
   --fg-gold: #b47a06;
+  --fg-gold-soft: #d59a1e;
   /* Darkened alongside --fg-gold: the gilt gradient blends the two, and
      leaving this at the dark theme's value would wash out on white. */
   --fg-gold-deep: #8f5f05;
-  --fg-red: #d13f4c;
+  --fg-red: #b3444f;
+  /* Darkened for contrast on white, same as the accent above. */
+  --fg-pos: #2f6b52;
+  --fg-pos-soft: #2a5f49;
 
   /* Metal reads as engraving on a light surface: the highlight goes away and
      the bevel inverts, otherwise every panel looks like it is glowing. */
@@ -203,6 +232,13 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   height: 34px;
   width: auto;
   object-fit: contain;
+  /* Scaled visually, not in layout. The lockup ships with wide padding, so at
+     34px the artwork itself is only ~20px; enlarging it here fills that back in
+     without growing the header — `.rail` is offset by a hardcoded 57px that
+     assumes this exact band height. The padding is invisible (see .brandmark),
+     so the overflow shows nothing. */
+  transform: scale(1.3);
+  transform-origin: left center;
 }
 @media (max-width: 640px) { .dash__brand-img { height: 28px; } }
 .dash__nav { display: flex; gap: 4px; flex: 1 1 auto; flex-wrap: wrap; }
@@ -253,7 +289,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 }
 .dash__balance--action:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .35);
 }
 .dash__balance b { font-size: 15px; font-weight: 700; }
 .dash__balance span { font-size: 10px; letter-spacing: .06em; color: var(--fg-dim); text-transform: uppercase; }
@@ -295,7 +331,35 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 }
 .dash__icon-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .35);
+}
+
+/* Account avatar: the entry point to the account panel. Round, so it reads as
+   a person rather than another header button, and it carries the player's
+   initial once the panel has loaded a profile. */
+.dash__avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fg-bg);
+  background: linear-gradient(135deg, var(--fg-accent), var(--fg-accent-deep));
+  border: 1px solid var(--fg-line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: filter .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.dash__avatar:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.dash__avatar:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .4);
 }
 
 /* Primary header action: solid orange, rounded, near-black ink. The one
@@ -322,14 +386,14 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 }
 .dash__cta:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .4);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .4);
 }
 .dash__btn:hover {
   background: var(--fg-plate), var(--fg-hover-2);
   border-color: var(--fg-gold);
   box-shadow: var(--fg-bevel), var(--fg-glow-gold);
 }
-.dash__btn:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .2); }
+.dash__btn:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11, .2); }
 .dash__status {
   display: inline-block;
   width: 8px;
@@ -337,7 +401,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   border-radius: 50%;
   background: var(--fg-dim);
 }
-.dash__status--open { background: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .18); }
+.dash__status--open { background: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11, .18); }
 .dash__status--pending { background: var(--fg-gold); }
 .dash__status--down { background: var(--fg-red); }
 
@@ -600,7 +664,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   font-weight: 700;
   white-space: nowrap;
 }
-.feed__payout--win { color: #00e676; }
+.feed__payout--win { color: #4e9e7a; }
 /* Muted grey rather than red: a loss is the ordinary outcome of a bet, and
    painting most of the feed in alarm-red would make the wins harder to find,
    not easier. */
@@ -771,14 +835,14 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
 }
-.bdm__stat-value--win { color: #00e676; }
+.bdm__stat-value--win { color: #4e9e7a; }
 .bdm__stat-value--loss { color: #8a8f99; }
 
 .bdm__play {
   width: 100%;
   margin-top: 16px;
   padding: 13px 16px;
-  background: #00e701;
+  background: #f59e0b;
   border: 0;
   border-radius: 12px;
   color: #0e0f12;
@@ -787,7 +851,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   cursor: pointer;
   transition: background .15s ease;
 }
-.bdm__play:hover { background: #00c400; }
+.bdm__play:hover { background: #d97706; }
 
 .bdm__fair { margin-top: 12px; }
 
@@ -856,50 +920,46 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   .bdm__meta-row { align-items: flex-start; flex-direction: column; gap: 3px; }
 }
 
-/* ── Language dropdown ──────────────────── */
-.lang { position: relative; }
-.lang__trigger {
-  display: flex;
+/* ── Language switch: segmented EN | RU ── */
+.lang {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 10px;
+  gap: 2px;
+  padding: 3px;
+  background: var(--fg-panel-2);
+  border: 1px solid var(--fg-line);
+  border-radius: 999px;
+}
+.lang__pill {
+  min-width: 34px;
+  padding: 5px 9px;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--fg-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .15s ease, background .15s ease;
+}
+.lang__pill:hover:not(.lang__pill--on) {
   color: var(--fg-text);
   background: var(--fg-hover);
-  border: 1px solid var(--fg-line);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background .15s ease, border-color .15s ease;
 }
-.lang__trigger:hover { background: var(--fg-hover-2); border-color: var(--fg-line-2); }
-.lang__trigger:focus-visible,
-.lang__item:focus-visible {
+/* The active locale carries the accent fill, so selection reads at a glance. */
+.lang__pill--on {
+  color: var(--fg-bg);
+  background: var(--fg-accent);
+}
+.lang__pill:focus-visible {
   outline: none;
-  border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .2);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .35);
 }
-/* The globe on the trigger. A vector, so unlike the flag emoji it needs no
-   colour-font stack and cannot fall back to a tofu box. */
-.lang__globe {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  color: var(--fg-muted);
+@media (prefers-reduced-motion: reduce) {
+  .lang__pill { transition: none; }
 }
-
-/* Flags remain in the open menu, where they distinguish five locales at a
-   glance. The colour font has to be named explicitly or Linux and some Windows
-   builds fall back to two-letter boxes. */
-.lang__flag {
-  font-size: 15px;
-  line-height: 1;
-  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-}
-.lang__code { letter-spacing: .06em; }
-.lang__caret { display: flex; color: var(--fg-muted); transition: transform .15s ease; }
-.lang__caret--up { transform: rotate(180deg); }
 
 /* ── Theme toggle ───────────────────────
    A capsule sized to sit level with the language trigger next to it. The
@@ -933,7 +993,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .theme__opt--on { color: var(--fg-bg); }
 .theme__opt:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .35);
 }
 /* A muted surface rather than the accent: this is a settings toggle, and at
    full orange it competed with Deposit for the eye. The header keeps one
@@ -947,43 +1007,6 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 /* Above the pill, which shares the same stacking context. */
 .theme__icon { position: relative; display: flex; }
 
-.lang__menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  inset-inline-end: 0;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  min-width: 172px;
-  padding: 5px;
-  background: var(--fg-panel);
-  border: 1px solid var(--fg-line);
-  border-radius: 10px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
-}
-.lang__item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 8px 10px;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  text-align: start;
-  color: var(--fg-muted);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: background .12s ease, color .12s ease;
-}
-.lang__item:hover { background: var(--fg-hover); color: var(--fg-text); }
-.lang__item--on { background: var(--fg-hover); color: var(--fg-accent); }
-.lang__item .lang__label { -webkit-margin-start: auto; margin-inline-start: auto; font-weight: 500; }
-@media (prefers-reduced-motion: reduce) {
-  .lang__caret { transition: none; }
-}
 
 .dash__gate {
   max-width: 560px;
@@ -1009,7 +1032,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   border-radius: 8px;
   outline: none;
 }
-.dash__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .18); }
+.dash__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11, .18); }
 
 /* ── Auth (sign in / register) ──────────── */
 .auth {
@@ -1020,7 +1043,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   padding: 32px 20px;
   /* A faint accent wash so the page reads as the front door, not a form. */
   background:
-    radial-gradient(80vw 60vh at 50% -10%, rgba(0, 231, 1, .07), transparent 70%),
+    radial-gradient(80vw 60vh at 50% -10%, rgba(245, 158, 11, .07), transparent 70%),
     var(--fg-bg);
 }
 .auth__card {
@@ -1050,6 +1073,26 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   text-transform: uppercase;
   color: var(--fg-muted);
 }
+/* Label with a companion action on the right — "Password / Forgot password?".
+   The label keeps its own baseline so the field below is unaffected. */
+.auth__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.auth__label-link {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fg-accent);
+  text-decoration: none;
+}
+.auth__label-link:hover { text-decoration: underline; }
+.auth__label-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .28);
+  border-radius: 4px;
+}
 .auth__input {
   width: 100%;
   padding: 11px 12px;
@@ -1063,10 +1106,124 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   transition: border-color .12s ease, box-shadow .12s ease;
 }
 .auth__input::placeholder { color: var(--fg-dim); }
-.auth__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .18); }
+.auth__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11, .18); }
 .auth__input[aria-invalid='true'] { border-color: var(--fg-red); }
 .auth__input:disabled { opacity: .6; cursor: not-allowed; }
 .auth__hint { font-size: 11.5px; color: var(--fg-dim); }
+
+/* Password policy checklist. Each rule ticks as it is met, so the requirement
+   is visible before submitting rather than arriving as a rejection. */
+.auth__rules {
+  display: grid;
+  grid-gap: 3px;
+  gap: 3px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.auth__rule {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  transition: color .15s ease;
+}
+.auth__rule--met { color: var(--fg-accent); }
+.auth__rule span { width: 10px; text-align: center; font-weight: 800; }
+
+/* ── Sign-in method tabs ─────────────────────── */
+.auth__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 4px;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 4px;
+  background: var(--fg-surface-2, rgba(255,255,255,.03));
+  border: 1px solid var(--fg-line);
+  border-radius: 12px;
+}
+.auth__tab {
+  padding: 9px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  background: none;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+.auth__tab:hover { color: var(--fg-text); }
+.auth__tab--on { color: #04120d; background: var(--fg-accent); }
+.auth__tab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .28); }
+
+.auth__notice {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  background: rgba(245, 158, 11, .07);
+  border: 1px solid rgba(245, 158, 11, .25);
+  border-radius: 10px;
+}
+
+/* ── One-time code boxes ─────────────────────── */
+/* Six inputs that behave as one field — see OtpForm for the key handling. */
+.auth__otp { display: grid; grid-template-columns: repeat(6, 1fr); grid-gap: 8px; gap: 8px; }
+.auth__otp-box {
+  width: 100%;
+  padding: 13px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--fg-text);
+  background: var(--fg-surface);
+  border: 1px solid var(--fg-line);
+  border-radius: 10px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.auth__otp-box:focus-visible {
+  outline: none;
+  border-color: var(--fg-accent);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .18);
+}
+.auth__otp-box:disabled { opacity: .6; cursor: not-allowed; }
+
+.auth__otp-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* Cloudflare Turnstile. The widget renders in an iframe of its own fixed size,
+   so this only positions it — the container is left to size itself, and the
+   element collapses to nothing when no site key is configured. */
+.auth__turnstile {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0 4px;
+  min-height: 65px;
+}
+.auth__turnstile:empty { min-height: 0; margin: 0; }
+.auth__link-btn {
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg-accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.auth__link-btn:disabled { color: var(--fg-dim); cursor: not-allowed; }
+.auth__link-btn:hover:not(:disabled) { text-decoration: underline; }
+.auth__link-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .28); }
 .auth__submit {
   width: 100%;
   margin-top: 6px;
@@ -1082,7 +1239,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   transition: filter .12s ease;
 }
 .auth__submit:hover:not(:disabled) { background: var(--fg-accent-deep); border-color: var(--fg-accent-deep); }
-.auth__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .28); }
+.auth__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .28); }
 .auth__submit:disabled { opacity: .55; cursor: progress; }
 .auth__error {
   margin: 0 0 16px;
@@ -1127,13 +1284,15 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   border-radius: 12px;
   min-width: 0;
 }
+/* Bet controls. A raised surface beside the board rather than an outlined
+   panel — the step up from --fg-bg to --fg-panel is the separation. */
 .game__panel {
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 14px;
   background: var(--fg-panel);
-  border: 1px solid var(--fg-line);
+  border: 1px solid transparent;
   border-radius: 12px;
 }
 .game__banner {
@@ -1165,7 +1324,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .opt__chip:hover:not(:disabled) { color: var(--fg-text); border-color: var(--fg-line-2); }
 .opt__chip[aria-pressed='true'] { color: #04120d; background: var(--fg-accent); border-color: var(--fg-accent); }
 .opt__chip:disabled { opacity: .45; cursor: not-allowed; }
-.opt__chip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .25); }
+.opt__chip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .25); }
 .opt__stat { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--fg-muted); font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
 .opt__stat b { color: var(--fg-text); font-weight: 600; }
 .opt__range { width: 100%; accent-color: var(--fg-accent); }
@@ -1193,8 +1352,8 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 }
 .mines__tile:hover:not(:disabled) { transform: translateY(-2px); background: var(--fg-hover); border-color: var(--fg-line-2); }
 .mines__tile:disabled { cursor: default; }
-.mines__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .22); }
-.mines__tile--safe { background: rgba(0, 231, 1, .14); border-color: rgba(0, 231, 1, .42); color: var(--fg-accent); }
+.mines__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11, .22); }
+.mines__tile--safe { background: rgba(245, 158, 11, .14); border-color: rgba(245, 158, 11, .42); color: var(--fg-accent); }
 .mines__tile--mine { background: rgba(240,97,109,.16); border-color: rgba(240,97,109,.45); color: var(--fg-red); }
 .mines__tile--hit { background: rgba(240,97,109,.34); border-color: var(--fg-red); }
 
@@ -1211,7 +1370,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   color: #1a1204;
   background: radial-gradient(circle at 34% 30%, #ffd97a, var(--fg-gold) 62%, #c98f1c);
   border-radius: 50%;
-  box-shadow: 0 10px 30px rgba(245,184,61,.22);
+  box-shadow: 0 10px 30px rgba(217, 164, 65,.22);
 }
 .coin--flipping { animation: coin-flip .55s linear infinite; }
 @keyframes coin-flip {
@@ -1251,17 +1410,17 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   transition: transform .1s ease, background .15s ease, border-color .15s ease, color .15s ease; }
 .keno__tile:hover:not(:disabled) { transform: translateY(-1px); background: var(--fg-hover); border-color: var(--fg-line-2); }
 .keno__tile:disabled { cursor: default; }
-.keno__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0, 231, 1, .22); }
-.keno__tile--picked { background: rgba(0, 231, 1, .14); border-color: rgba(0, 231, 1, .42); color: var(--fg-accent); }
+.keno__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11, .22); }
+.keno__tile--picked { background: rgba(245, 158, 11, .14); border-color: rgba(245, 158, 11, .42); color: var(--fg-accent); }
 .keno__tile--drawn { background: rgba(139,151,166,.22); border-color: var(--fg-line-2); color: var(--fg-text); animation: keno-pop .22s ease-out; }
-.keno__tile--hit { background: rgba(245,184,61,.22); border-color: var(--fg-gold); color: var(--fg-gold); animation: keno-pop .22s ease-out; }
+.keno__tile--hit { background: rgba(217, 164, 65,.22); border-color: var(--fg-gold); color: var(--fg-gold); animation: keno-pop .22s ease-out; }
 @keyframes keno-pop { from { transform: scale(.7); } to { transform: scale(1); } }
 
 .keno__paytable { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
 .keno__paytable-row { display: flex; justify-content: space-between; padding: 5px 8px;
   font-size: 12.5px; color: var(--fg-muted); border-radius: 6px; font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
 .keno__paytable-row b { color: var(--fg-text); font-weight: 600; }
-.keno__paytable-row--active { background: rgba(245,184,61,.16); color: var(--fg-gold); }
+.keno__paytable-row--active { background: rgba(217, 164, 65,.16); color: var(--fg-gold); }
 .keno__paytable-row--active b { color: var(--fg-gold); }
 
 @media (max-width: 480px) {
@@ -1314,7 +1473,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .ref__input:focus-visible {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .18);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .18);
 }
 .ref__btn {
   padding: 9px 14px;
@@ -1331,7 +1490,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .ref__btn:focus-visible {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .2);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .2);
 }
 .ref__btn:disabled { opacity: .5; cursor: not-allowed; }
 .ref__btn--primary { color: #06231b; background: var(--fg-accent); border-color: var(--fg-accent); }
@@ -1371,11 +1530,11 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .ref__stat > b { font-size: 24px; font-weight: 700; font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
 .ref__stat > b i { font-size: 12px; font-style: normal; color: var(--fg-dim); }
 .ref__stat > em { font-size: 11.5px; font-style: normal; line-height: 1.5; color: var(--fg-muted); }
-.ref__stat--accent { border-color: rgba(0, 231, 1, .4); }
+.ref__stat--accent { border-color: rgba(245, 158, 11, .4); }
 .ref__stat--accent > b { color: var(--fg-accent); }
 
 .ref__msg { margin: 0; padding: 9px 11px; font-size: 13px; border-radius: 8px; }
-.ref__msg--ok { color: var(--fg-accent); background: rgba(0, 231, 1, .1); border: 1px solid rgba(0, 231, 1, .3); }
+.ref__msg--ok { color: var(--fg-accent); background: rgba(245, 158, 11, .1); border: 1px solid rgba(245, 158, 11, .3); }
 .ref__msg--err { color: var(--fg-red); background: rgba(240,97,109,.1); border: 1px solid rgba(240,97,109,.3); }
 
 .ref__alert {
@@ -1643,7 +1802,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   margin-top: 48px;
   background: var(--fg-panel-2);
   border-top: 1px solid var(--fg-line);
-  background-image: linear-gradient(180deg, rgba(0, 231, 1, .05), transparent 180px);
+  background-image: linear-gradient(180deg, rgba(245, 158, 11, .05), transparent 180px);
 }
 .foot__inner {
   max-width: 1180px;
@@ -1742,14 +1901,7 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
   outline: none;
   color: var(--fg-text);
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .2);
-}
-
-/* The picker is shared with the header, where the menu drops down. Down here
-   that would open past the end of the document, so flip it above the trigger. */
-.foot__lang .lang__menu {
-  top: auto;
-  bottom: calc(100% + 6px);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .2);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1837,7 +1989,7 @@ html[data-theme='light'] .wal__panel {
 .wal__close:focus-visible {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .25);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .25);
 }
 
 /* Segmented tab switcher. */
@@ -1877,7 +2029,7 @@ html[data-theme='light'] .wal__tab--on { color: #fff; background: var(--fg-accen
 /* Light theme: --fg-accent is #c94a00 there, where white ink is 4.71:1. */
 .wal__tab:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .25);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .25);
 }
 
 /* The scrolling region, so the header and tabs stay pinned. */
@@ -1914,7 +2066,7 @@ html[data-theme='light'] .wal__label { color: var(--fg-dim); }
 .wal__input:focus {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .22);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .22);
 }
 html[data-theme='light'] .wal__input {
   background: var(--fg-panel-2);
@@ -1923,7 +2075,7 @@ html[data-theme='light'] .wal__input {
 .wal__input:focus-visible {
   outline: none;
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .2);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .2);
 }
 .wal__input[aria-invalid='true'] { border-color: var(--fg-red); }
 
@@ -1936,12 +2088,12 @@ html[data-theme='light'] .wal__input {
   font-weight: 700;
   letter-spacing: .05em;
   color: var(--fg-accent);
-  background: rgba(0, 231, 1, .1);
-  border: 1px solid rgba(0, 231, 1, .35);
+  background: rgba(245, 158, 11, .1);
+  border: 1px solid rgba(245, 158, 11, .35);
   border-radius: 9px;
   cursor: pointer;
 }
-.wal__max:hover { background: rgba(0, 231, 1, .18); }
+.wal__max:hover { background: rgba(245, 158, 11, .18); }
 .wal__max:disabled { opacity: .45; cursor: not-allowed; }
 
 /* Quick-amount chips. */
@@ -1960,8 +2112,8 @@ html[data-theme='light'] .wal__input {
 .wal__chip:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
 .wal__chip--on {
   color: var(--fg-accent);
-  background: rgba(0, 231, 1, .12);
-  border-color: rgba(0, 231, 1, .5);
+  background: rgba(245, 158, 11, .12);
+  border-color: rgba(245, 158, 11, .5);
 }
 
 /* Currency pills. */
@@ -1985,10 +2137,10 @@ html[data-theme='light'] .wal__input {
 .wal__cur:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
 .wal__cur--on {
   color: var(--fg-accent);
-  background: rgba(0, 231, 1, .12);
-  border-color: rgba(0, 231, 1, .55);
+  background: rgba(245, 158, 11, .12);
+  border-color: rgba(245, 158, 11, .55);
 }
-.wal__cur:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .25); }
+.wal__cur:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .25); }
 
 .wal__balance {
   display: flex;
@@ -2025,7 +2177,7 @@ html[data-theme='light'] .wal__input {
   transition: filter .15s ease, background .15s ease, border-color .15s ease;
 }
 .wal__btn:disabled { opacity: .45; cursor: not-allowed; }
-/* Solid orange pill. --fg-bg ink is 6.71:1 on #00e701; white would be 2.86:1
+/* Solid orange pill. --fg-bg ink is 6.71:1 on #f59e0b; white would be 2.86:1
    and fail AA. */
 .wal__btn--primary {
   color: var(--fg-bg);
@@ -2040,43 +2192,7 @@ html[data-theme='light'] .wal__input {
   border-color: var(--fg-line);
 }
 .wal__btn--ghost:hover { color: var(--fg-text); background: var(--fg-hover); }
-/* Sandbox action — green and prominent, but visibly not the real payment
-   path, so a test credit is never mistaken for a live one. */
-.wal__btn--test {
-  color: #052e1a;
-  background: #22c55e;
-  box-shadow: 0 0 0 1px rgba(34, 197, 94, .35);
-}
-.wal__btn--test:hover:not(:disabled) { filter: brightness(1.06); }
-.wal__btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .3); }
-
-.wal__sandbox {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--fg-line);
-}
-.wal__sandbox-ok {
-  margin: 0 0 8px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #22c55e;
-}
-.wal__sandbox-note {
-  margin: 7px 0 0;
-  font-size: 11px;
-  text-align: center;
-  color: #64748b;
-}
-.wal__toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  font-size: 11.5px;
-  color: var(--fg-muted);
-  cursor: pointer;
-}
-.wal__toggle input { accent-color: var(--fg-accent); cursor: pointer; }
+.wal__btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .3); }
 
 /* Status banners. */
 .wal__banner {
@@ -2096,8 +2212,8 @@ html[data-theme='light'] .wal__input {
   align-items: flex-start;
   gap: 3px;
   color: inherit;
-  border-color: rgba(0, 231, 1, .5);
-  background: rgba(0, 231, 1, .08);
+  border-color: rgba(245, 158, 11, .5);
+  background: rgba(245, 158, 11, .08);
 }
 .wal__banner--ok b { font-size: 13px; color: var(--fg-accent); }
 .wal__banner--ok span { font-size: 12px; line-height: 1.5; color: var(--fg-muted); }
@@ -2178,16 +2294,20 @@ html[data-theme='light'] .wal__input {
 .vip__header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
 .vip__header p { margin: 0; font-size: 13px; color: var(--fg-muted); }
 .vip__wheel-btn {
+  /* Used on a Link now that the wheel lives in the rewards hub, so it needs an
+     explicit display: an inline <a> ignores vertical padding. */
+  display: inline-flex;
+  align-items: center;
   padding: 9px 14px;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--fg-gold);
-  background: rgba(245, 184, 61, .1);
-  border: 1px solid rgba(245, 184, 61, .4);
+  background: rgba(217, 164, 65, .1);
+  border: 1px solid rgba(217, 164, 65, .4);
   border-radius: 9px;
   cursor: pointer;
 }
-.vip__wheel-btn:hover { background: rgba(245, 184, 61, .18); }
+.vip__wheel-btn:hover { background: rgba(217, 164, 65, .18); }
 
 .vip__cards { display: grid; grid-template-columns: repeat(3, 1fr); grid-gap: 10px; gap: 10px; }
 .vip__card {
@@ -2274,7 +2394,7 @@ html[data-theme='light'] .wal__input {
   text-transform: uppercase;
   color: var(--fg-dim);
 }
-.vip__row--on { background: rgba(245, 184, 61, .08); }
+.vip__row--on { background: rgba(217, 164, 65, .08); }
 .vip__row--on td { color: var(--fg-gold); font-weight: 600; }
 .vip__error { margin: 0 0 12px; font-size: 13px; color: var(--fg-red); }
 .vip__ok { margin: 0 0 12px; font-size: 13px; color: var(--fg-accent); }
@@ -2329,7 +2449,7 @@ html[data-theme='light'] .wal__input {
 .wheel__close:hover { background: var(--fg-hover-2); }
 .wheel__close:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .35);
 }
 .wheel__close:hover:not(:disabled) { background: var(--fg-hover); color: var(--fg-text); }
 .wheel__close:disabled { opacity: .4; cursor: not-allowed; }
@@ -2444,7 +2564,7 @@ html[data-theme='light'] .wal__input {
 .pills__search:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .pills__search:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .35);
 }
 
 /* Horizontal scroller. The scrollbar is hidden but the overflow is real, so
@@ -2483,7 +2603,7 @@ html[data-theme='light'] .wal__input {
 }
 .pills__pill:hover { color: var(--fg-text); background: var(--fg-hover-2); }
 
-/* Active pill: solid orange with near-black ink. White on #00e701 is 2.86:1
+/* Active pill: solid orange with near-black ink. White on #f59e0b is 2.86:1
    and fails AA; --fg-bg on the same fill is 6.71:1. */
 .pills__pill--on {
   color: var(--fg-bg);
@@ -2493,7 +2613,7 @@ html[data-theme='light'] .wal__input {
 .pills__pill--on:hover { color: var(--fg-bg); background: var(--fg-accent-deep); }
 .pills__pill:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .35);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .35);
 }
 /* An SVG box, not a text glyph: `display: flex` stops the inline baseline gap
    that left the icon sitting a pixel low against its label. The icon inherits
@@ -2542,9 +2662,12 @@ html[data-theme='light'] .wal__input {
   gap: 0;
   padding: 0;
   text-align: left;
+  /* Borderless surface: the card is a block of colour against the darker page
+     rather than an outlined box, which is what keeps a dense grid from reading
+     as a wireframe. Separation comes from the surface step and the shadow. */
   background: var(--fg-plate), var(--fg-panel);
-  border: 1px solid var(--fg-line);
-  border-radius: 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
   box-shadow: var(--fg-bevel);
   overflow: hidden;
   transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
@@ -2557,7 +2680,7 @@ html[data-theme='light'] .wal__input {
 }
 .tile:focus-within {
   border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .3);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .3);
 }
 
 .tile__icon {
@@ -2641,8 +2764,14 @@ html[data-theme='light'] .wal__input {
   background: rgba(0, 0, 0, .8);
   opacity: 0;
   visibility: hidden;
+  /* The scrim is decoration; only its buttons should take clicks. Anything
+     landing on the dark area falls through to the card link beneath, which is
+     where a click on the artwork was always meant to go. */
+  pointer-events: none;
   transition: opacity .3s var(--fg-ease), visibility 0s linear .3s;
 }
+.tile__overlay .tile__play,
+.tile__overlay .tile__demo { pointer-events: auto; }
 .tile:hover .tile__overlay,
 .tile:focus-within .tile__overlay { opacity: 1; visibility: visible; }
 
@@ -2671,7 +2800,7 @@ html[data-theme='light'] .wal__input {
   background: transparent;
   border: 1px solid var(--fg-gold);
 }
-.tile__demo:hover { background: rgba(240, 193, 75, .12); }
+.tile__demo:hover { background: rgba(224, 176, 85, .12); }
 
 /* ── Floating bottom dock ────────────────────────────────
    Deliberately theme-independent: the dock is a dark capsule floating over
@@ -2719,6 +2848,7 @@ html[data-theme='light'] .wal__input {
   position: relative;      /* containing block for the sliding pill */
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   margin: 0;
   padding: 0;
@@ -2765,7 +2895,7 @@ html[data-theme='light'] .wal__input {
 .dock2__item--on { color: #ffffff; font-weight: 700; }
 .dock2__item:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 231, 1, .45);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .45);
 }
 .dock2__icon { display: grid; place-items: center; line-height: 0; }
 
@@ -2780,14 +2910,11 @@ html[data-theme='light'] .wal__input {
   /* Inset from both edges instead of centred, so the horizontal half of the
      transform is zeroed — but the vertical half is kept, otherwise the
      hide/show animation would not run at this size. */
-  .dock2 {
-    left: 12px;
-    right: 12px;
-    --dock-x: 0px;
-    max-width: none;
-    padding: 6px 8px;
-  }
-  .dock2__list { justify-content: space-between; gap: 4px; }
+  /* Two items fit any handset, so the capsule hugs its content and stays
+     centred rather than stretching edge to edge — spreading a pair across the
+     full width with space-between left them stranded in opposite corners. */
+  .dock2 { padding: 6px 10px; }
+  .dock2__list { justify-content: center; gap: 8px; }
   .dock2__label { display: none; }
   .dock2__item { padding: 9px 12px; }
 }
@@ -2839,7 +2966,7 @@ html[data-theme='light'] .wal__input {
   pointer-events: none;
 }
 .chat-fab:hover { background: var(--fg-hover); border-color: var(--fg-accent); }
-.chat-fab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .45); }
+.chat-fab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .45); }
 
 /* Withdrawn while the chat panel is open. */
 .chat-fab--gone {
@@ -3057,7 +3184,7 @@ html[data-theme='light'] .wal__input {
   transition: background .15s ease;
 }
 .glm__close:hover { background: var(--fg-hover-2); }
-.glm__close:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .35); }
+.glm__close:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .35); }
 
 /* The inner viewport: a preview of the game, not a second host for it. */
 .glm__stage {
@@ -3099,7 +3226,7 @@ html[data-theme='light'] .wal__input {
   transition: border-color .15s ease, background .15s ease;
 }
 .glm__topup:hover { background: var(--fg-hover-2); border-color: var(--fg-accent); }
-.glm__topup:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .35); }
+.glm__topup:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .35); }
 
 .glm__actions { display: flex; gap: 10px; }
 .glm__play, .glm__fair {
@@ -3119,14 +3246,14 @@ html[data-theme='light'] .wal__input {
   box-shadow: var(--fg-glow-accent);
 }
 .glm__play:hover { background: var(--fg-accent-deep); }
-.glm__play:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .45); }
+.glm__play:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .45); }
 .glm__fair {
   color: var(--fg-muted);
   background: transparent;
   border: 1px solid var(--fg-line);
 }
 .glm__fair:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
-.glm__fair:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 231, 1, .35); }
+.glm__fair:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .35); }
 
 .glm__foot { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--fg-dim); text-align: center; }
 
@@ -3182,7 +3309,7 @@ html[data-theme='light'] .wal__input {
      they come from the same hand. */
   --fg-ease: cubic-bezier(.2, .7, .3, 1);
 
-  --fg-glow-soft: 0 10px 30px -10px rgba(0, 231, 1, .45);
+  --fg-glow-soft: 0 10px 30px -10px rgba(245, 158, 11, .45);
 }
 
 /* ── Micro-interactions ──────────────────────────────────
@@ -3243,7 +3370,7 @@ html[data-theme='light'] .wal__input {
 }
 .tile:hover {
   transform: translateY(-4px);
-  box-shadow: var(--fg-bevel), var(--fg-glow-soft), 0 0 0 1px rgba(0, 231, 1, .28);
+  box-shadow: var(--fg-bevel), var(--fg-glow-soft), 0 0 0 1px rgba(245, 158, 11, .28);
 }
 .tile__icon { transition: transform .22s var(--fg-ease); }
 .tile:hover .tile__icon { transform: scale(1.08) translateY(-1px); }
@@ -3322,8 +3449,8 @@ html[data-theme='light'] .wal__input {
 /* Only pulses when someone is actually connected. A "live" indicator over a
    count of zero is the animation asserting something the number denies. */
 .presence__dot--live {
-  background: #00e676;
-  box-shadow: 0 0 0 3px rgba(0, 230, 118, .16);
+  background: #4e9e7a;
+  box-shadow: 0 0 0 3px rgba(78, 158, 122, .16);
   animation: presence-pulse 2.4s ease-in-out infinite;
 }
 @keyframes presence-pulse {
@@ -3528,6 +3655,10 @@ html[data-theme='light'] .wal__input {
   box-shadow: 0 18px 44px rgba(0, 0, 0, .5);
   -webkit-backdrop-filter: blur(12px);
           backdrop-filter: blur(12px);
+  /* Floats over the grid at z-index 900, so without this it swallows clicks
+     meant for the cards underneath — including Play now and the heart. The
+     panel only reports progress; its close button opts back in below. */
+  pointer-events: none;
   animation: streak-in .34s cubic-bezier(.16, 1, .3, 1);
 }
 @keyframes streak-in {
@@ -3536,6 +3667,7 @@ html[data-theme='light'] .wal__input {
 }
 
 .streak__close {
+  pointer-events: auto;
   position: absolute;
   top: 8px;
   right: 10px;
@@ -3551,7 +3683,7 @@ html[data-theme='light'] .wal__input {
 .streak__close:hover { color: var(--fg-text); }
 
 .streak__head { display: flex; align-items: center; gap: 11px; }
-.streak__flame { display: flex; color: #00e701; }
+.streak__flame { display: flex; color: #f59e0b; }
 .streak__day { display: block; font-size: 15px; font-weight: 800; color: var(--fg-text); }
 .streak__sub { font-size: 11.5px; color: var(--fg-muted); }
 
@@ -3564,7 +3696,7 @@ html[data-theme='light'] .wal__input {
 }
 .streak__fill {
   height: 100%;
-  background: linear-gradient(90deg, #00e701, #ffa04d);
+  background: linear-gradient(90deg, #f59e0b, #ffa04d);
   border-radius: 3px;
   transition: width .5s cubic-bezier(.16, 1, .3, 1);
 }
@@ -3584,8 +3716,8 @@ html[data-theme='light'] .wal__input {
   background: var(--fg-line-2);
 }
 .streak__stop--on .streak__dot {
-  background: #00e701;
-  box-shadow: 0 0 8px rgba(0, 231, 1, .7);
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, .7);
 }
 .streak__label { font-size: 10px; color: var(--fg-dim); font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
 .streak__stop--on .streak__label { color: var(--fg-text); }
@@ -3658,10 +3790,10 @@ html[data-theme='light'] .wal__input {
 .rsm__skip:hover:not(:disabled) { background: #262b35; }
 .rsm__pay {
   color: #0e0f12;
-  background: #00e701;
+  background: #f59e0b;
   border: 0;
 }
-.rsm__pay:hover:not(:disabled) { background: #00c400; }
+.rsm__pay:hover:not(:disabled) { background: #d97706; }
 .rsm__skip:disabled, .rsm__pay:disabled { opacity: .6; cursor: not-allowed; }
 
 /* ── Game poster cards ───────────────────────────────────
@@ -3761,18 +3893,30 @@ html[data-theme='light'] .wal__input {
   flex: 0 0 240px;
   width: 240px;
   height: calc(100vh - 57px);
+  /* Column, so the scrolling nav takes the slack and the footer is pinned to
+     the bottom rather than trailing the last game. */
+  display: flex;
+  flex-direction: column;
   padding: 14px 10px;
-  overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--fg-panel);
+  transition: width .18s var(--fg-ease), flex-basis .18s var(--fg-ease);
+}
+.rail__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
 }
-.rail::-webkit-scrollbar { width: 6px; }
-.rail::-webkit-scrollbar-thumb { background: var(--fg-line-2); border-radius: 3px; }
+.rail__scroll::-webkit-scrollbar { width: 6px; }
+.rail__scroll::-webkit-scrollbar-thumb { background: var(--fg-line-2); border-radius: 3px; }
 
 .rail__section { display: flex; flex-direction: column; gap: 2px; }
+.rail__group + .rail__group { margin-top: 14px; }
 
 .rail__link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -3791,10 +3935,71 @@ html[data-theme='light'] .wal__input {
 }
 .rail__link:hover { background: var(--fg-hover); color: var(--fg-text); }
 .rail__link--on { background: var(--fg-hover); color: var(--fg-text); }
+
+/* Active indicator: a green pill on the leading edge. Drawn as a
+   pseudo-element rather than a border so it can be inset vertically and
+   rounded, and so it costs the row no layout width. */
+.rail__link--on::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 0 3px 3px 0;
+  background: var(--fg-accent);
+  box-shadow: var(--fg-glow-accent);
+}
 .rail__link:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--fg-accent);
 }
+
+.rail__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Footer: support, then the collapse toggle. */
+.rail__foot {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--fg-line);
+}
+.rail__link--support { color: var(--fg-text); }
+.rail__collapse {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 8px 11px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-dim);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color .2s var(--fg-ease), color .2s var(--fg-ease);
+}
+.rail__collapse:hover { background: var(--fg-hover); color: var(--fg-text); }
+.rail__collapse:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--fg-accent); }
+
+/* ── Collapsed rail ──
+   Icons only. Labels stay in the DOM for screen readers and are hidden
+   visually, so collapsing never changes what the page announces. */
+.rail--mini { flex-basis: 68px; width: 68px; }
+.rail--mini .rail__label,
+.rail--mini .rail__heading { position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0; }
+.rail--mini .rail__link,
+.rail--mini .rail__collapse { justify-content: center; gap: 0; padding: 11px 0; }
+.rail--mini .rail__group + .rail__group { margin-top: 8px; }
+.rail--mini .rail__divider { margin: 8px 4px; }
 .rail__game-icon { display: inline-flex; filter: grayscale(1); opacity: .8; }
 .rail__link--on .rail__game-icon,
 .rail__link:hover .rail__game-icon { filter: none; opacity: 1; }
@@ -3833,6 +4038,19 @@ html[data-theme='light'] .wal__input {
     box-shadow: 8px 0 32px rgba(0, 0, 0, .45);
   }
   .rail--open { transform: translateX(0); }
+  /* Collapse is desktop chrome. On mobile the rail is a drawer that is either
+     open or off-screen, so a 68px icon strip would just be a broken drawer —
+     the full-width labelled version is restored here. */
+  .rail--mini { flex-basis: 240px; width: 240px; }
+  .rail--mini .rail__label,
+  .rail--mini .rail__heading { position: static; width: auto; height: auto;
+    margin: 0; overflow: visible; clip: auto; white-space: normal; }
+  .rail--mini .rail__heading { margin: 0 0 6px; }
+  .rail--mini .rail__link,
+  .rail--mini .rail__collapse { justify-content: flex-start; gap: 11px; }
+  .rail--mini .rail__link { padding: 9px 11px; }
+  .rail--mini .rail__collapse { padding: 8px 11px; }
+  .rail__collapse { display: none; }
 }
 @media (min-width: 1025px) {
   /* Docked: the scrim and its click-to-close only apply to the drawer. */
@@ -3937,6 +4155,68 @@ html[data-theme='light'] .wal__input {
    The overlay is clipped to the art box rather than the whole card, so the
    Play/How-it-works buttons cannot overhang the copy plate or push the card's
    height when they appear. */
+/* ── Favourite heart on a game card ─────────────────────
+   Sits above the full-tile link, so it needs its own stacking context and a
+   click handler that stops the event reaching the card. */
+.tile__fav {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--fg-muted);
+  background: rgba(8, 12, 16, .62);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 50%;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(3px);
+          backdrop-filter: blur(3px);
+  /* Above .tile__overlay (10) and .tile__link (1): the overlay covers the art
+     box on hover, so anything lower is unclickable precisely when shown. */
+  z-index: 20;
+  transition: color .15s ease, background .15s ease, transform .12s ease;
+}
+.tile__fav:hover { color: #fff; background: rgba(8, 12, 16, .82); transform: scale(1.08); }
+.tile__fav:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .4); }
+.tile__fav--on { color: #ff4d6d; border-color: rgba(255, 77, 109, .55); }
+.tile__fav--on:hover { color: #ff6b85; }
+
+/* ── Favourites page ────────────────────────────────── */
+.favs__head { margin: 0 0 16px; }
+.favs__head h1 { margin: 0; font-size: 20px; font-weight: 800; }
+.favs__head p { margin: 6px 0 0; font-size: 13px; color: var(--fg-muted); }
+.favs__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 56px 24px;
+  text-align: center;
+  background: var(--fg-panel);
+  border: 1px solid var(--fg-line);
+  border-radius: 16px;
+}
+.favs__empty-heart { color: var(--fg-line-2); }
+.favs__empty b { font-size: 15px; }
+.favs__empty span { font-size: 13px; color: var(--fg-muted); }
+.favs__browse {
+  margin-top: 8px;
+  padding: 11px 20px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-bg);
+  background: var(--fg-accent);
+  border-radius: 10px;
+  text-decoration: none;
+}
+.favs__browse:hover { filter: brightness(1.08); }
+
+@media (prefers-reduced-motion: reduce) { .tile__fav { transition: none; } }
+
 .tile__art { border-radius: 16px 16px 0 0; }
 .tile__play,
 .tile__demo { max-width: 150px; }
@@ -3947,4 +4227,508 @@ html[data-theme='light'] .wal__input {
   .chat-fab { transition: opacity .01s, border-color .15s ease, background .15s ease; }
 }
 
+
+/* Payout destination in the withdrawal queue. Monospace and breakable: an
+   address that wraps is readable, one that overflows is a support ticket. */
+.adm-wd__dest {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--fg-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  word-break: break-all;
+}
+
+/* ── Brand mark ──────────────────────────────
+   `/frigat-model.jpg` is the official lockup, but it ships as a JPEG: dark navy
+   artwork on a #ececec plate, with no transparency. Dropped straight onto the
+   slate chrome that is a white box.
+
+   The fix is a filter chain rather than a re-cut asset:
+     invert(1)     — plate goes near-black, navy artwork goes light
+     grayscale(1)  — kills the warm cast inverting a navy leaves behind
+     contrast(1.6) — crushes the plate from 7% grey to true black and lifts the
+                     artwork to white; the maths is (v-0.5)*1.6+0.5, which
+                     clamps 0.075 to 0 and 0.86 to 1
+   `mix-blend-mode: screen` then drops the now-black plate entirely, because
+   screening black leaves the backdrop untouched. The generous padding baked
+   into the file disappears with it, so the lockup reads as a transparent PNG
+   without anyone having to cut one.
+
+   The light theme skips all of it: dark-on-white is already what that palette
+   wants, and inverting there would hide the mark. */
+.brandmark {
+  display: block;
+  width: auto;
+  object-fit: contain;
+  filter: invert(1) grayscale(1) contrast(1.6);
+  mix-blend-mode: screen;
+}
+html[data-theme='light'] .brandmark {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+/* Rail header. Sized so the lockup clears the collapse toggle beneath it. */
+.rail__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--fg-line);
+}
+.rail__brand .brandmark { height: 40px; }
+.rail--mini .rail__brand { height: 38px; }
+.rail--mini .rail__brand .brandmark { height: 32px; }
+
+/* ═══════════════════════════════════════════════
+   Motion & glass upgrade
+   ═══════════════════════════════════════════════
+
+   Written against the token system rather than utility classes: this project
+   ships no Tailwind, so `active:scale-95` / `backdrop-blur-md` / `focus:ring-2`
+   would resolve to nothing. Each of those has a direct equivalent below.
+
+   Everything here is applied to the *shared* primitives — the accent CTA, the
+   auth submit, the text inputs, the game tile — so a screen picks the treatment
+   up by using the classes it already uses, instead of every button growing its
+   own copy of a glow that then drifts. */
+
+/* ── Neon accent action ────────────────────────
+   Three layers make the glow read as light rather than as a drop shadow:
+   an outer bloom, a tight inner rim, and a sweep that crosses the face on
+   hover. The sweep is a pseudo-element so it cannot disturb the label. */
+.dash__cta,
+.auth__submit {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(245, 158, 11, .3);
+  transition:
+    background .15s var(--fg-ease),
+    border-color .15s var(--fg-ease),
+    box-shadow .2s var(--fg-ease),
+    transform .1s var(--fg-ease),
+    filter .15s var(--fg-ease);
+}
+.dash__cta::after,
+.auth__submit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 255, 255, .38) 48%,
+    transparent 72%
+  );
+  transform: translateX(-130%);
+  transition: transform .55s var(--fg-ease);
+}
+.dash__cta:hover:not(:disabled),
+.auth__submit:hover:not(:disabled) {
+  border-color: var(--fg-accent);
+  box-shadow:
+    0 0 0 1px rgba(245, 158, 11, .5),
+    0 0 22px rgba(245, 158, 11, .45),
+    0 8px 26px -10px rgba(245, 158, 11, .65);
+}
+.dash__cta:hover:not(:disabled)::after,
+.auth__submit:hover:not(:disabled)::after { transform: translateX(130%); }
+
+/* The press. 0.95 is `active:scale-95`. */
+.dash__cta:active:not(:disabled),
+.auth__submit:active:not(:disabled) {
+  transform: scale(.95);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, .55), 0 0 14px rgba(245, 158, 11, .4);
+}
+
+/* ── Dark-glass inputs ─────────────────────────
+   `--fg-panel-2` at 80% over a blurred backdrop, which is what
+   `bg-[#181f2c]/80 backdrop-blur-md` describes. color-mix keeps it on the
+   token so the dim and light themes follow automatically. */
+.auth__input,
+.wal__input,
+.adm__input {
+  background: color-mix(in srgb, var(--fg-panel-2) 80%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(10px);
+  transition:
+    border-color .14s var(--fg-ease),
+    box-shadow .14s var(--fg-ease),
+    background-color .14s var(--fg-ease);
+}
+.auth__input:hover:not(:disabled),
+.wal__input:hover:not(:disabled) { border-color: var(--fg-line-2); }
+
+/* A two-stop ring: an opaque inner edge so the field still has a hard boundary,
+   and a soft outer halo. `focus:ring-2 focus:ring-[#f59e0b]` with the glow. */
+.auth__input:focus-visible,
+.wal__input:focus-visible,
+.adm__input:focus-visible {
+  border-color: var(--fg-accent);
+  box-shadow:
+    0 0 0 2px rgba(245, 158, 11, .55),
+    0 0 18px -2px rgba(245, 158, 11, .35);
+}
+
+/* Embedded icon badge for a field. The input owns the left padding; the badge
+   is positioned into it, so no wrapper has to know the icon's width. */
+.fg-field { position: relative; display: flex; align-items: center; }
+.fg-field > .fg-field__icon {
+  position: absolute;
+  left: 11px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: var(--fg-accent);
+  background: rgba(245, 158, 11, .1);
+  border: 1px solid rgba(245, 158, 11, .28);
+  border-radius: 7px;
+  pointer-events: none;
+}
+.fg-field > input { padding-left: 42px; }
+
+/* ── Tile tilt ─────────────────────────────────
+   The rotation comes from --tilt-x / --tilt-y, written by GameCard's pointer
+   handler; with no pointer they stay 0 and this is the old lift. Separate
+   translate and rotate in one transform, and `will-change` so the compositor
+   keeps the card on its own layer through the move. */
+.tile {
+  transform:
+    perspective(760px)
+    rotateX(var(--tilt-x, 0deg))
+    rotateY(var(--tilt-y, 0deg))
+    translateY(var(--tilt-lift, 0px));
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.tile:hover { transform:
+    perspective(760px)
+    rotateX(var(--tilt-x, 0deg))
+    rotateY(var(--tilt-y, 0deg))
+    translateY(var(--tilt-lift, -2px)); }
+
+/* Specular sheen that follows the pointer across the art. */
+.tile__sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    240px circle at var(--tilt-px, 50%) var(--tilt-py, 50%),
+    rgba(255, 255, 255, .16),
+    transparent 62%
+  );
+  transition: opacity .22s var(--fg-ease);
+}
+.tile:hover .tile__sheen { opacity: 1; }
+
+/* ── Originals badge ───────────────────────────
+   Glass pill over the art: blurred plate, hairline edge, and a live green dot
+   with its own halo. Replaces the bare emblem, which read as a watermark. */
+.tile__emblem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px 4px 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fg-text);
+  background: rgba(11, 14, 20, .58);
+  -webkit-backdrop-filter: blur(8px);
+          backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, .8);
+}
+.tile__emblem-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fg-accent);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, .18), 0 0 10px rgba(245, 158, 11, .9);
+  animation: fg-pulse 2.4s ease-in-out infinite;
+}
+@keyframes fg-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .55; transform: scale(.82); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash__cta::after,
+  .auth__submit::after { transition: none; }
+  .tile { transform: none !important; }
+  .tile__emblem-dot { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════
+   Design system
+   ═══════════════════════════════════════════════
+
+   There is no Tailwind in this project — no config, no dependency, no
+   directives — so `p-4`, `tracking-wider`, `active:scale-[0.98]` and
+   `focus:ring-2` have no effect here. Every one of those is expressed below
+   as a real declaration against the tokens. The numbers are the Tailwind
+   numbers: p-4 is 16px, p-6 is 24px, gap-3 is 12px, gap-4 is 16px,
+   text-[11px] is 11px, rounded-lg is 8px, rounded-xl is 12px. */
+:root {
+  /* Spacing, on Tailwind's 4px grid. */
+  --fg-sp-2: 8px;
+  --fg-sp-3: 12px;
+  --fg-sp-4: 16px;
+  --fg-sp-6: 24px;
+
+  /* One duration for every interactive response. 150ms ease-out reads as
+     immediate; anything longer feels like lag on a control you just pressed. */
+  --fg-snap: 150ms cubic-bezier(0, 0, .2, 1);
+  /* Thumbnails get their own, slower curve — a zoom wants to glide. */
+  --fg-glide: 300ms cubic-bezier(0, 0, .2, 1);
+
+  /* Depth without an outline. A hairline of light along the top edge is how a
+     raised surface catches a room; a 1px border all the way round reads as a
+     wireframe. */
+  --fg-inset: inset 0 1px 0 0 rgba(255, 255, 255, .05);
+  /* Reserved for the accent. Nothing else in the UI glows. */
+  --fg-cta-glow: 0 0 20px rgba(245, 158, 11, .3);
+  --fg-placeholder: #64748b;
+}
+
+/* ── 2. Typography ─────────────────────────────
+   Two roles carry the whole hierarchy: an eyebrow that labels a region, and a
+   title that names a thing. The contrast between 11px tracked caps and 14px
+   semibold white is what creates the hierarchy — five sizes two pixels apart
+   is what makes a layout read as generated. */
+.fg-eyebrow,
+.rail__heading,
+.opt__label,
+.acc__section-title,
+.fm__stat span,
+.info__note b {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.fg-title,
+.fm__prize-title,
+.acc__section-title,
+.tile__fallback-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #fff;
+}
+
+/* ── 1 + 2. Surfaces and rhythm ────────────────
+   Every card lands on the same two steps — 16px of padding, 12px between
+   children — and carries the inset highlight instead of a flat stroke. */
+.tile__body,
+.fm__card,
+.acc__section,
+.info__section,
+.game__panel,
+.authm__panel,
+.wal__panel {
+  padding: var(--fg-sp-4);
+  box-shadow: var(--fg-inset);
+}
+.fm__card,
+.game__panel,
+.acc__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fg-sp-3);
+}
+/* The roomier step, for containers that hold a whole region rather than a
+   single fact. */
+.info__section,
+.authm__panel,
+.wal__panel {
+  padding: var(--fg-sp-6);
+}
+
+/* ── 3. Tactile press ──────────────────────────
+   Applied to everything clickable, so no control is inert on the way down. */
+.dash__btn,
+.dash__cta,
+.dash__avatar,
+.rail__link,
+.rail__collapse,
+.auth__submit,
+.authm__submit,
+.info__cta,
+.fm__btn,
+.fm__spin,
+.fm__task-btn,
+.acc__btn,
+.tile__fav,
+.tile__play,
+.tile__demo,
+.wal__tab,
+button.fg-press {
+  transition: background-color var(--fg-snap), border-color var(--fg-snap),
+    color var(--fg-snap), box-shadow var(--fg-snap), transform var(--fg-snap),
+    opacity var(--fg-snap);
+}
+.dash__btn:active:not(:disabled),
+.dash__cta:active:not(:disabled),
+.dash__avatar:active,
+.rail__link:active,
+.rail__collapse:active,
+.auth__submit:active:not(:disabled),
+.authm__submit:active:not(:disabled),
+.info__cta:active,
+.fm__btn:active:not(:disabled),
+.fm__spin:active:not(:disabled),
+.fm__task-btn:active:not(:disabled),
+.acc__btn:active,
+.tile__fav:active,
+.tile__play:active,
+.tile__demo:active,
+.wal__tab:active,
+button.fg-press:active:not(:disabled) {
+  transform: scale(.98) translateY(1px);
+}
+
+/* Primary CTAs. The accent is load-bearing: it means "this is the action", so
+   it appears on deposit, spin and cash-out and nowhere else. Dark text rather
+   than white — #f59e0b against white is 1.69:1 and fails WCAG outright, while
+   against the page navy it clears 14:1. */
+.dash__cta,
+.auth__submit,
+.authm__submit,
+.fm__spin,
+.btn--primary {
+  color: #0b0e14;
+  font-weight: 700;
+  background: var(--fg-accent);
+  border: none;
+}
+.dash__cta:hover:not(:disabled),
+.auth__submit:hover:not(:disabled),
+.authm__submit:hover:not(:disabled),
+.fm__spin:hover:not(:disabled),
+.btn--primary:hover:not(:disabled) {
+  box-shadow: var(--fg-cta-glow);
+}
+
+/* ── 3. Inputs ─────────────────────────────────
+   Recessed rather than raised: a field is a hole you put something into, so it
+   sits a step below the page and the focus ring is the only thing that lights
+   up. */
+.auth__input,
+.authm__input,
+.fg-input,
+.wal__input,
+input[type='text'].fg-field,
+input[type='email'].fg-field,
+input[type='password'].fg-field {
+  color: #fff;
+  background: color-mix(in srgb, var(--fg-sunken) 90%, transparent);
+  border: 1px solid var(--fg-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color var(--fg-snap), box-shadow var(--fg-snap),
+    background-color var(--fg-snap);
+}
+.auth__input::placeholder,
+.authm__input::placeholder,
+.fg-input::placeholder,
+.wal__input::placeholder {
+  color: var(--fg-placeholder);
+}
+.auth__input:focus,
+.authm__input:focus,
+.fg-input:focus,
+.wal__input:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, .5);
+}
+
+/* ── 4. Game cards ─────────────────────────────
+   A 3:4 portrait poster, clipped so the zoom stays inside its corners. The
+   zoom lives on the image and the card itself holds still — scaling the whole
+   card would drag its neighbours' spacing around with it. */
+.tile__art {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: 1px solid var(--fg-line);
+  border-radius: 12px;
+}
+.tile__img,
+.tile__icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: none;
+  transition: transform var(--fg-glide);
+}
+.tile:hover .tile__img,
+.tile:hover .tile__icon {
+  transform: scale(1.05);
+}
+/* The copy plate rides the same curve so the two read as one gesture. */
+.tile__overlay { transition: opacity var(--fg-glide); }
+/* The card no longer tilts or lifts — the poster's zoom is the hover now, and
+   stacking a 3D tilt on top of it was the "aggressive" half. */
+.tile:hover { transform: none; }
+.tile__fav:hover { transform: none; }
+
+/* ── 4. Navigation ─────────────────────────────
+   The active state is a pill behind the link rather than a coloured label:
+   it survives at a glance, and it does not spend the accent on navigation.
+   A left marker carries the accent instead — one thin bar, not a green row. */
+.rail__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--fg-sp-3);
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--fg-muted);
+}
+.rail__link:hover { color: #fff; background: var(--fg-panel-2); }
+.rail__link--on {
+  color: #fff;
+  background: var(--fg-panel);
+  box-shadow: var(--fg-inset);
+}
+.rail__link--on::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background: var(--fg-accent);
+  transform: translateY(-50%);
+}
+/* Outline icons inherit the link's colour, so one rule moves icon and label
+   together and they can never disagree about active state. */
+.rail__link svg,
+.rail__ico {
+  flex: none;
+  color: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile:hover .tile__img,
+  .tile:hover .tile__icon { transform: none; }
+  .dash__btn:active:not(:disabled),
+  .authm__submit:active:not(:disabled),
+  button.fg-press:active:not(:disabled) { transform: none; }
+}
 

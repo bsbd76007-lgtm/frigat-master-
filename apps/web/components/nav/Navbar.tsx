@@ -9,12 +9,16 @@ import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { ThemeToggle } from '@/components/nav/ThemeToggle';
 import { PlayersOnline } from '@/components/feed/PlayersOnline';
+import { HeaderSearch } from '@/components/nav/HeaderSearch';
 import WalletModal, { type WalletTab } from '@/components/modals/WalletModal';
 import DepositModal from '@/components/modals/DepositModal';
+import { LanguageSwitcher } from '@/components/nav/LanguageSwitcher';
 import WithdrawModal from '@/components/modals/WithdrawModal';
+import AccountModal from '@/components/modals/AccountModal';
+import AuthModal from '@/components/auth/AuthModal';
 
 import { subscribeToPanels } from '@/lib/appPanels';
-import { NAV_GAMES } from '@/lib/navigation';
+
 const STATUS_CLASS: Record<string, string> = {
   open: 'dash__status dash__status--open',
   connecting: 'dash__status dash__status--pending',
@@ -27,17 +31,17 @@ const STATUS_CLASS: Record<string, string> = {
 interface NavbarProps {
   onMenuToggle?: () => void;
   menuOpen?: boolean;
-  onSearch?: () => void;
 }
 
-export function Navbar({ onMenuToggle, menuOpen, onSearch }: NavbarProps) {
+export function Navbar({ onMenuToggle, menuOpen }: NavbarProps) {
   const { balance, socket, setFairnessOpen, token, setToken } = useGameSocket();
   const { t } = useLanguage();
-  const pathname = usePathname();
   const router = useRouter();
 
   const [walletOpen, setWalletOpen] = useState(false);
   const [walletTab, setWalletTab] = useState<WalletTab>('deposit');
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
   const openWallet = (tab: WalletTab) => {
     setWalletTab(tab);
@@ -78,41 +82,23 @@ export function Navbar({ onMenuToggle, menuOpen, onSearch }: NavbarProps) {
 
       {/* The SVG carries its own <title>, so the link needs no extra label. */}
       <Link className="dash__brand" href="/" aria-label="FRIGAT home">
-        {/* Sized from the file's own 1070x672 (ratio 1.59), not the 3:1 the
-            brief assumed — 120x40 would squash it by half. Height is pinned to
-            the header band and width follows via CSS `auto`, so the intrinsic
-            numbers here only set the decode hint and reserve layout space. */}
+        {/* The official lockup. Intrinsic size is the file's own 1034x808, so
+            next/image reserves the right box; height is pinned in CSS and the
+            width follows. `.brandmark` carries the dark-theme treatment — see
+            the note on that class for why a JPEG works here at all. */}
         <Image
-          src="/logo.png"
+          src="/frigat-model.jpg"
           alt="FRIGAT"
-          width={1070}
-          height={672}
+          width={1034}
+          height={808}
           priority
-          className="dash__brand-img"
+          className="dash__brand-img brandmark"
         />
       </Link>
 
       {/* Search sits where the game links were: the rail owns navigation now,
           so the header is for finding things and for the cashier. */}
-      <form
-        className="dash__search"
-        role="search"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSearch?.();
-        }}
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
-          <path d="M15.5 15.5 21 21" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-        </svg>
-        <input
-          type="search"
-          placeholder={t('home.filters.search')}
-          aria-label={t('home.filters.search')}
-          onFocus={() => onSearch?.()}
-        />
-      </form>
+      <HeaderSearch />
 
       {/* Ambient context, so it sits with the nav rather than competing with
           the cashier controls on the right — which already wrap on mobile. */}
@@ -125,6 +111,7 @@ export function Navbar({ onMenuToggle, menuOpen, onSearch }: NavbarProps) {
             is just a dead control. */}
         {!token ? (
           <>
+            <LanguageSwitcher />
             <ThemeToggle />
             <Link className="dash__btn" href="/login">
               {t('header.login')}
@@ -132,6 +119,25 @@ export function Navbar({ onMenuToggle, menuOpen, onSearch }: NavbarProps) {
             <Link className="dash__cta" href="/register">
               {t('header.register')}
             </Link>
+            {/* Same control in both states: signed in it opens the profile,
+                signed out it opens sign-in, so the icon always does the thing
+                a player expects of an account button. */}
+            <button
+              type="button"
+              className="dash__avatar"
+              onClick={() => setAuthOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={authOpen}
+              aria-label={t('header.login')}
+              title={t('header.login')}
+            >
+              <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+                <path
+                  d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-7 2.2-7 5v1h14v-1c0-2.8-3-5-7-5Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
           </>
         ) : (
           <>
@@ -155,6 +161,7 @@ export function Navbar({ onMenuToggle, menuOpen, onSearch }: NavbarProps) {
               <span>{balance.currency}</span>
             </button>
 
+            <LanguageSwitcher />
             <ThemeToggle />
 
             <button
@@ -164,15 +171,6 @@ export function Navbar({ onMenuToggle, menuOpen, onSearch }: NavbarProps) {
             >
               {t('header.provablyFair')}
             </button>
-            <button
-              type="button"
-              className="dash__btn"
-              onClick={signOut}
-              aria-label={t('header.signOut')}
-            >
-              {t('header.signOut')}
-            </button>
-
             {/* The primary action in the header for a signed-in player. */}
             <button
               type="button"
@@ -180,6 +178,26 @@ export function Navbar({ onMenuToggle, menuOpen, onSearch }: NavbarProps) {
               onClick={() => openWallet('deposit')}
             >
               {t('header.deposit')}
+            </button>
+
+            {/* Account panel: profile, wallet, security and VIP. Signing out
+                moved in there with the rest of the account controls, which is
+                where a player looks for it. */}
+            <button
+              type="button"
+              className="dash__avatar"
+              onClick={() => setAccountOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={accountOpen}
+              aria-label={t('account.open')}
+              title={t('account.open')}
+            >
+              <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+                <path
+                  d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-7 2.2-7 5v1h14v-1c0-2.8-3-5-7-5Z"
+                  fill="currentColor"
+                />
+              </svg>
             </button>
           </>
         )}
@@ -196,9 +214,17 @@ export function Navbar({ onMenuToggle, menuOpen, onSearch }: NavbarProps) {
         {walletTab === 'deposit' ? (
           <DepositModal open={walletOpen} />
         ) : (
-          <WithdrawModal open={walletOpen} />
+          <WithdrawModal open={walletOpen} onClose={() => setWalletOpen(false)} />
         )}
       </WalletModal>
+
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+
+      <AccountModal
+        open={accountOpen}
+        onClose={() => setAccountOpen(false)}
+        onSignOut={() => void signOut()}
+      />
     </header>
   );
 }

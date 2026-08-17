@@ -4,8 +4,9 @@ import { useRef } from 'react';
 
 import { motion, useReducedMotion } from 'framer-motion';
 
-import { THEMES, useTheme, type Theme } from '@/components/providers/ThemeProvider';
+import { useTheme, type Theme } from '@/components/providers/ThemeProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+
 function MoonIcon() {
   return (
     <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">

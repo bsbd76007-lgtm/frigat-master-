@@ -6,10 +6,13 @@ import { useEffect, useState } from 'react';
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 type CoinSide = 'HEADS' | 'TAILS';
 
 export default function CoinflipPage() {
   const { socket, balance, send } = useGameSocket();
+  const { t } = useLanguage();
   const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
@@ -48,8 +51,8 @@ export default function CoinflipPage() {
   return (
     <GameShell
       gameType="COINFLIP"
-      title="Coinflip"
-      subtitle="Heads or tails · pays 1.98×"
+      title={t('games.coinflip.name')}
+      subtitle={t('games.coinflip.subtitle')}
       stage={
         <div className="stage__center">
           <div
@@ -81,7 +84,7 @@ export default function CoinflipPage() {
       panel={
         <>
           <div className="opt">
-            <span className="opt__label">Your side</span>
+            <span className="opt__label">{t('game.yourSide')}</span>
             <div className="opt__row">
               {(['HEADS', 'TAILS'] as const).map((option) => (
                 <button
@@ -99,7 +102,7 @@ export default function CoinflipPage() {
           </div>
 
           <div className="opt__stat">
-            <span>Payout on win</span>
+            <span>{t('game.payoutOnWin')}</span>
             <b>1.98×</b>
           </div>
 
@@ -111,7 +114,7 @@ export default function CoinflipPage() {
             onBet={flip}
             busy={busy}
             disabled={busy}
-            betLabel="Flip"
+            betLabel={t('game.flip')}
           />
         </>
       }

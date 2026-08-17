@@ -11,21 +11,24 @@ import {
 } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { Navbar } from '@/components/nav/Navbar';
+import { SearchProvider } from '@/components/providers/SearchProvider';
+import { FavoritesProvider } from '@/context/FavoritesContext';
 import { Sidebar } from '@/components/nav/Sidebar';
 import { ProvablyFairModal } from '@/components/games/ProvablyFairModal';
-import ChatSidebar from '@/components/chat/ChatSidebar';
 import StreakProgressBar from '@/components/streak/StreakProgressBar';
 import RestoreStreakModal from '@/components/streak/RestoreStreakModal';
-import { ChatFab } from '@/components/chat/ChatFab';
+import { SupportChat } from '@/components/support/SupportChat';
+import { Toaster } from '@/components/ui/Toaster';
 
 import { subscribeToPanels } from '@/lib/appPanels';
+
 /**
  * Shown when no token was found in localStorage on load. The token itself is
  * obtained at /login now, so this only has to point the way there.
  */
 function SignInGate() {
-  const { socket } = useGameSocket();
   const { t } = useLanguage();
+  const { socket } = useGameSocket();
   const pathname = usePathname();
   const next = `?next=${encodeURIComponent(pathname)}`;
 
@@ -64,8 +67,7 @@ function DashboardChrome({ children }: { children: ReactNode }) {
     rotating,
     rotateError,
   } = useGameSocket();
-  const { t } = useLanguage();
-  const [chatOpen, setChatOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   // Open by default on desktop where the rail is docked; the media query in
   // CSS hides it on mobile until the hamburger sets this true.
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -73,7 +75,7 @@ function DashboardChrome({ children }: { children: ReactNode }) {
   useEffect(
     () =>
       subscribeToPanels((panel) => {
-        if (panel === 'chat') setChatOpen(true);
+        if (panel === 'support') setSupportOpen(true);
         else if (panel === 'fairness') setFairnessOpen(true);
       }),
     [setFairnessOpen]
@@ -91,12 +93,17 @@ function DashboardChrome({ children }: { children: ReactNode }) {
         <main className="dash__main">{token ? children : <SignInGate />}</main>
       </div>
 
-      {/* Hidden while the panel is open — the sidebar carries its own close,
-          and a launcher for an already-open panel is a dead control. */}
       <StreakProgressBar />
       <RestoreStreakModal />
-      <ChatFab onOpen={() => setChatOpen(true)} hidden={chatOpen} />
-      <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} />
+
+      {/* Support is account-scoped and hides itself when signed out. It stacks
+          in the corner — the dock spans the full width on mobile, so the corner
+          is the only free column. */}
+      <SupportChat open={supportOpen} onOpenChange={setSupportOpen} />
+
+      {/* One renderer for the whole dashboard; anything can raise a toast
+          through lib/toast without reaching for this component. */}
+      <Toaster />
 
       <ProvablyFairModal
         open={fairnessOpen}
@@ -118,7 +125,13 @@ function DashboardChrome({ children }: { children: ReactNode }) {
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <GameSocketProvider>
-      <DashboardChrome>{children}</DashboardChrome>
+      {/* Wraps the header and the page together: the input lives in one and
+          the filtered grid in the other. */}
+      <SearchProvider>
+        <FavoritesProvider>
+          <DashboardChrome>{children}</DashboardChrome>
+        </FavoritesProvider>
+      </SearchProvider>
     </GameSocketProvider>
   );
 }

@@ -26,7 +26,10 @@ import {
   normalizeDecimal,
   sanitizeDecimalInput,
 } from '@/lib/decimal';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+import { openPanel } from '@/lib/appPanels';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
+
 export const DEFAULT_MIN_BET = '0.10';
 export const DEFAULT_MAX_BET = '10000.00';
 
@@ -41,8 +44,12 @@ export interface BetControlsProps {
   onBet: () => void;
   onCashout?: () => void;
   canCashout?: boolean;
-  /** Cashout button colour. Crash uses green; the default is the gold pill. */
-  cashoutTone?: 'gold' | 'green';
+  /**
+   * Cashout button colour. Crash uses the accent; the default is the gold
+   * pill. Named for the role rather than the hue — this was 'green' until the
+   * accent became amber, at which point the name described nothing.
+   */
+  cashoutTone?: 'gold' | 'accent';
   cashoutAmount?: string | null;
   cashoutMultiplier?: number | null;
   disabled?: boolean;
@@ -55,6 +62,8 @@ export interface BetControlsProps {
 interface Validation {
   valid: boolean;
   message: string | null;
+  /** The stake exceeds the wallet — the only failure a deposit can fix. */
+  needsFunds?: boolean;
 }
 
 const STYLE_ID = 'fg-bet-controls-styles';
@@ -68,9 +77,13 @@ const CSS = `
 .fg-bet__field { position: relative; flex: 1 1 auto; min-width: 0; }
 .fg-bet__input { width: 100%; box-sizing: border-box; padding: 12px 56px 12px 12px;
   font-size: 16px; font-variant-numeric: tabular-nums; color: var(--fg-text);
-  background: #10161d; border: 1px solid var(--fg-line); border-radius: 8px; outline: none;
-  transition: border-color .15s ease, box-shadow .15s ease; }
-.fg-bet__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.18); }
+  background: color-mix(in srgb, var(--fg-sunken) 90%, transparent);
+  border: 1px solid var(--fg-line); border-radius: 8px; outline: none;
+  transition: border-color var(--fg-snap), box-shadow var(--fg-snap); }
+.fg-bet__input::placeholder { color: var(--fg-placeholder); }
+/* The ring replaces the border rather than sitting outside it, so focus does
+   not nudge the field's neighbours by a pixel. */
+.fg-bet__input:focus-visible { border-color: transparent; box-shadow: 0 0 0 2px rgba(245, 158, 11,.5); }
 .fg-bet__input[aria-invalid="true"] { border-color: var(--fg-red); }
 .fg-bet__input:disabled { opacity: .55; cursor: not-allowed; }
 .fg-bet__currency { position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
@@ -80,22 +93,33 @@ const CSS = `
   color: var(--fg-text); background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: 8px;
   cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease; }
 .fg-bet__mod:hover:not(:disabled) { background: var(--fg-hover-2); color: #fff; }
-.fg-bet__mod:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.18); }
+.fg-bet__mod:active:not(:disabled) { transform: scale(.98) translateY(1px); }
+.fg-bet__mod:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11,.18); }
 .fg-bet__mod:disabled { opacity: .45; cursor: not-allowed; }
 .fg-bet__meta { display: flex; justify-content: space-between; gap: 12px;
   font-size: 12px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
-.fg-bet__error { margin: 0; font-size: 12px; font-weight: 500; color: var(--fg-red); }
+.fg-bet__error { display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin: 0; font-size: 12px; font-weight: 500; color: var(--fg-red); }
+.fg-bet__deposit { flex: 0 0 auto; padding: 5px 12px; font-family: inherit; font-size: 11px;
+  font-weight: 800; letter-spacing: .04em; color: #0b0e14; background: var(--fg-accent);
+  border: 0; border-radius: 999px; cursor: pointer; }
+.fg-bet__deposit:hover { filter: brightness(1.08); box-shadow: var(--fg-cta-glow); }
+.fg-bet__deposit:active { transform: scale(.98) translateY(1px); }
+.fg-bet__deposit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .35); }
 .fg-bet__action { width: 100%; padding: 14px 16px; font-size: 15px; font-weight: 700;
   letter-spacing: .02em; color: var(--fg-bg); background: var(--fg-accent); border: none;
-  border-radius: 8px; cursor: pointer; transition: filter .15s ease, transform .06s ease; }
-.fg-bet__action:hover:not(:disabled) { filter: brightness(1.08); }
-.fg-bet__action:active:not(:disabled) { transform: translateY(1px); }
-.fg-bet__action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0,231,1,.35); }
+  border-radius: 8px; cursor: pointer;
+  transition: filter var(--fg-snap), transform var(--fg-snap), box-shadow var(--fg-snap); }
+/* Cash Out and Bet are the primary actions on a game screen, so they carry the
+   accent glow. */
+.fg-bet__action:hover:not(:disabled) { filter: brightness(1.08); box-shadow: var(--fg-cta-glow); }
+.fg-bet__action:active:not(:disabled) { transform: scale(.98) translateY(1px); }
+.fg-bet__action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11,.35); }
 .fg-bet__action:disabled { opacity: .5; cursor: not-allowed; }
-.fg-bet__action--cashout { color: #1a1204; background: #f5b83d; }
-.fg-bet__action--cashout:focus-visible { box-shadow: 0 0 0 3px rgba(245,184,61,.35); }
-.fg-bet__action--cashout-green { color: var(--fg-bg); background: var(--fg-accent); }
-.fg-bet__action--cashout-green:focus-visible { box-shadow: 0 0 0 3px rgba(0,231,1,.35); }
+.fg-bet__action--cashout { color: #1a1204; background: #d9a441; }
+.fg-bet__action--cashout:focus-visible { box-shadow: 0 0 0 3px rgba(217, 164, 65,.35); }
+.fg-bet__action--cashout-accent { color: var(--fg-bg); background: var(--fg-accent); }
+.fg-bet__action--cashout-accent:focus-visible { box-shadow: 0 0 0 3px rgba(245, 158, 11,.35); }
 .fg-bet__quote { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; opacity: .8; }
 @media (prefers-reduced-motion: reduce) {
   .fg-bet__input, .fg-bet__mod, .fg-bet__action { transition: none; }
@@ -121,6 +145,7 @@ export function BetControls({
   locale,
   className,
 }: BetControlsProps) {
+  const { t } = useLanguage();
   useInjectedStyles(STYLE_ID, CSS);
 
   const inputId = useId();
@@ -136,25 +161,32 @@ export function BetControls({
   const validation = useMemo<Validation>(() => {
     if (amount.trim() === '') return { valid: false, message: null };
     if (!isDecimalString(amount)) {
-      return { valid: false, message: 'Enter a valid amount' };
+      return { valid: false, message: t('bet.invalidAmount') };
     }
     if (compareDecimal(amount, minBet) < 0) {
       return {
         valid: false,
-        message: `Minimum bet is ${formatDecimalString(minBet, 2, locale)}`,
+        message: t('bet.minBet', {
+          amount: formatDecimalString(minBet, 2, locale),
+        }),
       };
     }
     if (compareDecimal(amount, maxBet) > 0) {
       return {
         valid: false,
-        message: `Maximum bet is ${formatDecimalString(maxBet, 2, locale)}`,
+        message: t('bet.maxBet', {
+          amount: formatDecimalString(maxBet, 2, locale),
+        }),
       };
     }
     if (balance && isDecimalString(balance) && compareDecimal(amount, balance) > 0) {
-      return { valid: false, message: 'Insufficient balance' };
+      // Flagged rather than just rejected: this is the one failure the player
+      // can act on, so the control offers the deposit dialog instead of a
+      // dead end. There is no demo mode to fall back to.
+      return { valid: false, message: t('bet.insufficient'), needsFunds: true };
     }
     return { valid: true, message: null };
-  }, [amount, minBet, maxBet, balance, locale]);
+  }, [amount, minBet, maxBet, balance, locale, t]);
 
   const applyModifier = useCallback(
     (transform: (current: string) => string) => {
@@ -194,7 +226,7 @@ export function BetControls({
       noValidate
     >
       <label className="fg-bet__label" htmlFor={inputId}>
-        Bet amount
+        {t('bet.amount')}
       </label>
 
       <div className="fg-bet__row">
@@ -224,7 +256,7 @@ export function BetControls({
             className="fg-bet__mod"
             onClick={() => applyModifier((v) => divideDecimal(v, 2n))}
             disabled={modifiersDisabled}
-            aria-label="Halve bet amount"
+            aria-label={t('bet.halve')}
           >
             ½
           </button>
@@ -233,7 +265,7 @@ export function BetControls({
             className="fg-bet__mod"
             onClick={() => applyModifier((v) => multiplyDecimal(v, 2n))}
             disabled={modifiersDisabled}
-            aria-label="Double bet amount"
+            aria-label={t('bet.double')}
           >
             2x
           </button>
@@ -242,26 +274,37 @@ export function BetControls({
             className="fg-bet__mod"
             onClick={() => applyModifier(() => ceiling)}
             disabled={modifiersDisabled}
-            aria-label="Bet maximum"
+            aria-label={t('bet.max')}
           >
-            Max
+            {t('bet.maxShort')}
           </button>
         </div>
       </div>
 
       <div className="fg-bet__meta">
         <span>
-          Min {formatDecimalString(minBet, 2, locale)} · Max{' '}
-          {formatDecimalString(maxBet, 2, locale)}
+          {t('bet.min')} {formatDecimalString(minBet, 2, locale)} ·{' '}
+          {t('bet.maxShort')} {formatDecimalString(maxBet, 2, locale)}
         </span>
         {balance !== null && isDecimalString(balance) && (
-          <span>Balance {formatDecimalString(balance, 2, locale)}</span>
+          <span>
+            {t('bet.balance')} {formatDecimalString(balance, 2, locale)}
+          </span>
         )}
       </div>
 
       {validation.message && (
         <p className="fg-bet__error" id={errorId} role="alert">
           {validation.message}
+          {validation.needsFunds && (
+            <button
+              type="button"
+              className="fg-bet__deposit"
+              onClick={() => openPanel('deposit')}
+            >
+              {t('bet.deposit')}
+            </button>
+          )}
         </p>
       )}
 
@@ -269,11 +312,11 @@ export function BetControls({
         <button
           type="submit"
           className={`fg-bet__action fg-bet__action--cashout${
-            cashoutTone === 'green' ? ' fg-bet__action--cashout-green' : ''
+            cashoutTone === 'accent' ? ' fg-bet__action--cashout-accent' : ''
           }`}
           disabled={disabled || busy}
         >
-          {busy ? 'Cashing out…' : 'Cashout'}
+          {busy ? t('bet.cashingOut') : t('bet.cashout')}
           {cashoutAmount && isDecimalString(cashoutAmount) && (
             <span className="fg-bet__quote">
               {formatDecimalString(cashoutAmount, 2, locale)} {currency}
@@ -283,7 +326,7 @@ export function BetControls({
         </button>
       ) : (
         <button type="submit" className="fg-bet__action" disabled={betDisabled}>
-          {busy ? 'Placing…' : betLabel}
+          {busy ? t('bet.placing') : betLabel}
         </button>
       )}
     </form>

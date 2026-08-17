@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { Prisma, GameType, TransactionType } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { requireAdmin } from './auth';
+import { pushBalanceToUser } from '../websocket/socket.server';
 import { auditWithin, isUnknownAdminError } from '../services/audit.service';
 import {
   approveWithdrawal,
@@ -17,6 +18,56 @@ function clampTake(raw: unknown, fallback = 25): number {
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return fallback;
   return Math.min(Math.floor(n), 100);
+}
+
+
+/**
+ * Finds a withdrawal from either identifier the admin surfaces expose.
+ *
+ * Returns the ledger row that holds the funds (the thing approve/reject act on)
+ * alongside the Withdrawal row, so the caller can update both consistently.
+ */
+async function resolveWithdrawal(id: string): Promise<{
+  withdrawalId: string | null;
+  transactionId: string;
+  userId: string | null;
+} | null> {
+  const byWithdrawal = await prisma.withdrawal.findUnique({
+    where: { id },
+    select: { id: true, transactionId: true, userId: true },
+  });
+  if (byWithdrawal) {
+    return {
+      withdrawalId: byWithdrawal.id,
+      transactionId: byWithdrawal.transactionId,
+      userId: byWithdrawal.userId,
+    };
+  }
+
+  const byTransaction = await prisma.transaction.findFirst({
+    where: { id, type: TransactionType.WITHDRAWAL },
+    select: { id: true, wallet: { select: { userId: true } } },
+  });
+  if (!byTransaction) return null;
+
+  const linked = await prisma.withdrawal.findUnique({
+    where: { transactionId: byTransaction.id },
+    select: { id: true },
+  });
+  return {
+    withdrawalId: linked?.id ?? null,
+    transactionId: byTransaction.id,
+    userId: byTransaction.wallet.userId,
+  };
+}
+
+/** Mirrors the ledger decision onto the gateway-facing row. */
+async function markWithdrawal(
+  withdrawalId: string | null,
+  status: 'CONFIRMED' | 'CANCELLED'
+): Promise<void> {
+  if (!withdrawalId) return;
+  await prisma.withdrawal.update({ where: { id: withdrawalId }, data: { status } });
 }
 
 export function registerAdminRiskRoutes(app: FastifyInstance) {
@@ -64,6 +115,16 @@ export function registerAdminRiskRoutes(app: FastifyInstance) {
         }),
       ]);
 
+      // The payout destination lives on `Withdrawal`, not on the ledger row —
+      // they are joined by `Withdrawal.transactionId`. Without this the queue
+      // showed who and how much but not *where to*, which is the one field an
+      // approver actually has to check before releasing funds.
+      const destinations = await prisma.withdrawal.findMany({
+        where: { transactionId: { in: rows.map((t) => t.id) } },
+        select: { transactionId: true, address: true, network: true, provider: true },
+      });
+      const destinationByTx = new Map(destinations.map((d) => [d.transactionId, d]));
+
       return {
         total,
         take,
@@ -81,10 +142,85 @@ export function registerAdminRiskRoutes(app: FastifyInstance) {
           userEmail: t.wallet.user.email,
           userFrozen: t.wallet.user.frozen,
           walletBalance: t.wallet.balance.toFixed(8),
+          address: destinationByTx.get(t.id)?.address ?? null,
+          network: destinationByTx.get(t.id)?.network ?? null,
+          provider: destinationByTx.get(t.id)?.provider ?? null,
         })),
       };
     }
   );
+
+  /**
+   * Explicit approve / reject verbs.
+   *
+   * `:id` accepts either the Withdrawal id or the id of the PENDING ledger row
+   * holding the funds — the admin list serves the latter, while a support agent
+   * looking at a player's history has the former, and making them care which is
+   * a papercut with no upside.
+   *
+   * Both delegate to the same audited ledger functions as the combined endpoint
+   * below: approve settles the hold, reject refunds it inside one transaction.
+   */
+  for (const verb of ['approve', 'reject'] as const) {
+    app.post<{ Params: { id: string }; Body: { reason?: string } }>(
+      `/api/admin/withdrawals/:id/${verb}`,
+      { preHandler: requireAdmin },
+      async (req, reply) => {
+        const adminId = req.identity!.userId;
+        const reason = req.body?.reason;
+
+        if (verb === 'reject' && (typeof reason !== 'string' || reason.trim().length < 3)) {
+          return reply.code(400).send({ error: 'reason is required when rejecting' });
+        }
+
+        const resolved = await resolveWithdrawal(req.params.id);
+        if (!resolved) return reply.code(404).send({ error: 'withdrawal_not_found' });
+
+        const audit =
+          (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>
+            auditWithin(tx, {
+              adminId,
+              action: verb === 'approve' ? 'WITHDRAWAL_APPROVED' : 'WITHDRAWAL_REJECTED',
+              targetUserId: (extra.targetUserId as string) ?? null,
+              details: { reason: reason?.trim() ?? null, ...extra },
+            });
+
+        try {
+          if (verb === 'approve') {
+            const settled = await approveWithdrawal({
+              transactionId: resolved.transactionId,
+              auditWithin: audit,
+            });
+            await markWithdrawal(resolved.withdrawalId, 'CONFIRMED');
+            // Spread first: the ledger's own `status` is the ledger's word for it
+            // ('COMPLETED'), and the API contract is the same word, but the order
+            // must be explicit rather than accidental.
+            return { ...settled, success: true, status: 'COMPLETED' as const };
+          }
+
+          const refunded = await rejectWithdrawal({
+            transactionId: resolved.transactionId,
+            auditWithin: audit,
+          });
+          await markWithdrawal(resolved.withdrawalId, 'CANCELLED');
+          // The refund landed; tell the player's open tabs about it.
+          if (resolved.userId) pushBalanceToUser(resolved.userId, refunded.balance);
+          return { ...refunded, success: true, status: 'REJECTED' as const };
+        } catch (err) {
+          if (err instanceof WithdrawalStateError) {
+            return reply.code(409).send({ error: 'not_pending', detail: err.message });
+          }
+          if (isUnknownAdminError(err)) {
+            return reply.code(409).send({
+              error: 'unknown_admin',
+              detail: 'Acting admin id does not exist; nothing was changed.',
+            });
+          }
+          throw err;
+        }
+      }
+    );
+  }
 
   app.post<{ Params: { id: string }; Body: { action?: string; reason?: string } }>(
     '/api/admin/withdrawals/:id',

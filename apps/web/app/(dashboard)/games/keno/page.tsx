@@ -12,10 +12,13 @@ import {
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 const REVEAL_STEP_MS = 130;
 
 export default function KenoPage() {
   const { socket, balance, send } = useGameSocket();
+  const { t } = useLanguage();
   const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
@@ -134,11 +137,11 @@ export default function KenoPage() {
   return (
     <GameShell
       gameType="KENO"
-      title="Keno"
+      title={t('games.keno.name')}
       subtitle={`${KENO_TILE_COUNT} tiles · pick up to ${KENO_MAX_PICKS} · ${KENO_DRAW_COUNT} drawn`}
       stage={
         <>
-          <div className="keno" role="grid" aria-label="Keno board">
+          <div className="keno" role="grid" aria-label={t('game.kenoBoard')}>
             {Array.from({ length: KENO_TILE_COUNT }, (_, tile) => {
               const state = tileState(tile);
               return (
@@ -187,7 +190,7 @@ export default function KenoPage() {
                 onClick={autoPick}
                 disabled={busy}
               >
-                Auto Pick
+                {t('game.autoPick')}
               </button>
               <button
                 type="button"
@@ -195,13 +198,13 @@ export default function KenoPage() {
                 onClick={clearPicks}
                 disabled={busy || picks.length === 0}
               >
-                Clear
+                {t('game.clear')}
               </button>
             </div>
           </div>
 
           <div className="opt">
-            <span className="opt__label">Paytable</span>
+            <span className="opt__label">{t('game.paytable')}</span>
             <div className="keno__paytable">
               {paytable ? (
                 Object.entries(paytable)
@@ -222,7 +225,7 @@ export default function KenoPage() {
                   ))
               ) : (
                 <p className="opt__stat" style={{ color: 'var(--fg-dim)' }}>
-                  Pick at least one tile to see payouts
+                  {t('game.pickTile')}
                 </p>
               )}
             </div>
@@ -236,7 +239,7 @@ export default function KenoPage() {
             onBet={placeBet}
             disabled={picks.length === 0}
             busy={busy}
-            betLabel="Draw"
+            betLabel={t('game.draw')}
           />
         </>
       }

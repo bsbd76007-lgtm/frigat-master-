@@ -1,11 +1,13 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 import type { GameType } from '@frigat/shared/types';
 
 import { GameHistoryBar } from '@/components/games/GameHistoryBar';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { handleSessionExpiry } from '@/lib/sessionExpiry';
+
 export interface GameShellProps {
   gameType: GameType;
   title: string;
@@ -26,6 +28,14 @@ export function GameShell({
   const { historyFor, socket, setFairnessOpen } = useGameSocket();
   const entries = history ?? historyFor(gameType);
 
+  // Every socket game funnels through this shell, so one effect covers all of
+  // them. The socket rejecting the token means the same thing a 401 does on the
+  // HTTP games: the session is gone, and no amount of staring at a banner will
+  // bring it back.
+  useEffect(() => {
+    if (socket.status === 'unauthorized') handleSessionExpiry();
+  }, [socket.status]);
+
   return (
     <section>
       <div className="game__head">
@@ -44,7 +54,7 @@ export function GameShell({
       {socket.status !== 'open' && (
         <p className="game__banner" role="status" style={{ marginBottom: 14 }}>
           {socket.status === 'unauthorized'
-            ? `Not authorised: ${socket.error ?? 'invalid token'}`
+            ? 'Your session has expired — taking you to sign in…'
             : `Socket ${socket.status} — bets are queued until the connection is live.`}
         </p>
       )}

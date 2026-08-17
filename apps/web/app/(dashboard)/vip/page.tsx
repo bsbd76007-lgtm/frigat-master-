@@ -1,13 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
-import DailyWheelModal from '@/components/modals/DailyWheelModal';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 import { apiJson, ApiError } from '@/lib/api';
 import { API_URL } from '@/lib/token';
 import { formatDecimalString } from '@/lib/decimal';
+
 interface VipStatus {
   tier: string;
   rakebackRate: number;
@@ -17,8 +19,6 @@ interface VipStatus {
   claimable: string;
   balance: string;
   currency: string;
-  dailyWheelAvailable: boolean;
-  dailyWheelNextAvailableAt: string | null;
 }
 
 const TIERS = [
@@ -34,12 +34,12 @@ const money = (value: string, digits = 2) => formatDecimalString(value, digits);
 
 export default function VipPage() {
   const { token } = useGameSocket();
+  const { t } = useLanguage();
   const [data, setData] = useState<VipStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState<string | null>(null);
-  const [wheelOpen, setWheelOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -49,12 +49,12 @@ export default function VipPage() {
       setData(await apiJson<VipStatus>(`${API_URL}/api/vip/me`));
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : 'Could not load your VIP status.'
+        err instanceof ApiError ? err.message : t('vip.loadError')
       );
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, t]);
 
   useEffect(() => {
     void load();
@@ -75,20 +75,20 @@ export default function VipPage() {
     } catch (err) {
       setError(
         err instanceof ApiError && err.message === 'nothing_to_claim'
-          ? 'You have no rakeback to claim right now.'
+          ? t('vip.nothingToClaimError')
           : err instanceof ApiError
             ? err.message
-            : 'Could not claim rakeback.'
+            : t('vip.claimError')
       );
     } finally {
       setClaiming(false);
     }
-  }, [claiming, load]);
+  }, [claiming, load, t]);
 
   if (!token) {
-    return <p className="vip__empty">Sign in to see your VIP progress.</p>;
+    return <p className="vip__empty">{t('vip.signIn')}</p>;
   }
-  if (loading && !data) return <p className="vip__empty">Loading…</p>;
+  if (loading && !data) return <p className="vip__empty">{t('vip.loading')}</p>;
 
   const canClaim = data !== null && Number(data.claimable) > 0;
 
@@ -96,22 +96,20 @@ export default function VipPage() {
     <div className="vip">
       <header className="vip__header">
         <div>
-          <h1>VIP Club</h1>
-          <p>Wager across any game to climb tiers and earn rakeback.</p>
+          <h1>{t('vip.title')}</h1>
+          <p>{t('vip.subtitle')}</p>
         </div>
-        <button
-          type="button"
-          className="vip__wheel-btn"
-          onClick={() => setWheelOpen(true)}
-        >
-          {data?.dailyWheelAvailable ? 'Daily spin ready' : 'Daily wheel'}
-        </button>
+        {/* The daily wheel moved to the Free Money hub, which owns every
+            recurring reward. This page is tier progression and rakeback. */}
+        <Link className="vip__wheel-btn" href="/freemoney">
+          {t('vip.rewardsHub')}
+        </Link>
       </header>
 
       {error && <p className="vip__error">{error}</p>}
       {claimed && (
         <p className="vip__ok" role="status">
-          Claimed ${money(claimed)} — added to your balance.
+          {t('vip.claimed', { amount: `$${money(claimed)}` })}
         </p>
       )}
 
@@ -119,21 +117,23 @@ export default function VipPage() {
         <>
           <section className="vip__cards">
             <div className="vip__card">
-              <span>Current tier</span>
+              <span>{t('vip.currentTier')}</span>
               <b className="vip__tier">{data.tier}</b>
               <small>
                 {data.rakebackRate > 0
-                  ? `${(data.rakebackRate * 100).toFixed(0)}% rakeback`
-                  : 'No rakeback yet'}
+                  ? t('vip.rakebackRate', {
+                      rate: (data.rakebackRate * 100).toFixed(0),
+                    })
+                  : t('vip.noRakeback')}
               </small>
             </div>
             <div className="vip__card">
-              <span>Total wagered</span>
+              <span>{t('vip.totalWagered')}</span>
               <b>${money(data.totalWagered)}</b>
-              <small>Across all games</small>
+              <small>{t('vip.acrossAllGames')}</small>
             </div>
             <div className="vip__card">
-              <span>Available rakeback</span>
+              <span>{t('vip.availableRakeback')}</span>
               <b className={canClaim ? 'vip__claimable' : undefined}>
                 ${money(data.claimable)}
               </b>
@@ -146,9 +146,11 @@ export default function VipPage() {
               <>
                 <div className="vip__progress-head">
                   <span>
-                    Progress to <b>{data.nextTier.name}</b>
+                    {t('vip.progressTo')} <b>{data.nextTier.name}</b>
                   </span>
-                  <span>${money(data.nextTier.remaining)} to go</span>
+                  <span>
+                    {t('vip.toGo', { amount: `$${money(data.nextTier.remaining)}` })}
+                  </span>
                 </div>
                 <div
                   className="vip__bar"
@@ -165,7 +167,7 @@ export default function VipPage() {
               </>
             ) : (
               <p className="vip__maxed">
-                You have reached <b>Diamond</b>, the highest tier.
+                {t('vip.maxed', { tier: 'Diamond' })}
               </p>
             )}
 
@@ -176,21 +178,21 @@ export default function VipPage() {
               disabled={!canClaim || claiming}
             >
               {claiming
-                ? 'Claiming…'
+                ? t('vip.claiming')
                 : canClaim
-                  ? `Claim $${money(data.claimable)} rakeback`
-                  : 'Nothing to claim'}
+                  ? t('vip.claimAmount', { amount: `$${money(data.claimable)}` })
+                  : t('vip.nothingToClaim')}
             </button>
           </section>
 
           <section className="vip__ladder">
-            <h2>Tier ladder</h2>
+            <h2>{t('vip.ladder')}</h2>
             <table className="vip__table">
               <thead>
                 <tr>
-                  <th scope="col">Tier</th>
-                  <th scope="col">Wagered</th>
-                  <th scope="col">Rakeback</th>
+                  <th scope="col">{t('vip.colTier')}</th>
+                  <th scope="col">{t('vip.colWagered')}</th>
+                  <th scope="col">{t('vip.colRakeback')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,13 +212,6 @@ export default function VipPage() {
         </>
       )}
 
-      <DailyWheelModal
-        open={wheelOpen}
-        onClose={() => {
-          setWheelOpen(false);
-          void load();
-        }}
-      />
     </div>
   );
 }

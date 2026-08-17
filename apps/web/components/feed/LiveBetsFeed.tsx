@@ -10,6 +10,7 @@ import { GAME_ICONS } from '@/components/icons';
 import { apiFetch } from '@/lib/api';
 import { gameIdentity } from '@/lib/gameIdentity';
 import { betProfit, formatSignedUsd, isWin, type LiveBet } from '@/lib/liveBets';
+
 const MAX_ROWS = 20;
 
 const TABS = ['All Bets', 'High Rollers', 'My Bets'] as const;

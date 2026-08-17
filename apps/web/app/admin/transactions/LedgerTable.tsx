@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { formatDecimalString } from '@/lib/decimal';
+
 export interface LedgerRow {
   id: string;
   type: 'DEPOSIT' | 'WITHDRAWAL' | 'BET' | 'WIN';

@@ -5,6 +5,7 @@ import { useRef } from 'react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
 import { CATEGORIES, type GameCategory } from '@/lib/gameCatalogue';
+
 interface CategoryFiltersProps {
   value: GameCategory;
   onChange: (next: GameCategory) => void;

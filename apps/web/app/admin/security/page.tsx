@@ -18,6 +18,7 @@ import Link from 'next/link';
 
 import { apiJson } from '@/lib/api';
 import { API_URL } from '@/lib/token';
+
 interface Metrics {
   activeConnections: number;
   totalPlayers: number;

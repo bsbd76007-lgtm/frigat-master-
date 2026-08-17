@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 
 import { apiFetch } from '@/lib/api';
 import { formatDecimalString } from '@/lib/decimal';
+
 export interface AdminUserRow {
   id: string;
   email: string;

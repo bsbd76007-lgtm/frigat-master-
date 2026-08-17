@@ -7,14 +7,17 @@ import { MINES } from '@frigat/shared/constants';
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
-const MINE_OPTIONS = [1, 3, 5, 10, 24];
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
+const MINE_OPTIONS = [5, 10, 15, 20, 24];
 
 export default function MinesPage() {
   const { socket, balance, send } = useGameSocket();
+  const { t } = useLanguage();
   const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
-  const [minesCount, setMinesCount] = useState(3);
+  const [minesCount, setMinesCount] = useState<number>(MINES.minMines);
   const [active, setActive] = useState(false);
   const [revealed, setRevealed] = useState<number[]>([]);
   const [multiplier, setMultiplier] = useState(1);
@@ -89,11 +92,11 @@ export default function MinesPage() {
   return (
     <GameShell
       gameType="MINES"
-      title="Mines"
+      title={t('games.mines.name')}
       subtitle={`${MINES.gridSize} tiles · reveal safe tiles and cash out`}
       stage={
         <>
-          <div className="mines" role="grid" aria-label="Mines board">
+          <div className="mines" role="grid" aria-label={t('game.minesBoard')}>
             {Array.from({ length: MINES.gridSize }, (_, tile) => {
               const state = tileState(tile);
               return (
@@ -128,7 +131,7 @@ export default function MinesPage() {
       panel={
         <>
           <div className="opt">
-            <span className="opt__label">Mines</span>
+            <span className="opt__label">{t('game.mines')}</span>
             <div className="opt__row">
               {MINE_OPTIONS.map((count) => (
                 <button
@@ -147,15 +150,15 @@ export default function MinesPage() {
 
           <div className="opt">
             <div className="opt__stat">
-              <span>Revealed</span>
+              <span>{t('game.revealed')}</span>
               <b>{revealed.length}</b>
             </div>
             <div className="opt__stat">
-              <span>Multiplier</span>
+              <span>{t('game.multiplier')}</span>
               <b>{multiplier.toFixed(2)}×</b>
             </div>
             <div className="opt__stat">
-              <span>Cashout value</span>
+              <span>{t('game.cashoutValue')}</span>
               <b>{potentialPayout ?? '—'}</b>
             </div>
           </div>
@@ -182,7 +185,7 @@ export default function MinesPage() {
             }}
             disabled={active && revealed.length === 0}
             busy={busy}
-            betLabel={active ? 'Round in progress' : 'Start round'}
+            betLabel={active ? t('game.roundInProgress') : t('game.startRound')}
           />
         </>
       }

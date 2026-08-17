@@ -47,6 +47,8 @@ export type ServerEventType =
   | 'GAME_RESULT'
   | 'RESUME_NONE'
   | 'STATE_UPDATE'
+  | 'SUPPORT_MESSAGE'
+  | 'SUPPORT_TICKET'
   | 'BALANCE'
   | 'CRASH_TICK'
   | 'CRASH_ROUND_START'

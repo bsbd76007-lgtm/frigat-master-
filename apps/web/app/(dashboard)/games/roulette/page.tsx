@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   RouletteCanvas,
@@ -10,6 +10,8 @@ import {
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 const POSITIONS: Array<{ id: string; label: string; pays: string }> = [
   { id: 'red', label: 'Red', pays: '2×' },
   { id: 'black', label: 'Black', pays: '2×' },
@@ -27,6 +29,7 @@ const POSITIONS: Array<{ id: string; label: string; pays: string }> = [
 
 export default function RoulettePage() {
   const { socket, balance, send } = useGameSocket();
+  const { t } = useLanguage();
   const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
@@ -36,19 +39,36 @@ export default function RoulettePage() {
   const [pocket, setPocket] = useState<number | null>(null);
   const [lastWin, setLastWin] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * The settled round, held back until the wheel finishes. The server answers
+   * an instant game in milliseconds; applying it on arrival announced the
+   * outcome while the ball was still in the air.
+   */
+  const pendingRef = useRef<{ pocket: number; win: boolean } | null>(null);
+  /**
+   * Balance as it stood when the spin began. The wallet is server-pushed and
+   * updates the moment the round settles, so the panel would otherwise show
+   * the payout before the wheel revealed it.
+   */
+  const [heldBalance, setHeldBalance] = useState<string | null>(null);
 
   useEffect(() => {
     const off = [
       subscribe('GAME_RESULT', (data) => {
         if (data.gameType !== 'ROULETTE') return;
         const result = data.resultData as { pocket?: number } | undefined;
-        if (typeof result?.pocket === 'number') {
-          setPocket(result.pocket);
-          setPhase('RESULT');
-        }
-        setLastWin(Boolean(data.win));
+        if (typeof result?.pocket !== 'number') return;
+
+        // The pocket goes to the canvas so it can aim the ball, but the phase
+        // stays SPINNING and the win/loss stays hidden until it lands.
+        pendingRef.current = { pocket: result.pocket, win: Boolean(data.win) };
+        setPocket(result.pocket);
       }),
       subscribe('ERROR', () => {
+        // A rejected bet never spins, so nothing is pending and the held
+        // balance must be released or the panel would freeze on a stale value.
+        pendingRef.current = null;
+        setHeldBalance(null);
         setBusy(false);
         setPhase('IDLE');
       }),
@@ -58,11 +78,25 @@ export default function RoulettePage() {
 
   const activePosition = straight.trim() !== '' ? `straight:${straight.trim()}` : position;
 
+  /** Runs when the ball settles: only now does the round become a result. */
+  const revealResult = () => {
+    const settled = pendingRef.current;
+    pendingRef.current = null;
+    if (settled) {
+      setLastWin(settled.win);
+      setPhase('RESULT');
+    }
+    setHeldBalance(null);
+    setBusy(false);
+  };
+
   const spin = () => {
     setBusy(true);
     setPhase('SPINNING');
     setPocket(null);
     setLastWin(null);
+    pendingRef.current = null;
+    setHeldBalance(balance.balance);
     send('SPIN', 'ROULETTE', {
       amount,
       currency: balance.currency,
@@ -73,14 +107,14 @@ export default function RoulettePage() {
   return (
     <GameShell
       gameType="ROULETTE"
-      title="Roulette"
-      subtitle="European wheel · single zero"
+      title={t('games.roulette.name')}
+      subtitle={t('games.roulette.subtitle')}
       stage={
         <>
           <RouletteCanvas
             phase={phase}
             pocket={pocket}
-            onSpinComplete={() => setBusy(false)}
+            onSpinComplete={revealResult}
             size={380}
           />
           {phase === 'RESULT' && pocket !== null && !busy && (
@@ -103,7 +137,7 @@ export default function RoulettePage() {
       panel={
         <>
           <div className="opt">
-            <span className="opt__label">Outside bets</span>
+            <span className="opt__label">{t('game.outsideBets')}</span>
             <div className="opt__row">
               {POSITIONS.map((p) => (
                 <button
@@ -130,31 +164,31 @@ export default function RoulettePage() {
             <input
               className="dash__input"
               inputMode="numeric"
-              placeholder="0–36"
+              placeholder={t('game.pocketPlaceholder')}
               value={straight}
               disabled={busy}
               onChange={(event) => {
                 const digits = event.target.value.replace(/\D/g, '').slice(0, 2);
                 if (digits === '' || Number(digits) <= 36) setStraight(digits);
               }}
-              aria-label="Straight-up pocket number"
+              aria-label={t('game.pocketNumber')}
             />
           </div>
 
           <div className="opt__stat">
-            <span>Betting on</span>
+            <span>{t('game.bettingOn')}</span>
             <b>{activePosition}</b>
           </div>
 
           <BetControls
             amount={amount}
             onAmountChange={setAmount}
-            balance={balance.balance}
+            balance={heldBalance ?? balance.balance}
             currency={balance.currency}
             onBet={spin}
             busy={busy}
             disabled={busy}
-            betLabel="Spin"
+            betLabel={t('game.spin')}
           />
         </>
       }

@@ -54,6 +54,10 @@ enum TransactionStatus {
 /// a failed one, but it is not a credit either).
 enum CryptoPaymentStatus {
   PENDING
+  /// Reserved and waiting on a human, not on a gateway. Distinct from PENDING
+  /// so the admin queue can tell "nobody has looked at this" apart from "the
+  /// provider is still working on it" — the two need different chasing.
+  PENDING_ADMIN_REVIEW
   CONFIRMING
   CONFIRMED
   PAID
@@ -62,6 +66,12 @@ enum CryptoPaymentStatus {
   CANCELLED
   EXPIRED
   FAILED
+}
+
+/// Lifecycle of a giveaway. COMPLETED is terminal and set by the draw.
+enum RaffleStatus {
+  ACTIVE
+  COMPLETED
 }
 
 enum GameType {
@@ -74,6 +84,7 @@ enum GameType {
   LIMBO
   KENO
   CHICKEN
+  SLOTS
 }
 
 // ─────────────────────────────────────────────
@@ -108,6 +119,18 @@ model User {
 
   lastDailyWheelSpinAt DateTime?
 
+  // ── Daily check-in ──
+  /// Distinct from the play streak below, which is driven by settled bets.
+  /// Checking in is a claim the player makes; playing is something they did.
+  /// Sharing one counter would let a check-in inflate a wagering streak.
+  lastCheckInAt DateTime?
+  /// Consecutive UTC days checked in. Drives the reward ladder.
+  checkInStreak Int       @default(0)
+
+  promoRedemptions PromoRedemption[]
+  raffleTickets    RaffleTicket[]
+  raffleEntries    RaffleEntry[]
+
   // ── Daily play streak ──
   /// Consecutive calendar days with at least one settled bet.
   currentStreak     Int       @default(0)
@@ -138,6 +161,7 @@ model User {
   provableSeeds  ProvableSeed[]
   auditActions   AdminAuditLog[] @relation("AdminActions")
   auditTargets   AdminAuditLog[] @relation("AuditTargets")
+  supportTickets SupportTicket[]
 
   @@index([telegramId])
   @@index([referredById])
@@ -204,7 +228,13 @@ model Payment {
   currency String
   status   CryptoPaymentStatus @default(PENDING)
 
-  /// Cryptomus' own invoice uuid. Unique so a replayed webhook cannot open a
+  /// Gateway that opened this invoice: "CRYPTOMUS" or "NOWPAYMENTS". Stored as
+  /// text rather than an enum because PostgreSQL cannot drop an enum value in
+  /// place, and a payments provider is exactly the kind of thing that gets
+  /// swapped. Existing rows predate NOWPayments, hence the Cryptomus default.
+  provider String @default("CRYPTOMUS")
+
+  /// The gateway's own invoice id. Unique so a replayed webhook cannot open a
   /// second row for the same invoice.
   paymentId String  @unique
   /// On-chain transaction hash, once the network confirms it.
@@ -247,8 +277,12 @@ model Withdrawal {
   currency String
   status   CryptoPaymentStatus @default(PENDING)
 
-  /// Cryptomus payout uuid. Null only in the window between reserving funds and
-  /// the provider accepting the payout; unique once set.
+  /// Who is responsible for sending this: a gateway ("CRYPTOMUS",
+  /// "NOWPAYMENTS") or "MANUAL_ADMIN" when it is queued for an operator.
+  provider String @default("CRYPTOMUS")
+
+  /// Gateway payout id. Null while waiting on a gateway to accept the payout,
+  /// and permanently null for MANUAL_ADMIN payouts, which never go to one.
   paymentId String? @unique
   txHash    String?
 
@@ -356,4 +390,223 @@ model GameLimit {
   maxWin    Decimal  @default(0) @db.Decimal(18, 8)
   updatedAt DateTime @updatedAt
   updatedBy String?
+}
+
+// ─────────────────────────────────────────────
+// Live support
+//
+// One open ticket per user at a time: the widget reuses it so a conversation
+// stays a conversation rather than fragmenting into a ticket per message.
+// `userId` is nullable so a signed-out visitor can still reach support, in
+// which case the email they type is the only way back to them.
+// ─────────────────────────────────────────────
+
+enum SupportStatus {
+  OPEN
+  CLOSED
+}
+
+enum SupportSender {
+  USER
+  ADMIN
+}
+
+model SupportTicket {
+  id        String        @id @default(cuid())
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail String
+  status    SupportStatus @default(OPEN)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  messages SupportMessage[]
+
+  // The admin queue reads open tickets newest-activity-first.
+  @@index([status, updatedAt])
+  @@index([userId, status])
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender    SupportSender
+  text      String
+  createdAt DateTime      @default(now())
+
+  // Every read is "this ticket's messages, oldest first".
+  @@index([ticketId, createdAt])
+}
+
+/// A one-time login code sent to an email address.
+///
+/// The code itself is never stored. `codeHash` is an HMAC-SHA256 of the digits
+/// keyed by the server secret: a 6-digit code has only a million values, so a
+/// leaked table of plaintext codes would be a table of live credentials, and
+/// even unsalted digests would fall to a rainbow table in seconds. HMAC with a
+/// server-side key means a database leak alone reveals nothing usable.
+///
+/// A fast keyed hash rather than argon2 is deliberate. Guessing is bounded by
+/// `attempts` and the five-minute expiry, not by hash cost — and putting a
+/// 64 MB argon2 verification on an unauthenticated endpoint would hand anyone a
+/// memory-exhaustion lever.
+model OtpCode {
+  id        String   @id @default(cuid())
+  email     String
+  /// HMAC-SHA256 of the 6 digits. Never the digits themselves.
+  codeHash  String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  /// Failed verifications against this code. Capped, so a million-value
+  /// keyspace cannot simply be walked.
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  /// What the code entitles the bearer to do: "LOGIN" opens a session on an
+  /// existing account, "REGISTER" creates one from the intent below.
+  ///
+  /// Verification matches on this, so the two can never be traded for each
+  /// other. Without it a registration code — minted for an address with no
+  /// account, by someone who only had to know the address — would verify at
+  /// /api/auth/otp/verify and open a session.
+  ///
+  /// A plain String rather than a Postgres enum: this column is internal
+  /// bookkeeping with a five-minute lifetime, and enum values in this schema
+  /// are referenced by historical rows and cannot be dropped in place.
+  purpose      String  @default("LOGIN")
+  /// argon2id hash of the password chosen at registration step one, held until
+  /// the code is confirmed and the User row is written. Null for LOGIN codes.
+  /// The plaintext password is never persisted, not even for these minutes.
+  passwordHash String?
+
+  /// Lookup is always "the newest live code for this email".
+  @@index([email, createdAt])
+  /// Lets the sweeper delete expired rows without scanning the table.
+  @@index([expiresAt])
+}
+
+/// A redeemable promotional code.
+///
+/// Codes credit the *wagerable* balance, so every one of them is real money
+/// leaving the house. Three independent limits guard that: `active` is the
+/// kill switch, `expiresAt` bounds it in time, and `maxRedemptions` bounds the
+/// total spend. `redemptionCount` is incremented under a conditional update so
+/// two players racing the last redemption cannot both win it.
+model PromoCode {
+  id     String @id @default(cuid())
+  /// Stored uppercase; lookups normalise before matching, so "sun50" and
+  /// "SUN50" are the same code rather than two.
+  code   String @unique
+  amount Decimal @db.Decimal(18, 8)
+  currency String @default("USD")
+  /// Null means unlimited — deliberately explicit rather than 0, which reads
+  /// as "nobody may redeem this".
+  maxRedemptions Int?
+  redemptionCount Int @default(0)
+  expiresAt DateTime?
+  active   Boolean  @default(true)
+  /// Free-text label for the dashboard, never shown to players.
+  note      String?
+  createdAt DateTime @default(now())
+
+  redemptions PromoRedemption[]
+
+  @@index([active, expiresAt])
+}
+
+/// One player redeeming one code. The compound unique is the per-user limit:
+/// the database refuses a second row rather than the service remembering to
+/// check.
+model PromoRedemption {
+  id          String   @id @default(cuid())
+  promoCodeId String
+  userId      String
+  /// Credited amount, copied at redemption. The code's own amount can be
+  /// edited later, and a receipt must not change after the fact.
+  amount      Decimal  @db.Decimal(18, 8)
+  createdAt   DateTime @default(now())
+
+  promoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([promoCodeId, userId])
+  @@index([userId, createdAt])
+}
+
+/// A giveaway players earn tickets for.
+///
+/// `prizePool` is display text ("$10,000", "iPhone 15 Pro", "VIP status")
+/// because prizes are not all money; `prizeValue` carries the number when there
+/// is one, so reporting does not have to parse marketing copy.
+model Raffle {
+  id          String       @id @default(cuid())
+  title       String
+  prizePool   String
+  /// Null for non-cash prizes. Never derived from `prizePool` at read time.
+  prizeValue  Decimal?     @db.Decimal(18, 8)
+  /// Null when tickets cannot be bought — the default. Earning them is the
+  /// mechanic; a price is an option, not the premise.
+  ticketPrice Decimal?     @db.Decimal(18, 8)
+  endsAt      DateTime
+  status      RaffleStatus @default(ACTIVE)
+  /// Monotonic ticket allocator. Incremented inside the same transaction that
+  /// writes the tickets, so two concurrent claims can never be handed the same
+  /// number — the unique index below is the backstop if that ever fails.
+  ticketCounter Int @default(0)
+
+  /// Set by the draw. Kept as a number rather than a ticket id so the winning
+  /// entry stays legible in history even if the row is ever pruned.
+  winningTicketNumber Int?
+  winnerUserId        String?
+  drawnAt             DateTime?
+
+  createdAt DateTime @default(now())
+
+  tickets RaffleTicket[]
+  entries RaffleEntry[]
+
+  @@index([status, endsAt])
+}
+
+/// One ticket. Numbers are per-raffle and start at 1.
+model RaffleTicket {
+  id           String   @id @default(cuid())
+  raffleId     String
+  userId       String
+  ticketNumber Int
+  /// How it was earned — WAGER, CHECKIN or PURCHASE. Kept so a disputed draw
+  /// can be reconstructed, and so abuse of one source is visible on its own.
+  source       String
+  createdAt    DateTime @default(now())
+
+  raffle Raffle @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([raffleId, ticketNumber])
+  @@index([raffleId, createdAt])
+  @@index([raffleId, userId])
+}
+
+/// Per-player progress in one raffle.
+///
+/// This exists because wagering is a *lifetime* total. Without a watermark of
+/// how much of it has already been converted, a player could claim the same
+/// $10 into a new ticket on every request, forever.
+model RaffleEntry {
+  id       String @id @default(cuid())
+  raffleId String
+  userId   String
+  /// Wagering already converted into tickets for this raffle.
+  wageredCredited Decimal @default(0) @db.Decimal(18, 8)
+  /// Last UTC day a check-in ticket was granted, so it lands once per day.
+  lastCheckInTicketAt DateTime?
+  /// Completed deposits already converted into tickets. Same watermark idea as
+  /// `wageredCredited`: without it, one deposit mints five tickets per request.
+  depositsCredited Int @default(0)
+
+  raffle Raffle @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([raffleId, userId])
 }

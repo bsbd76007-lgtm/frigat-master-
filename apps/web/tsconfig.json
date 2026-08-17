@@ -23,7 +23,6 @@
       }
     ],
     "isolatedModules": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"

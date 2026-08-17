@@ -19,7 +19,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import LiveBetsFeed from '@/components/feed/LiveBetsFeed';
 
 const JACKPOT_SEED = {

@@ -57,7 +57,7 @@ export function DiceIcon({ size = 40, title, ...rest }: GameIconProps) {
       </defs>
 
       {/* Accent pool under the die — the neon the rest of the set shares. */}
-      <ellipse cx="24" cy="39.5" rx="13" ry="3.4" fill="#00e701" opacity=".18" filter={`url(#${glow})`} />
+      <ellipse cx="24" cy="39.5" rx="13" ry="3.4" fill="#f59e0b" opacity=".18" filter={`url(#${glow})`} />
 
       <g stroke="#0a0f14" strokeWidth="1.1" strokeLinejoin="round">
         <polygon points={LEFT} fill={`url(#${left})`} />
@@ -72,7 +72,7 @@ export function DiceIcon({ size = 40, title, ...rest }: GameIconProps) {
           cy={pip.y}
           rx="2.6"
           ry="1.5"
-          fill="#f0616d"
+          fill="#c25560"
         />
       ))}
       {LEFT_PIPS.map((pip) => (

@@ -5,12 +5,16 @@ import { useRouter } from 'next/navigation';
 
 import { apiFetch } from '@/lib/api';
 import { formatDecimalString } from '@/lib/decimal';
+
 export interface WithdrawalRow {
   id: string;
   amount: string;
   status: string;
   createdAt: string;
   currency: string;
+  /** Payout destination. Null only for rows written before the join existed. */
+  address?: string | null;
+  network?: string | null;
   userId: string;
   userEmail: string;
   userFrozen: boolean;
@@ -110,6 +114,11 @@ export function WithdrawalQueue({
                   </td>
                   <td className="tbl__num">
                     {formatDecimalString(row.amount, 2)} {row.currency}
+                    <span className="adm-wd__dest" title={row.address ?? undefined}>
+                      {row.address
+                        ? `→ ${row.address}${row.network ? ` (${row.network})` : ''}`
+                        : '→ destination unavailable'}
+                    </span>
                   </td>
                   <td className="tbl__num">{formatDecimalString(row.walletBalance, 2)}</td>
                   <td>

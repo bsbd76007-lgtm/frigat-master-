@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "CryptoPaymentStatus" ADD VALUE 'PENDING_ADMIN_REVIEW';
+
+-- AlterTable
+ALTER TABLE "Withdrawal" ADD COLUMN "provider" TEXT NOT NULL DEFAULT 'CRYPTOMUS';

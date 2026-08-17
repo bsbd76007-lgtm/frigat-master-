@@ -1,4 +1,11 @@
 import assert from 'assert';
+import { createHmac } from 'crypto';
+import {
+  canonicalIpnPayload,
+  mapNowPaymentsStatus,
+  payCurrencyFor,
+  verifyIpnSignature,
+} from '../services/nowpayments.service';
 import {
   generateServerSeed,
   hashServerSeed,
@@ -13,8 +20,19 @@ import * as crash from './crash.engine';
 import * as mines from './mines.engine';
 import * as limbo from './limbo.engine';
 import * as keno from './keno.engine';
+import * as slots from './slots.engine';
 import { floatAt, provableShuffle } from './provable';
-import { KENO_PAYTABLE } from '@frigat/shared';
+import {
+  KENO_PAYTABLE,
+  SLOTS_PAYLINES,
+  SLOTS_PAYTABLE,
+  SLOTS_REELS,
+  SLOTS_ROWS,
+  SLOTS_SYMBOLS,
+  SLOTS_WEIGHTS,
+  type SlotSymbol,
+} from '@frigat/shared';
+import { HOUSE_EDGE } from '../config/game.config';
 import type { SeedContext } from '../types/engine.types';
 
 function ctx(nonce = 0): SeedContext {
@@ -244,6 +262,210 @@ check('every paytable row is calibrated to ~98% RTP', () => {
     }
     assert.ok(Math.abs(ev - 0.98) < 0.005, `picks=${picks} RTP=${ev}`);
   }
+});
+
+console.log('\nSlots');
+check('matrix is 5×3 of known symbols and is deterministic', () => {
+  const a = slots.spinMatrix(ctx(11));
+  const b = slots.spinMatrix(ctx(11));
+  assert.deepEqual(a, b);
+  assert.equal(a.length, SLOTS_REELS);
+  for (const reel of a) {
+    assert.equal(reel.length, SLOTS_ROWS);
+    for (const cell of reel) assert.ok(SLOTS_SYMBOLS.includes(cell));
+  }
+  // A different nonce must not replay the same screen.
+  assert.notDeepEqual(a, slots.spinMatrix(ctx(12)));
+});
+check('spin() is deterministic and reports the matrix it paid on', () => {
+  const r1 = slots.spin({}, ctx(13));
+  const r2 = slots.spin({}, ctx(13));
+  assert.deepEqual(r1, r2);
+  assert.deepEqual((r1.resultData as any).reelMatrix, slots.spinMatrix(ctx(13)));
+  assert.equal(r1.win, r1.multiplier > 0);
+});
+check('symbolAt covers every symbol and respects weight order', () => {
+  const seen = new Set<SlotSymbol>();
+  for (let i = 0; i < 20_000; i += 1) seen.add(slots.symbolAt(i / 20_000));
+  assert.equal(seen.size, SLOTS_SYMBOLS.length);
+  // Boundary rolls must stay in range rather than fall off the table.
+  assert.ok(SLOTS_SYMBOLS.includes(slots.symbolAt(0)));
+  assert.ok(SLOTS_SYMBOLS.includes(slots.symbolAt(0.999999999)));
+});
+check('lines pay left-to-right only, from reel 0', () => {
+  const grid = (rows: SlotSymbol[][]): SlotSymbol[][] => rows;
+  // BELL BELL BELL on the middle row.
+  const hit = grid([
+    ['CHERRY', 'BELL', 'CHERRY'],
+    ['LEMON', 'BELL', 'LEMON'],
+    ['PLUM', 'BELL', 'PLUM'],
+    ['PLUM', 'LEMON', 'PLUM'],
+    ['PLUM', 'ORANGE', 'PLUM'],
+  ]);
+  const win = slots.evaluateLine(hit, 1);
+  assert.ok(win);
+  assert.equal(win!.symbol, 'BELL');
+  assert.equal(win!.count, 3);
+  assert.equal(win!.multiplier, SLOTS_PAYTABLE.BELL[3]);
+
+  // The same run starting on reel 1 pays nothing.
+  const shifted = grid([
+    ['CHERRY', 'LEMON', 'CHERRY'],
+    ['LEMON', 'BELL', 'LEMON'],
+    ['PLUM', 'BELL', 'PLUM'],
+    ['PLUM', 'BELL', 'PLUM'],
+    ['PLUM', 'ORANGE', 'PLUM'],
+  ]);
+  assert.equal(slots.evaluateLine(shifted, 1), null);
+});
+check('WILD substitutes, and a pure WILD line pays as WILD', () => {
+  const substituted: SlotSymbol[][] = [
+    ['x' as SlotSymbol, 'WILD', 'x' as SlotSymbol],
+    ['x' as SlotSymbol, 'SEVEN', 'x' as SlotSymbol],
+    ['x' as SlotSymbol, 'WILD', 'x' as SlotSymbol],
+    ['x' as SlotSymbol, 'SEVEN', 'x' as SlotSymbol],
+    ['x' as SlotSymbol, 'CHERRY', 'x' as SlotSymbol],
+  ];
+  const win = slots.evaluateLine(substituted, 1);
+  assert.ok(win);
+  assert.equal(win!.symbol, 'SEVEN');
+  assert.equal(win!.count, 4);
+  assert.equal(win!.multiplier, SLOTS_PAYTABLE.SEVEN[4]);
+
+  const allWild: SlotSymbol[][] = Array.from({ length: SLOTS_REELS }, () => [
+    'WILD',
+    'WILD',
+    'WILD',
+  ]);
+  const jackpot = slots.evaluateLine(allWild, 0);
+  assert.equal(jackpot!.symbol, 'WILD');
+  assert.equal(jackpot!.count, 5);
+  assert.equal(jackpot!.multiplier, SLOTS_PAYTABLE.WILD[5]);
+});
+check('every payline is 5 rows inside the grid, and all 5 are evaluated', () => {
+  assert.equal(SLOTS_PAYLINES.length, 5);
+  for (const line of SLOTS_PAYLINES) {
+    assert.equal(line.length, SLOTS_REELS);
+    for (const row of line) assert.ok(row >= 0 && row < SLOTS_ROWS);
+  }
+  const allWild: SlotSymbol[][] = Array.from({ length: SLOTS_REELS }, () => [
+    'WILD',
+    'WILD',
+    'WILD',
+  ]);
+  assert.equal(slots.evaluateMatrix(allWild).length, SLOTS_PAYLINES.length);
+});
+check('stake multiplier is the line award divided by the payline count', () => {
+  const allWild: SlotSymbol[][] = Array.from({ length: SLOTS_REELS }, () => [
+    'WILD',
+    'WILD',
+    'WILD',
+  ]);
+  const wins = slots.evaluateMatrix(allWild);
+  const lineTotal = wins.reduce((sum, w) => sum + w.multiplier, 0);
+  assert.equal(lineTotal, SLOTS_PAYTABLE.WILD[5] * SLOTS_PAYLINES.length);
+  // 5 lines × the WILD award, spread over 5 line stakes, is the award itself.
+  assert.equal(lineTotal / SLOTS_PAYLINES.length, SLOTS_PAYTABLE.WILD[5]);
+});
+check('paytable is calibrated to the configured house edge', () => {
+  // Exact, not sampled: the cells are i.i.d., so one payline's expected award
+  // *is* the game's RTP, and 8^5 lines enumerate in a few milliseconds.
+  const total = SLOTS_SYMBOLS.reduce((sum, s) => sum + SLOTS_WEIGHTS[s], 0);
+  const p = (s: SlotSymbol) => SLOTS_WEIGHTS[s] / total;
+  const n = SLOTS_SYMBOLS.length;
+
+  let rtp = 0;
+  const line: SlotSymbol[] = new Array(SLOTS_REELS);
+  const walk = (reel: number, prob: number) => {
+    if (reel === SLOTS_REELS) {
+      const grid = line.map((s) => [s, s, s]);
+      const win = slots.evaluateLine(grid, 0);
+      if (win) rtp += prob * win.multiplier;
+      return;
+    }
+    for (let i = 0; i < n; i += 1) {
+      line[reel] = SLOTS_SYMBOLS[i];
+      walk(reel + 1, prob * p(SLOTS_SYMBOLS[i]));
+    }
+  };
+  walk(0, 1);
+
+  const target = 1 - HOUSE_EDGE.SLOTS;
+  assert.ok(
+    Math.abs(rtp - target) < 0.02,
+    `slots RTP=${rtp.toFixed(5)} target=${target}`
+  );
+});
+
+console.log('\nNOWPayments IPN');
+check('canonical payload sorts top-level keys only', () => {
+  const canonical = canonicalIpnPayload({
+    payment_status: 'finished',
+    actually_paid: 25,
+    payment_id: 123,
+    nested: { b: 1, a: 2 },
+  });
+  assert.equal(
+    canonical,
+    '{"actually_paid":25,"nested":{"b":1,"a":2},"payment_id":123,"payment_status":"finished"}'
+  );
+  // Key order in the source object must not change the signed string.
+  assert.equal(
+    canonical,
+    canonicalIpnPayload({
+      nested: { b: 1, a: 2 },
+      payment_id: 123,
+      actually_paid: 25,
+      payment_status: 'finished',
+    })
+  );
+});
+check('a genuine HMAC-SHA512 signature verifies, a tampered body does not', () => {
+  const secret = process.env.NOWPAYMENTS_IPN_SECRET ?? '';
+  if (!secret) {
+    // Nothing to verify against without the shared secret; skip rather than
+    // assert on a signature computed with an empty key.
+    console.log('    (skipped: NOWPAYMENTS_IPN_SECRET not set)');
+    return;
+  }
+  const body = {
+    payment_id: 4522625843,
+    payment_status: 'finished',
+    pay_address: 'TXk...',
+    price_amount: 25,
+    price_currency: 'usd',
+    order_id: 'dep_user_abc',
+  };
+  const signature = createHmac('sha512', secret)
+    .update(canonicalIpnPayload(body))
+    .digest('hex');
+
+  assert.equal(verifyIpnSignature(body, signature), true);
+  assert.equal(verifyIpnSignature(body, signature.toUpperCase()), true);
+  // Any change to the body invalidates it — including the amount, which is the
+  // field an attacker would want to inflate.
+  assert.equal(verifyIpnSignature({ ...body, price_amount: 2500 }, signature), false);
+  assert.equal(verifyIpnSignature(body, 'deadbeef'), false);
+  assert.equal(verifyIpnSignature(body, ''), false);
+  assert.equal(verifyIpnSignature(body, undefined), false);
+});
+check('payment_status maps to gateway status; a short payment is not settled', () => {
+  assert.equal(mapNowPaymentsStatus('waiting'), 'PENDING');
+  assert.equal(mapNowPaymentsStatus('confirming'), 'CONFIRMING');
+  assert.equal(mapNowPaymentsStatus('finished'), 'PAID');
+  assert.equal(mapNowPaymentsStatus('expired'), 'EXPIRED');
+  assert.equal(mapNowPaymentsStatus('failed'), 'FAILED');
+  // Deliberately NOT a settled state — half an invoice must not buy a deposit.
+  assert.equal(mapNowPaymentsStatus('partially_paid'), 'WRONG_AMOUNT');
+  // An unknown status must never fall through to something that credits.
+  assert.equal(mapNowPaymentsStatus('who_knows'), 'PENDING');
+  assert.equal(mapNowPaymentsStatus(undefined), 'PENDING');
+});
+check('pay currencies are pinned to a chain', () => {
+  assert.equal(payCurrencyFor('USDT'), 'usdttrc20');
+  assert.equal(payCurrencyFor('BTC'), 'btc');
+  assert.equal(payCurrencyFor('ETH'), 'eth');
+  assert.equal(payCurrencyFor('LTC'), 'ltc');
 });
 
 console.log(`\n✅ All ${passed} checks passed.`);

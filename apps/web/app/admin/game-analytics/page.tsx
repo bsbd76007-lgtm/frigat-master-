@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiJson } from '@/lib/api';
 import { API_URL } from '@/lib/token';
 import { formatDecimalString } from '@/lib/decimal';
+
 interface GameRow {
   gameType: string;
   bets: number;

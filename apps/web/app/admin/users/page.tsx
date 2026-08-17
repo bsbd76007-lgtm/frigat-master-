@@ -5,6 +5,7 @@ import { UsersTable } from '@/app/admin/users/UsersTable';
 import type { AdminUserRow } from '@/app/admin/users/UserDrawer';
 
 import { SESSION_COOKIE } from '@/lib/adminAuth';
+
 export const dynamic = 'force-dynamic';
 
 interface UsersResponse {

@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { UserDrawer, type AdminUserRow } from '@/app/admin/users/UserDrawer';
 
 import { formatDecimalString } from '@/lib/decimal';
+
 export function UsersTable({
   users,
   total,

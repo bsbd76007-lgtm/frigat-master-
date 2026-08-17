@@ -9,6 +9,7 @@ import {
 } from '@frigat/shared/constants';
 
 import {
+
   useCanvasRenderer,
   usePrefersReducedMotion,
   type CanvasFrame,
@@ -39,7 +40,7 @@ const COLORS = {
   text: '#e6edf3',
   muted: '#6b7787',
   ball: '#f2f5f8',
-  marker: '#f5b83d',
+  marker: '#d9a441',
 };
 
 const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
@@ -206,7 +207,7 @@ export function RouletteCanvas({
             ctx.arc(0, 0, pocketOuter, start, end);
             ctx.arc(0, 0, pocketInner, end, start, true);
             ctx.closePath();
-            ctx.fillStyle = `rgba(245,184,61,${0.3 * pulse})`;
+            ctx.fillStyle = `rgba(217, 164, 65,${0.3 * pulse})`;
             ctx.fill();
             ctx.lineWidth = 2.2;
             ctx.strokeStyle = COLORS.marker;

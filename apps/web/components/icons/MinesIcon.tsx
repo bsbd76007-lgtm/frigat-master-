@@ -28,8 +28,8 @@ export function MinesIcon({ size = 40, title, ...rest }: GameIconProps) {
         </radialGradient>
         <radialGradient id={spark} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#fff6d8" />
-          <stop offset="45%" stopColor="#f5b83d" />
-          <stop offset="100%" stopColor="#f0616d" stopOpacity="0" />
+          <stop offset="45%" stopColor="#d9a441" />
+          <stop offset="100%" stopColor="#c25560" stopOpacity="0" />
         </radialGradient>
         <filter id={glow} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="1.6" result="blur" />
@@ -63,7 +63,7 @@ export function MinesIcon({ size = 40, title, ...rest }: GameIconProps) {
           cy="24"
           r="9.4"
           fill="none"
-          stroke="#f0616d"
+          stroke="#c25560"
           strokeWidth="1.1"
           opacity=".65"
         />

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { useLanguage } from '@/components/providers/LanguageProvider';
-import { LanguageSwitcher } from '@/components/nav/LanguageSwitcher';
+
 interface FooterLink {
   key: string;
   href: string;
@@ -51,10 +51,16 @@ const COLUMNS: readonly FooterColumn[] = [
   {
     key: 'footer.info',
     links: [
-      { key: 'footer.terms', href: '/legal/terms' },
-      { key: 'footer.privacy', href: '/legal/privacy' },
-      { key: 'footer.responsible', href: '/legal/responsible-gaming' },
-      { key: 'footer.gameRules', href: '/legal/game-rules' },
+      { key: 'footer.architecture', href: '/architecture' },
+      { key: 'footer.rules', href: '/rules' },
+      { key: 'footer.promotions', href: '/promotions' },
+      { key: 'footer.partnerProgram', href: '/partner-program' },
+      // The /legal/* routes these three used to point at were never built, so
+      // every one of them 404'd. /rules carries the same material in anchored
+      // sections, which is a real destination rather than a dead link.
+      { key: 'footer.terms', href: '/rules#terms' },
+      { key: 'footer.responsible', href: '/rules#age' },
+      { key: 'footer.gameRules', href: '/rules#game-rules' },
     ],
   },
   {
@@ -168,11 +174,6 @@ export function Footer() {
               ))}
             </ul>
 
-            {/* The shared picker; footer CSS flips its menu upward so it does
-                not open past the bottom of the document. */}
-            <div className="foot__lang">
-              <LanguageSwitcher />
-            </div>
           </div>
         </div>
       </div>

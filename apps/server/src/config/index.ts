@@ -46,7 +46,62 @@ export const config = {
 
   redisUrl: optional('REDIS_URL', 'redis://localhost:6379'),
 
-  mockPaymentsEnabled: optional('NODE_ENV', 'development') !== 'production',
+  /**
+   * Outbound mail. With no host set, mailer.service logs messages instead of
+   * sending them — see the note there about why that is development-only.
+   */
+  smtp: {
+    host: optional('SMTP_HOST', ''),
+    port: parseInt(optional('SMTP_PORT', '587'), 10),
+    user: optional('SMTP_USER', ''),
+    pass: optional('SMTP_PASS', ''),
+    from: optional('SMTP_FROM', 'FRIGAT <no-reply@frigat.local>'),
+  },
+
+  // There is no sandbox-payments switch. Balances move only through a verified
+  // gateway callback or an audited admin adjustment.
+
+  /**
+   * NOWPayments credentials.
+   *
+   * Present but NOT yet wired to a provider client: the live deposit path in
+   * payment.service.ts still speaks to Cryptomus. Surfaced here so the keys are
+   * validated config rather than loose strings in .env, and so switching
+   * providers is a code change in one service rather than a hunt for env names.
+   *
+   * `ipnSecret` signs NOWPayments' IPN callbacks (HMAC-SHA512 over the sorted
+   * JSON body). Any webhook handler added later must verify it before crediting
+   * anything — an unverified callback is an open door onto the ledger.
+   */
+  nowpayments: {
+    apiKey: optional('NOWPAYMENTS_API_KEY', ''),
+    ipnSecret: optional('NOWPAYMENTS_IPN_SECRET', ''),
+    apiBase: optional('NOWPAYMENTS_API_BASE', 'https://api.nowpayments.io/v1'),
+    /**
+     * Where NOWPayments posts payment updates. Must be a public HTTPS URL, so
+     * it is empty in local development — an invoice still opens and can be
+     * paid, it just will not be credited until a callback can reach us.
+     */
+    ipnCallbackUrl: optional('NOWPAYMENTS_IPN_CALLBACK_URL', ''),
+    /**
+     * Payout credentials. Separate from the API key on purpose: NOWPayments
+     * will not let an API key alone move money out, so these are what turn
+     * automatic withdrawals on. Without them, withdrawals still work — they
+     * queue for admin review instead of being dispatched.
+     */
+    payoutEmail: optional('NOWPAYMENTS_PAYOUT_EMAIL', ''),
+    payoutPassword: optional('NOWPAYMENTS_PAYOUT_PASSWORD', ''),
+  },
+
+  /**
+   * Which gateway opens new deposits. NOWPayments takes over as soon as it has
+   * an API key, and Cryptomus stays reachable either way so invoices opened
+   * before the switch can still settle from their own webhook.
+   */
+  paymentsProvider: optional(
+    'PAYMENTS_PROVIDER',
+    process.env.NOWPAYMENTS_API_KEY ? 'NOWPAYMENTS' : 'CRYPTOMUS'
+  ).toUpperCase(),
 
   cryptomus: {
     merchantId: optional('CRYPTOMUS_MERCHANT_ID', ''),
@@ -55,6 +110,32 @@ export const config = {
     apiBase: optional('CRYPTOMUS_API_BASE', 'https://api.cryptomus.com/v1'),
     webhookUrl: optional('CRYPTOMUS_WEBHOOK_URL', ''),
     returnUrl: optional('CRYPTOMUS_RETURN_URL', ''),
+  },
+
+  /**
+   * Accounts that sign in with a password alone, skipping the emailed second
+   * factor. Every ADMIN already bypasses; this is for designated dev or
+   * break-glass addresses that are not admins.
+   *
+   * Kept in the environment rather than in source deliberately: a hard-coded
+   * address here would be a permanent bypass that ships in the repository and
+   * follows every deployment, including ones that never wanted it.
+   */
+  otpBypassEmails: optional('AUTH_OTP_BYPASS_EMAILS', '')
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean),
+
+  /**
+   * Cloudflare Turnstile. With no secret set the check bypasses — see
+   * utils/turnstile.ts for exactly when that is and is not allowed.
+   */
+  turnstile: {
+    secretKey: optional('TURNSTILE_SECRET_KEY', ''),
+    verifyUrl: optional(
+      'TURNSTILE_VERIFY_URL',
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+    ),
   },
 
   webOrigins: optional('WEB_ORIGINS', 'http://localhost:3000')

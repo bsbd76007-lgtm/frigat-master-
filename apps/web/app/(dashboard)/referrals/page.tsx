@@ -17,9 +17,11 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 import { API_URL } from '@/lib/token';
 import { compareDecimal, formatDecimalString } from '@/lib/decimal';
+
 interface ReferralSummary {
   referralCode: string;
   revSharePercentage: string;
@@ -44,6 +46,7 @@ function referralLink(code: string): string {
 
 export default function ReferralsPage() {
   const { token, balance } = useGameSocket();
+  const { t } = useLanguage();
 
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
   const [notice, setNotice] = useState<Notice>(null);
@@ -140,7 +143,7 @@ export default function ReferralsPage() {
   if (status.kind === 'error') {
     return (
       <div className="ref__alert" role="alert">
-        <strong>Referrals unavailable.</strong> {status.message}
+        <strong>{t('referrals.unavailable')}</strong> {status.message}
       </div>
     );
   }
@@ -161,7 +164,7 @@ export default function ReferralsPage() {
 
       {/* ── Referral link ── */}
       <section className="ref__panel">
-        <span className="ref__legend">Your referral link</span>
+        <span className="ref__legend">{t('referrals.yourLink')}</span>
         <div className="ref__linkrow">
           <input
             id="ref-link"
@@ -169,35 +172,35 @@ export default function ReferralsPage() {
             value={link}
             readOnly
             onFocus={(event) => event.currentTarget.select()}
-            aria-label="Your referral link"
+            aria-label={t('referrals.yourLink')}
           />
           <button type="button" className="ref__btn ref__btn--primary" onClick={copy}>
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
         <p className="ref__note">
-          Your code is <code>{data.referralCode}</code>
+          {t('referrals.yourCodeIs')} <code>{data.referralCode}</code>
         </p>
       </section>
 
       {/* ── Stats ── */}
       <section className="ref__grid">
         <div className="ref__stat">
-          <span>Total invited players</span>
+          <span>{t('referrals.totalInvited')}</span>
           <b>{data.totalInvited.toLocaleString()}</b>
         </div>
         <div className="ref__stat">
-          <span>Active depositors</span>
+          <span>{t('referrals.activeDepositors')}</span>
           <b>{data.activeDepositors.toLocaleString()}</b>
-          <em>Invitees who have funded their account</em>
+          <em>{t('referrals.activeDepositorsHint')}</em>
         </div>
         <div className="ref__stat">
-          <span>Current RevShare</span>
+          <span>{t('referrals.currentRevShare')}</span>
           <b>{formatDecimalString(data.revSharePercentage, 2)}%</b>
           <em>Of each invitee&apos;s net losses</em>
         </div>
         <div className="ref__stat ref__stat--accent">
-          <span>Total claimable earnings</span>
+          <span>{t('referrals.totalClaimable')}</span>
           <b>
             {formatDecimalString(data.claimable, 2)} <i>{data.currency}</i>
           </b>
@@ -209,7 +212,7 @@ export default function ReferralsPage() {
 
       {/* ── Claim ── */}
       <section className="ref__panel">
-        <span className="ref__legend">Claim earnings</span>
+        <span className="ref__legend">{t('referrals.claim')}</span>
         <p className="ref__note">
           Moves your full claimable balance into your main balance, where it can
           be wagered or withdrawn. Your current balance is{' '}

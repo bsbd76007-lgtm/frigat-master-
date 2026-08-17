@@ -39,7 +39,7 @@ export function Logo({ height = 34, title = 'FRIGAT', className }: LogoProps) {
         <linearGradient id={brass} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#ffffff" />
           <stop offset="46%" stopColor="#f7dc94" />
-          <stop offset="100%" stopColor="#f0c14b" />
+          <stop offset="100%" stopColor="#e0b055" />
         </linearGradient>
 
         <linearGradient id={bronze} x1="0" y1="0" x2="1" y2="1">
@@ -72,7 +72,7 @@ export function Logo({ height = 34, title = 'FRIGAT', className }: LogoProps) {
         rx="79"
         ry="24"
         fill={`url(#${plate})`}
-        stroke="#d1a733"
+        stroke="#b8862f"
         strokeWidth="2"
       />
       {/* Inner hairline: the second edge that makes the border read as a
@@ -83,7 +83,7 @@ export function Logo({ height = 34, title = 'FRIGAT', className }: LogoProps) {
         rx="74"
         ry="19.5"
         fill="none"
-        stroke="#d1a733"
+        stroke="#b8862f"
         strokeWidth=".7"
         opacity=".45"
       />
@@ -91,7 +91,7 @@ export function Logo({ height = 34, title = 'FRIGAT', className }: LogoProps) {
       {/* Rivets */}
       {[32, 168].map((cx) => (
         <g key={cx}>
-          <circle cx={cx} cy="28" r="4.2" fill="#f0c14b" />
+          <circle cx={cx} cy="28" r="4.2" fill="#e0b055" />
           <circle cx={cx} cy="28" r="4.2" fill="none" stroke="#8a5a2b" strokeWidth=".8" />
           {/* Slot, so it reads as a screw head rather than a dot. */}
           <path

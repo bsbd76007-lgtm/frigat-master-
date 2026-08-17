@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { RiskForm, type RiskConfig } from '@/app/admin/risk-control/RiskForm';
 
 import { SESSION_COOKIE } from '@/lib/adminAuth';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 

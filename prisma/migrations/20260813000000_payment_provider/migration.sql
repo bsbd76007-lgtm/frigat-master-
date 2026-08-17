@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Payment" ADD COLUMN "provider" TEXT NOT NULL DEFAULT 'CRYPTOMUS';

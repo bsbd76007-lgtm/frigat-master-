@@ -16,8 +16,12 @@ export function PlayersOnline() {
       apiFetch('api/presence')
         .then((res) => (res.ok ? res.json() : null))
         .then((body: { online?: number } | null) => {
-          if (!active || typeof body?.online !== 'number') return;
-          setOnline(body.online);
+          if (!active) return;
+          const value = body?.online;
+          // The server reports a Set size, so this is belt and braces: a
+          // malformed or negative payload must never render as "-1 players".
+          if (typeof value !== 'number' || !Number.isFinite(value)) return;
+          setOnline(Math.max(0, Math.floor(value)));
         })
         .catch(() => {
           /* no-op */

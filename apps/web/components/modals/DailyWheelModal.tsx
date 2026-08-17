@@ -21,6 +21,7 @@ import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { apiJson, ApiError } from '@/lib/api';
 import { API_URL } from '@/lib/token';
 import { formatDecimalString } from '@/lib/decimal';
+
 const SEGMENTS = [
   { prize: '1', color: '#334155' },
   { prize: '5', color: '#1e3a5f' },

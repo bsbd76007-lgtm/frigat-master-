@@ -15,8 +15,11 @@ import { CrashCanvas, type CrashPhase } from '@/components/canvas/CrashCanvas';
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 export default function CrashPage() {
   const { socket, balance, send, crashRounds } = useGameSocket();
+  const { t } = useLanguage();
   const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
@@ -119,8 +122,8 @@ export default function CrashPage() {
   return (
     <GameShell
       gameType="CRASH"
-      title="Crash"
-      subtitle="Cash out before the curve busts"
+      title={t('games.crash.name')}
+      subtitle={t('games.crash.subtitle')}
       history={history}
       stage={
         <CrashCanvas
@@ -134,18 +137,18 @@ export default function CrashPage() {
       panel={
         <>
           <div className="opt">
-            <span className="opt__label">Round</span>
+            <span className="opt__label">{t('game.round')}</span>
             <div className="opt__stat">
-              <span>Phase</span>
+              <span>{t('game.phase')}</span>
               <b>{phase}</b>
             </div>
             <div className="opt__stat">
-              <span>Your bet</span>
+              <span>{t('game.yourBet')}</span>
               <b>{hasBet ? `${amount} in play` : '—'}</b>
             </div>
             {cashedOutAt !== null && (
               <div className="opt__stat">
-                <span>Cashed out</span>
+                <span>{t('game.cashedOut')}</span>
                 <b style={{ color: 'var(--fg-gold)' }}>{cashedOutAt.toFixed(2)}×</b>
               </div>
             )}
@@ -157,7 +160,7 @@ export default function CrashPage() {
             balance={balance.balance}
             currency={balance.currency}
             canCashout={canCashout}
-            cashoutTone="green"
+            cashoutTone="accent"
             cashoutMultiplier={canCashout ? multiplier : null}
             /* The live value of cashing out right now. The button showed only
                the multiplier before, leaving the player to do the arithmetic
@@ -178,7 +181,7 @@ export default function CrashPage() {
             /* Reached only when the cashout button is not showing. With
                per-player rounds the fallback is the brief gap while a bet is
                being accepted — there is no next round to wait for. */
-            betLabel={canBet ? 'Place bet' : 'Round in progress'}
+            betLabel={canBet ? t('game.placeBet') : t('game.roundInProgress')}
           />
         </>
       }

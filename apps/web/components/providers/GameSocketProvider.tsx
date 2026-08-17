@@ -35,6 +35,7 @@ import type { GameHistoryEntry } from '@/components/games/GameHistoryBar';
 import { useSocket, type ClientActionType, type UseSocketResult } from '@/hooks/useSocket';
 import { useBalance, type UseBalanceResult } from '@/hooks/useBalance';
 import { readStoredToken, subscribeToToken, writeStoredToken } from '@/lib/token';
+
 const MAX_HISTORY = 40;
 
 export interface SeedInfo {

@@ -5,11 +5,10 @@ import { useEffect, useState } from 'react';
 import { apiJson } from '@/lib/api';
 import { API_URL } from '@/lib/token';
 export interface PaymentConfig {
-  sandbox: boolean;
   currencies: string[];
 }
 
-const FALLBACK: PaymentConfig = { sandbox: false, currencies: [] };
+const FALLBACK: PaymentConfig = { currencies: [] };
 
 let cache: PaymentConfig | null = null;
 let inFlight: Promise<PaymentConfig> | null = null;
@@ -21,7 +20,6 @@ function loadConfig(): Promise<PaymentConfig> {
   inFlight = apiJson<PaymentConfig>(`${API_URL}/api/payments/config`)
     .then((result) => {
       cache = {
-        sandbox: result.sandbox === true,
         currencies: Array.isArray(result.currencies) ? result.currencies : [],
       };
       return cache;

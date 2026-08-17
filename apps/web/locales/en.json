@@ -10,7 +10,11 @@
     "aria": "Main",
     "limbo": "Limbo",
     "keno": "Keno",
-    "chicken": "Chicken Road"
+    "chicken": "Chicken Road",
+    "slots": "Slots",
+    "aviaMasters": "Avia Masters",
+    "architecture": "How it works",
+    "freeMoney": "Free Money"
   },
   "header": {
     "provablyFair": "Provably Fair",
@@ -54,7 +58,7 @@
       "search": "Search"
     },
     "playNow": "Play Now",
-    "demoMode": "How it works",
+    "howItWorks": "How it works",
     "badge": {
       "hot": "HOT",
       "new": "NEW"
@@ -66,10 +70,28 @@
       "promos": "Promotions"
     }
   },
+  "bet": {
+    "amount": "Bet amount",
+    "balance": "Balance",
+    "insufficient": "Not enough balance — deposit to keep playing",
+    "invalidAmount": "Enter a valid amount",
+    "minBet": "Minimum bet is {amount}",
+    "maxBet": "Maximum bet is {amount}",
+    "min": "Min",
+    "max": "Max",
+    "maxShort": "Max",
+    "halve": "Halve bet amount",
+    "double": "Double bet amount",
+    "placing": "Placing bet…",
+    "cashout": "Cash out",
+    "cashingOut": "Cashing out…",
+    "deposit": "Deposit"
+  },
   "games": {
     "crash": {
       "name": "Crash",
-      "blurb": "Cash out before the curve breaks."
+      "blurb": "Cash out before the curve breaks.",
+      "subtitle": "Place your bet to start"
     },
     "mines": {
       "name": "Mines",
@@ -77,11 +99,13 @@
     },
     "roulette": {
       "name": "Roulette",
-      "blurb": "Inside, outside, and everything between."
+      "blurb": "Inside, outside, and everything between.",
+      "subtitle": "Place your bet to start"
     },
     "coinflip": {
       "name": "Coinflip",
-      "blurb": "One toss, even odds, instant result."
+      "blurb": "One toss, even odds, instant result.",
+      "subtitle": "Place your bet to start"
     },
     "plinko": {
       "name": "Plinko",
@@ -89,11 +113,13 @@
     },
     "dice": {
       "name": "Dice",
-      "blurb": "Set your target, roll under or over."
+      "blurb": "Set your target, roll under or over.",
+      "subtitle": "Place your bet to start"
     },
     "limbo": {
       "name": "Limbo",
-      "blurb": "Pick a target, clear the bar, cash in."
+      "blurb": "Pick a target, clear the bar, cash in.",
+      "subtitle": "Place your bet to start"
     },
     "keno": {
       "name": "Keno",
@@ -102,75 +128,14 @@
     "chicken": {
       "name": "Chicken Road",
       "blurb": "Cross the lanes, bank before the traffic."
-    }
-  },
-  "hero": {
-    "label": "Promotions",
-    "previous": "Previous slide",
-    "next": "Next slide",
-    "goTo": "Go to slide {position}: {title}",
-    "position": "{position} of {count}",
-    "tournaments": {
-      "eyebrow": "Tournaments & Events",
-      "title": "FRIGAT NOW — Join the new Tournament Hub!",
-      "subtitle": "Weekly leaderboards across every table. Climb the ranks, claim the prize pool.",
-      "cta": "JOIN NOW",
-      "secondaryCta": "See the schedule"
     },
-    "rakeback": {
-      "eyebrow": "VIP Programme",
-      "title": "Level Up — Claim up to 15% Daily Rakeback!",
-      "subtitle": "Unlock exclusive benefits and earn cashback on every bet. The more you play, the more you earn.",
-      "cta": "VIEW VIP TIERS"
+    "slots": {
+      "name": "Slots",
+      "blurb": "Five reels, five lines, one lever."
     },
-    "dailySpin": {
-      "eyebrow": "Daily Rewards",
-      "title": "Free Daily Reward — Spin to win up to $100!",
-      "subtitle": "Every day brings a new opportunity. Log in and spin the wheel for instant rewards.",
-      "cta": "SPIN WHEEL"
-    },
-    "crash": {
-      "eyebrow": "High Volatility",
-      "title": "Crash reaches 1000x multiplier!",
-      "subtitle": "Race against the curve and watch your winnings multiply. Cash out before the crash for your prize.",
-      "cta": "PLAY CRASH"
-    },
-    "mines": {
-      "eyebrow": "Strategy Game",
-      "title": "Mines Game — Uncover gems and dodge the bombs",
-      "subtitle": "Choose your risk level, bank your wins, and outsmart the board. Perfect mix of luck and strategy.",
-      "cta": "PLAY MINES"
-    },
-    "cryptoDeposits": {
-      "eyebrow": "Instant Deposits",
-      "title": "Instant Deposits — TRC20, BTC, ETH, LTC",
-      "subtitle": "Fund your account instantly with your favorite cryptocurrency. Fast, secure, and always available.",
-      "cta": "DEPOSIT NOW"
-    },
-    "communityChat": {
-      "eyebrow": "Live Community",
-      "title": "Live Chat — Catch random token Rains in active rooms!",
-      "subtitle": "Join our thriving community, chat with other players, and win free tokens in spontaneous airdrops.",
-      "cta": "OPEN CHAT"
-    },
-    "provablyFair": {
-      "eyebrow": "Transparency",
-      "title": "100% Fair Gaming — SHA-256 seed verification on every bet",
-      "subtitle": "Independently verify every single bet with our blockchain-powered fairness system. No house tricks.",
-      "cta": "VERIFY BETS"
-    },
-    "welcomeBonus": {
-      "eyebrow": "WELCOME BONUS",
-      "title": "Up to 200% bonus and 200 free spins on your first deposit!",
-      "subtitle": "Top up your account to claim the first-deposit bonus along with your free spins.",
-      "cta": "Deposit now",
-      "secondaryCta": "Terms"
-    },
-    "joyPoints": {
-      "eyebrow": "JOY POINTS",
-      "title": "Meet Joy Points! The more you play, the more you earn",
-      "subtitle": "Collect points on every bet and trade them in for bonuses.",
-      "cta": "Learn more"
+    "avia-masters": {
+      "name": "Avia Masters",
+      "blurb": "Fly the deck run, grab multipliers, land before you ditch."
     }
   },
   "footer": {
@@ -198,7 +163,11 @@
     "telegram": "Telegram Channel",
     "followUs": "Follow us",
     "copyright": "© {year} FRIGAT. All rights reserved.",
-    "disclaimer": "18+. Gambling can be addictive — play responsibly."
+    "disclaimer": "18+. Gambling can be addictive — play responsibly.",
+    "rules": "Rules",
+    "promotions": "Promotions",
+    "partnerProgram": "Partner program",
+    "architecture": "How it works"
   },
   "dock": {
     "live": "Live",
@@ -209,8 +178,80 @@
     "menu": "Menu",
     "aria": "Quick navigation"
   },
-  "chat": {
-    "open": "Open Chat"
+  "support": {
+    "open": "Support",
+    "title": "Live Support",
+    "subtitle": "We usually reply within a few minutes.",
+    "close": "Close support",
+    "empty": "No messages yet — tell us what you need and an agent will pick it up.",
+    "agent": "Agent",
+    "you": "You",
+    "placeholder": "Type your message…",
+    "send": "Send",
+    "sending": "Sending…",
+    "starting": "Opening ticket…",
+    "sendError": "Could not send your message. Please try again.",
+    "errorEmpty": "Type a message before sending.",
+    "errorTooLong": "That message is too long — please shorten it.",
+    "errorEmail": "Add an email address to your account first.",
+    "errorTicket": "This conversation is no longer available.",
+    "errorAuth": "Your session expired. Sign in again to continue."
+  },
+  "account": {
+    "open": "Account",
+    "title": "Account",
+    "subtitle": "Your profile, wallet and security at a glance.",
+    "close": "Close account panel",
+    "profile": "Profile",
+    "userId": "User ID",
+    "email": "Email",
+    "role": "Role",
+    "memberSince": "Member since",
+    "wallet": "Wallet",
+    "balance": "Balance",
+    "currency": "Currency",
+    "security": "Security",
+    "sessionStatus": "Session",
+    "sessionActive": "Signed in",
+    "accountStatus": "Account status",
+    "statusActive": "Active",
+    "statusFrozen": "Frozen",
+    "frozenNote": "Betting is paused on this account. Contact support to resolve it.",
+    "provablyFair": "Provably fair",
+    "seedNonce": "Current nonce",
+    "verifySeeds": "Verify seeds",
+    "vip": "VIP",
+    "tier": "Tier",
+    "rakeback": "Rakeback",
+    "wagered": "Total wagered",
+    "nextTier": "To {tier}",
+    "viewVip": "View VIP programme",
+    "copy": "Copy",
+    "copied": "Copied",
+    "loading": "Loading your account…",
+    "loadError": "Could not load your account details.",
+    "retry": "Try again",
+    "signOut": "Sign out",
+    "changePassword": "Change password",
+    "pwSubtitle": "We will email a code to the address on this account.",
+    "back": "Back to account",
+    "pwEmailNote": "Your account email",
+    "pwSendCode": "Send reset code",
+    "pwSending": "Sending…",
+    "pwResend": "Resend code",
+    "pwResendIn": "Resend in {seconds}s",
+    "pwCode": "Reset code",
+    "pwNew": "New password",
+    "pwConfirm": "Confirm new password",
+    "pwSubmit": "Change password",
+    "pwSaving": "Saving…",
+    "pwChanged": "Password changed successfully!",
+    "pwWeak": "Choose a password that meets every rule below.",
+    "pwMismatch": "Those passwords do not match.",
+    "pwCodeRequired": "Enter the 6-digit code from your email.",
+    "pwSendError": "Could not send a reset code. Try again.",
+    "pwResetError": "Could not change your password.",
+    "pwDevCode": "Development mode — no email was sent. Your code is {code}."
   },
   "launch": {
     "rtp": "RTP",
@@ -220,5 +261,113 @@
     "play": "Play now",
     "verify": "Verify fairness",
     "note": "Every round settles through the live ledger and is provably fair."
+  },
+  "game": {
+    "spin": "Spin",
+    "draw": "Draw",
+    "flip": "Flip",
+    "roll": "Roll",
+    "placeBet": "Place Bet",
+    "startRound": "Start Round",
+    "dropBall": "Drop Ball",
+    "roundInProgress": "Round in progress",
+    "subtitle": "Place your bet to start",
+    "pocketPlaceholder": "Select Pocket",
+    "pocketNumber": "Pocket number",
+    "outsideBets": "Outside bets",
+    "bettingOn": "Betting on",
+    "direction": "Direction",
+    "winChance": "Win chance",
+    "payout": "Payout",
+    "payoutOnWin": "Payout on win",
+    "multiplier": "Multiplier",
+    "yourSide": "Your side",
+    "yourBet": "Your bet",
+    "cashedOut": "Cashed out",
+    "cashoutValue": "Cashout value",
+    "revealed": "Revealed",
+    "round": "Round",
+    "phase": "Phase",
+    "mines": "Mines",
+    "minesBoard": "Mines board",
+    "kenoBoard": "Keno board",
+    "autoPick": "Auto pick",
+    "clear": "Clear",
+    "paytable": "Paytable",
+    "pickTile": "Pick a tile",
+    "quickTarget": "Quick target",
+    "targetMultiplier": "Target multiplier",
+    "rows": "Rows",
+    "risk": "Risk",
+    "topMultiplier": "Top multiplier"
+  },
+  "fair": {
+    "title": "Provably Fair",
+    "close": "Close",
+    "game": "Game",
+    "nonce": "Nonce",
+    "nonceHint": "Increments with every bet on this seed pair.",
+    "clientSeed": "Client seed",
+    "newClientSeed": "New client seed",
+    "randomSeed": "Randomise",
+    "rotatePair": "Rotate seed pair",
+    "revealedServerSeed": "Revealed server seed",
+    "revealedPlaceholder": "Revealed after the pair is rotated",
+    "previousSeedPlaceholder": "No previous pair yet",
+    "verifier": "Verifier",
+    "verifyOutcome": "Verify outcome",
+    "computedOutcome": "Computed outcome",
+    "minesInPlay": "Mines in play",
+    "copy": "Copy",
+    "loading": "Loading…"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "empty": "No favorites yet.",
+    "emptyHint": "Tap the star on any game to pin it here.",
+    "browse": "Browse games"
+  },
+  "search": {
+    "results": "Results",
+    "empty": "Nothing matched that search.",
+    "clear": "Clear search"
+  },
+  "referrals": {
+    "yourLink": "Your referral link",
+    "yourCodeIs": "Your code is",
+    "totalInvited": "Total invited",
+    "activeDepositors": "Active depositors",
+    "activeDepositorsHint": "Invitees who have made a deposit.",
+    "currentRevShare": "Current revenue share",
+    "totalClaimable": "Available to claim",
+    "claim": "Claim",
+    "unavailable": "Referrals are unavailable right now."
+  },
+  "vip": {
+    "title": "VIP Club",
+    "subtitle": "Earn rakeback on every bet. The more you play, the more comes back.",
+    "currentTier": "Current tier",
+    "rakebackRate": "Rakeback rate",
+    "totalWagered": "Total wagered",
+    "acrossAllGames": "Across all games",
+    "availableRakeback": "Available rakeback",
+    "claimAmount": "Claim",
+    "claiming": "Claiming…",
+    "claimed": "Claimed {amount}",
+    "claimError": "Could not claim your rakeback.",
+    "nothingToClaim": "Nothing to claim yet",
+    "nothingToClaimError": "There is nothing to claim right now.",
+    "noRakeback": "No rakeback at this tier",
+    "progressTo": "Progress to {tier}",
+    "toGo": "to go",
+    "maxed": "Top tier reached",
+    "ladder": "Tier ladder",
+    "colTier": "Tier",
+    "colWagered": "Wagered",
+    "colRakeback": "Rakeback",
+    "loading": "Loading…",
+    "loadError": "Could not load your VIP status.",
+    "signIn": "Sign in to see your VIP status.",
+    "rewardsHub": "Rewards hub"
   }
 }

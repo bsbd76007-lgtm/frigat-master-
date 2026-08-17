@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { CRASH } from '@frigat/shared/constants';
 
 import {
+
   useCanvasRenderer,
   usePrefersReducedMotion,
   type CanvasFrame,
@@ -48,9 +49,9 @@ const COLORS = {
   axis: '#243040',
   muted: '#6b7787',
   text: '#e6edf3',
-  live: '#00e701',
-  bust: '#f0616d',
-  cashed: '#f5b83d',
+  live: '#f59e0b',
+  bust: '#c25560',
+  cashed: '#d9a441',
 };
 
 const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
@@ -195,7 +196,7 @@ export function CrashCanvas({
             busted
               ? 'rgba(240,97,109,.28)'
               : cashed
-                ? 'rgba(245,184,61,.26)'
+                ? 'rgba(217, 164, 65,.26)'
                 : 'rgba(45,212,167,.26)'
           );
           fill.addColorStop(1, 'rgba(13,19,25,0)');
@@ -252,8 +253,8 @@ export function CrashCanvas({
 
             const pulse = reducedMotion ? 1 : 0.75 + Math.sin(time / 70) * 0.25;
             const plume = ctx.createLinearGradient(-26 * pulse, 0, 0, 0);
-            plume.addColorStop(0, 'rgba(245,184,61,0)');
-            plume.addColorStop(1, 'rgba(245,184,61,.85)');
+            plume.addColorStop(0, 'rgba(217, 164, 65,0)');
+            plume.addColorStop(1, 'rgba(217, 164, 65,.85)');
             ctx.beginPath();
             ctx.moveTo(-26 * pulse, 0);
             ctx.lineTo(-8, -4.5);

@@ -49,6 +49,45 @@ export function normalizeDecimal(value: string): string | null {
   return fromUnits(toUnits(value));
 }
 
+/**
+ * Coerces anything into a usable decimal string, never throwing.
+ *
+ * `toUnits` — and therefore `compareDecimal`, `multiplyDecimal` and the rest —
+ * throws on input it cannot parse. That is the right behaviour for a money
+ * primitive, but it makes those functions unsafe to call on the raw contents of
+ * a bet field: a half-typed `"1."`, a cleared `""` or a lone `"."` all throw,
+ * and thrown from inside a `useMemo` during render that takes the board down
+ * rather than showing a validation message.
+ *
+ * The fix is *not* to force the input valid on every keystroke — that stops a
+ * player typing `1.` on the way to `1.5`. The field stays permissive and the
+ * consumers get this instead.
+ *
+ * Partial input is salvaged where the intent is unambiguous (`"1."` → `"1"`,
+ * `".5"` → `"0.5"`), because discarding a digit the player already typed reads
+ * as the control fighting them. Anything genuinely unparseable falls back.
+ */
+export function safeDecimal(value: string | number | null | undefined, fallback = '1'): string {
+  const raw = typeof value === 'number' ? (Number.isFinite(value) ? String(value) : '') : (value ?? '');
+  const trimmed = raw.trim();
+
+  const direct = normalizeDecimal(trimmed);
+  if (direct !== null) return direct;
+
+  // Salvage the common half-typed shapes before giving up.
+  const salvaged = normalizeDecimal(
+    trimmed
+      .replace(/\.$/, '') // "1."  → "1"
+      .replace(/^(-?)\./, '$10.') // ".5"  → "0.5"
+      .replace(/^-?$/, '') // "-"   → unparseable
+  );
+  if (salvaged !== null) return salvaged;
+
+  // The fallback is trusted to be well-formed; if a caller passes rubbish there
+  // too, "0" is the only answer that cannot itself throw downstream.
+  return normalizeDecimal(fallback) ?? '0';
+}
+
 export function compareDecimal(a: string, b: string): -1 | 0 | 1 {
   const left = toUnits(a);
   const right = toUnits(b);

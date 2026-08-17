@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 
 import { apiJson } from '@/lib/api';
 import { API_URL } from '@/lib/token';
+
 const THEME_KEY = 'frigat.admin.theme';
 
 export interface AdminAlert {

@@ -9,7 +9,8 @@ export type GameEngineType =
   | 'DICE'
   | 'LIMBO'
   | 'KENO'
-  | 'CHICKEN';
+  | 'CHICKEN'
+  | 'SLOTS';
 
 interface GameIdentity {
   slug: GameSlug;
@@ -26,6 +27,7 @@ const IDENTITY: Record<GameEngineType, GameIdentity> = {
   LIMBO: { slug: 'limbo', name: 'Limbo' },
   KENO: { slug: 'keno', name: 'Keno' },
   CHICKEN: { slug: 'chicken', name: 'Chicken Road' },
+  SLOTS: { slug: 'slots', name: 'Slots' },
 };
 
 const UNKNOWN: GameIdentity = { slug: 'crash', name: 'Unknown' };

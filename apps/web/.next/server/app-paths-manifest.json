@@ -1,11 +1,7 @@
 {
-  "/api/session/route": "app/api/session/route.js",
-  "/(dashboard)/referrals/page": "app/(dashboard)/referrals/page.js",
-  "/(auth)/register/page": "app/(auth)/register/page.js",
-  "/(dashboard)/games/roulette/page": "app/(dashboard)/games/roulette/page.js",
   "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/(dashboard)/games/mines/page": "app/(dashboard)/games/mines/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js",
   "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/admin/risk-control/page": "app/admin/risk-control/page.js"
+  "/(dashboard)/freemoney/page": "app/(dashboard)/freemoney/page.js",
+  "/(information)/architecture/page": "app/(information)/architecture/page.js",
+  "/(dashboard)/games/avia-masters/page": "app/(dashboard)/games/avia-masters/page.js"
 }

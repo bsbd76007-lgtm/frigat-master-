@@ -5,12 +5,14 @@ import '@/app/globals.css';
 import { Providers } from '@/app/providers';
 import { THEME_SCRIPT } from '@/components/providers/ThemeProvider';
 import { Footer } from '@/components/nav/Footer';
+import { CloudflareGuard } from '@/components/common/CloudflareGuard';
 
-import { emblemDataUri } from '@/lib/emblem';
 export const metadata: Metadata = {
   title: 'FRIGAT',
   description: 'Provably fair gaming platform',
-  icons: { icon: [{ url: emblemDataUri('F'), type: 'image/svg+xml' }] },
+  // The official mark replaces the generic gradient "F" placeholder. It is
+  // dark-on-light, which is what a browser tab wants in either theme.
+  icons: { icon: [{ url: '/frigat-model.jpg', type: 'image/jpeg' }] },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -31,8 +33,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             the rest of the tree, and outside {children} so every route —
             dashboard, auth and admin alike — ends with the same sitemap. */}
         <Providers>
-          {children}
-          <Footer />
+          {/* Session-scoped security check. Inside Providers so it can use the
+              theme tokens, and wrapping everything so it gates the whole
+              platform rather than one route. */}
+          <CloudflareGuard>
+            {children}
+            <Footer />
+          </CloudflareGuard>
         </Providers>
       </body>
     </html>

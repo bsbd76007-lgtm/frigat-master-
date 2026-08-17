@@ -8,10 +8,13 @@ import { PlinkoCanvas, type PlinkoDrop } from '@/components/canvas/PlinkoCanvas'
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 const RISKS: PlinkoRisk[] = ['LOW', 'MEDIUM', 'HIGH'];
 
 export default function PlinkoPage() {
   const { socket, balance, send } = useGameSocket();
+  const { t } = useLanguage();
   const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
@@ -55,7 +58,7 @@ export default function PlinkoPage() {
   return (
     <GameShell
       gameType="PLINKO"
-      title="Plinko"
+      title={t('games.plinko.name')}
       subtitle={`${rows} rows · ${risk.toLowerCase()} risk`}
       stage={
         <PlinkoCanvas
@@ -69,7 +72,7 @@ export default function PlinkoPage() {
       panel={
         <>
           <div className="opt">
-            <span className="opt__label">Rows</span>
+            <span className="opt__label">{t('game.rows')}</span>
             <div className="opt__row">
               {PLINKO_ROWS.map((option) => (
                 <button
@@ -90,7 +93,7 @@ export default function PlinkoPage() {
           </div>
 
           <div className="opt">
-            <span className="opt__label">Risk</span>
+            <span className="opt__label">{t('game.risk')}</span>
             <div className="opt__row">
               {RISKS.map((option) => (
                 <button
@@ -111,7 +114,7 @@ export default function PlinkoPage() {
           </div>
 
           <div className="opt__stat">
-            <span>Top multiplier</span>
+            <span>{t('game.topMultiplier')}</span>
             <b>{multipliers.length ? `${Math.max(...multipliers)}×` : '—'}</b>
           </div>
 
@@ -129,7 +132,7 @@ export default function PlinkoPage() {
               });
             }}
             busy={busy}
-            betLabel="Drop ball"
+            betLabel={t('game.dropBall')}
           />
         </>
       }

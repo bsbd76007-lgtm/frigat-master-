@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import {
+
   useCanvasRenderer,
   usePrefersReducedMotion,
   type CanvasFrame,
@@ -28,7 +29,7 @@ const COLORS = {
   bg: '#0d1319',
   peg: '#3a475a',
   pegLit: '#8b97a6',
-  ball: '#f5b83d',
+  ball: '#d9a441',
   text: '#e6edf3',
   muted: '#6b7787',
 };
@@ -37,11 +38,11 @@ const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 const LANDED_FLASH_MS = 700;
 
 function bucketColor(multiplier: number): string {
-  if (!Number.isFinite(multiplier) || multiplier <= 0) return '#f0616d';
+  if (!Number.isFinite(multiplier) || multiplier <= 0) return '#c25560';
   if (multiplier < 1) return '#f09261';
   if (multiplier < 2) return '#8b97a6';
-  if (multiplier < 10) return '#00e701';
-  return '#f5b83d';
+  if (multiplier < 10) return '#f59e0b';
+  return '#d9a441';
 }
 
 export function bucketOf(drop: PlinkoDrop): number {
@@ -199,7 +200,7 @@ export function PlinkoCanvas({
           if (!reducedMotion && segment < steps) {
             ctx.beginPath();
             ctx.arc(x, y, 8, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(245,184,61,.16)';
+            ctx.fillStyle = 'rgba(217, 164, 65,.16)';
             ctx.fill();
           }
 

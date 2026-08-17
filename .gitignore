@@ -6,3 +6,6 @@ dist/
 .DS_Store
 .claude
 .vscode/
+CLAUDE.md
+graphify-out
+.claudeignore

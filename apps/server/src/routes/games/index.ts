@@ -5,6 +5,7 @@ import { registerRtpRoutes } from './rtp.routes';
 import { registerBetRoutes } from './bets.routes';
 import { registerBetDetailRoutes } from './betDetail.routes';
 import { registerPresenceRoutes } from './presence.routes';
+import { registerSlotsRoutes } from './slots';
 
 export function registerGameRoutes(app: FastifyInstance) {
   registerLimboRoutes(app);
@@ -13,4 +14,5 @@ export function registerGameRoutes(app: FastifyInstance) {
   registerBetRoutes(app);
   registerBetDetailRoutes(app);
   registerPresenceRoutes(app);
+  registerSlotsRoutes(app);
 }

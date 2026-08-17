@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 const MIN_TARGET = 1.01;
 const MAX_TARGET = 1_000_000;
 const LIMBO_EDGE = 0.01;
@@ -25,6 +27,7 @@ function rolloutValue(target: number, t: number): number {
 
 export default function LimboPage() {
   const { socket, balance, send } = useGameSocket();
+  const { t } = useLanguage();
   const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
@@ -114,8 +117,8 @@ export default function LimboPage() {
   return (
     <GameShell
       gameType="LIMBO"
-      title="Limbo"
-      subtitle="Pick a target multiplier from 1.01x to 1,000,000x"
+      title={t('games.limbo.name')}
+      subtitle={t('games.limbo.subtitle')}
       stage={
         <div className="stage__center">
           <div style={{ width: '100%', maxWidth: 420 }}>
@@ -157,7 +160,7 @@ export default function LimboPage() {
       panel={
         <>
           <div className="opt">
-            <span className="opt__label">Quick target</span>
+            <span className="opt__label">{t('game.quickTarget')}</span>
             <div className="opt__row">
               {QUICK_TARGETS.map((value) => (
                 <button
@@ -176,7 +179,7 @@ export default function LimboPage() {
 
           <div className="opt">
             <label className="opt__label" htmlFor="limbo-target">
-              Target multiplier
+              {t('game.targetMultiplier')}
             </label>
             <input
               id="limbo-target"
@@ -194,11 +197,11 @@ export default function LimboPage() {
 
           <div className="opt">
             <div className="opt__stat">
-              <span>Win chance</span>
+              <span>{t('game.winChance')}</span>
               <b>{winChance.toFixed(4)}%</b>
             </div>
             <div className="opt__stat">
-              <span>Payout on win</span>
+              <span>{t('game.payoutOnWin')}</span>
               <b>{formatMultiplier(target)}×</b>
             </div>
           </div>
@@ -210,7 +213,7 @@ export default function LimboPage() {
             currency={balance.currency}
             onBet={placeBet}
             busy={busy}
-            betLabel="Roll"
+            betLabel={t('game.roll')}
           />
         </>
       }

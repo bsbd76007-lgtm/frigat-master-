@@ -10,6 +10,8 @@ import { DiceIcon } from '@/components/icons/DiceIcon';
 import { LimboIcon } from '@/components/icons/LimboIcon';
 import { KenoIcon } from '@/components/icons/KenoIcon';
 import { ChickenIcon } from '@/components/icons/ChickenIcon';
+import { SlotsIcon } from '@/components/icons/SlotsIcon';
+import { AviaIcon } from '@/components/icons/AviaIcon';
 export type { GameIconProps } from '@/components/icons/types';
 export { CrashIcon } from '@/components/icons/CrashIcon';
 export { MinesIcon } from '@/components/icons/MinesIcon';
@@ -20,6 +22,8 @@ export { DiceIcon } from '@/components/icons/DiceIcon';
 export { LimboIcon } from '@/components/icons/LimboIcon';
 export { KenoIcon } from '@/components/icons/KenoIcon';
 export { ChickenIcon } from '@/components/icons/ChickenIcon';
+export { SlotsIcon } from '@/components/icons/SlotsIcon';
+export { AviaIcon } from '@/components/icons/AviaIcon';
 
 export type GameSlug =
   | 'crash'
@@ -30,7 +34,9 @@ export type GameSlug =
   | 'dice'
   | 'limbo'
   | 'keno'
-  | 'chicken';
+  | 'chicken'
+  | 'slots'
+  | 'avia-masters';
 
 export const GAME_ICONS: Record<GameSlug, ComponentType<GameIconProps>> = {
   crash: CrashIcon,
@@ -42,4 +48,6 @@ export const GAME_ICONS: Record<GameSlug, ComponentType<GameIconProps>> = {
   limbo: LimboIcon,
   keno: KenoIcon,
   chicken: ChickenIcon,
+  slots: SlotsIcon,
+  'avia-masters': AviaIcon,
 };

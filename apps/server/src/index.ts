@@ -13,9 +13,12 @@ import { registerWalletRoutes } from './http/wallet.routes';
 import { registerReferralRoutes } from './http/referral.routes';
 import { registerVipRoutes } from './http/vip.routes';
 import { registerStreakRoutes } from './http/streak.routes';
+import { registerRewardsRoutes } from './routes/rewards.routes';
+import { registerRaffleRoutes } from './routes/raffle.routes';
 import { registerSeedRoutes } from './http/seed.routes';
 import { registerAuthRoutes } from './routes/auth.routes';
 import { registerPaymentRoutes } from './routes/payment.routes';
+import { registerSupportRoutes } from './routes/support.routes';
 import { registerGameRoutes } from './routes/games';
 
 async function bootstrap() {
@@ -36,6 +39,37 @@ async function bootstrap() {
     origin: config.webOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  });
+
+  /**
+   * Response hardening headers.
+   *
+   * Written by hand rather than pulling in Helmet: this service answers JSON
+   * and upgrades WebSockets, so most of Helmet's surface (CSP for documents,
+   * DNS prefetch, IE download options) is inert here, and a short explicit list
+   * is easier to audit than a plugin's defaults.
+   *
+   * `frame-ancestors 'none'` and X-Frame-Options both appear because the API
+   * should never be framed and the two are read by different generations of
+   * browser. HSTS is production-only: sending it over plain HTTP in local
+   * development would pin localhost to https for six months.
+   */
+  app.addHook('onSend', async (_req, reply, payload) => {
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Frame-Options', 'DENY');
+    reply.header('Referrer-Policy', 'no-referrer');
+    reply.header('Cross-Origin-Resource-Policy', 'same-site');
+    reply.header(
+      'Content-Security-Policy',
+      "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+    );
+    // Nothing here is a browser-cacheable document, and several endpoints
+    // return balances — a shared cache holding one player's is worse than slow.
+    reply.header('Cache-Control', 'no-store');
+    if (config.env === 'production') {
+      reply.header('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+    }
+    return payload;
   });
 
   await app.register(websocket, {
@@ -64,9 +98,13 @@ async function bootstrap() {
 
   registerPaymentRoutes(app);
 
+  registerSupportRoutes(app);
+
   registerReferralRoutes(app);
   registerVipRoutes(app);
   registerStreakRoutes(app);
+  registerRewardsRoutes(app);
+  registerRaffleRoutes(app);
 
   // Player-scoped provably-fair seeds (read active pair, rotate).
   registerSeedRoutes(app);

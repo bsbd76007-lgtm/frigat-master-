@@ -11,11 +11,9 @@ import {
 } from 'react';
 
 import en from '../../locales/en.json';
-import hy from '../../locales/hy.json';
 import ru from '../../locales/ru.json';
-import ka from '../../locales/ka.json';
-import fa from '../../locales/fa.json';
-export type Locale = 'en' | 'hy' | 'ru' | 'ka' | 'fa';
+
+export type Locale = 'en' | 'ru';
 
 export interface LocaleOption {
   code: Locale;
@@ -26,11 +24,8 @@ export interface LocaleOption {
 }
 
 export const LOCALES: readonly LocaleOption[] = [
-  { code: 'en', short: 'ENG', label: 'English', flag: '🇬🇧', dir: 'ltr' },
-  { code: 'hy', short: 'ARM', label: 'Հայերեն', flag: '🇦🇲', dir: 'ltr' },
-  { code: 'ru', short: 'RUS', label: 'Русский', flag: '🇷🇺', dir: 'ltr' },
-  { code: 'ka', short: 'GEO', label: 'ქართული', flag: '🇬🇪', dir: 'ltr' },
-  { code: 'fa', short: 'FAS', label: 'فارسی', flag: '🇮🇷', dir: 'rtl' },
+  { code: 'en', short: 'EN', label: 'English', flag: '🇬🇧', dir: 'ltr' },
+  { code: 'ru', short: 'RU', label: 'Русский', flag: '🇷🇺', dir: 'ltr' },
 ] as const;
 
 export const DEFAULT_LOCALE: Locale = 'en';
@@ -40,7 +35,7 @@ const STORAGE_KEY = 'frigat.locale';
 /** Nested string tree; `en.json` is the shape every other file must match. */
 type Messages = typeof en;
 
-const MESSAGES: Record<Locale, Messages> = { en, hy, ru, ka, fa };
+const MESSAGES: Record<Locale, Messages> = { en, ru };
 
 function isLocale(value: unknown): value is Locale {
   return LOCALES.some((option) => option.code === value);
@@ -93,7 +88,10 @@ export function LanguageProvider({
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
+      // A dropped locale (hy/ka/fa) fails isLocale and is cleared, so a
+      // returning visitor lands on the default rather than a dead value.
       if (isLocale(stored)) setLocaleState(stored);
+      else if (stored) window.localStorage.removeItem(STORAGE_KEY);
     } catch {
       /* no-op */
     }

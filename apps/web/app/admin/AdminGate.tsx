@@ -25,6 +25,7 @@ import {
 import Link from 'next/link';
 
 import { readStoredToken } from '@/lib/token';
+
 export interface GateUser {
   id: string;
   role: 'USER' | 'ADMIN';

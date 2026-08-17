@@ -23,7 +23,7 @@ export function CoinflipIcon({ size = 40, title, ...rest }: GameIconProps) {
       <defs>
         <linearGradient id={face} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#ffe9a8" />
-          <stop offset="35%" stopColor="#f5b83d" />
+          <stop offset="35%" stopColor="#d9a441" />
           <stop offset="70%" stopColor="#c98a1c" />
           <stop offset="100%" stopColor="#8a5c10" />
         </linearGradient>
@@ -46,7 +46,7 @@ export function CoinflipIcon({ size = 40, title, ...rest }: GameIconProps) {
       <path
         d="M8.5 40c.5-11 3.4-19.5 8.5-25.5"
         fill="none"
-        stroke="#f5b83d"
+        stroke="#d9a441"
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeDasharray="2.4 4"

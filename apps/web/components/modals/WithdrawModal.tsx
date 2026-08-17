@@ -5,9 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { CurrencyGrid, paymentEndpoint, type CurrencyCode } from '@/components/modals/CurrencyGrid';
 
-import { usePaymentConfig } from '@/hooks/usePaymentConfig';
 import { apiJson, ApiError } from '@/lib/api';
+import { showToast } from '@/lib/toast';
 import { formatDecimalString } from '@/lib/decimal';
+
 interface WithdrawalResult {
   withdrawalId: string;
   status: string;
@@ -15,6 +16,8 @@ interface WithdrawalResult {
   currency: string;
   address: string;
   balance: string;
+  /** Set when no payout gateway was configured and an operator will send it. */
+  review?: boolean;
 }
 
 const AMOUNT_PATTERN = /^\d{1,10}(\.\d{1,8})?$/;
@@ -43,9 +46,15 @@ function messageForError(err: unknown): string {
   }
 }
 
-export default function WithdrawModal({ open }: { open: boolean }) {
+export default function WithdrawModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  /** Supplied by the wallet dialog; a submitted request closes itself. */
+  onClose?: () => void;
+}) {
   const { balance } = useGameSocket();
-  const paymentConfig = usePaymentConfig();
 
   const [currency, setCurrency] = useState<CurrencyCode>('USDT');
   const [amount, setAmount] = useState('');
@@ -53,7 +62,6 @@ export default function WithdrawModal({ open }: { open: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<WithdrawalResult | null>(null);
-  const [sandbox, setSandbox] = useState(false);
 
   const [touched, setTouched] = useState({ amount: false, address: false });
 
@@ -90,22 +98,32 @@ export default function WithdrawModal({ open }: { open: boolean }) {
     setLoading(true);
     setError(null);
 
-    const path = paymentEndpoint(
-      sandbox ? '/api/payments/mock-withdraw' : '/api/payments/withdraw'
-    );
+    const path = paymentEndpoint('/api/payments/withdraw');
 
     try {
       const response = await apiJson<WithdrawalResult>(path, {
         method: 'POST',
         body: JSON.stringify({ amount, currency, address: address.trim() }),
       });
+
+      // The confirmation follows the player out of the dialog rather than
+      // living inside it: the funds are already reserved, so there is nothing
+      // left to do here, and the header balance is what they will look at next.
+      showToast(
+        response.review === false
+          ? 'Withdrawal request submitted! Funds are on their way.'
+          : 'Withdrawal request submitted! Pending admin review.',
+        'success',
+        6000
+      );
       setResult(response);
+      onClose?.();
     } catch (err) {
       setError(messageForError(err));
     } finally {
       setLoading(false);
     }
-  }, [amount, address, currency, canSubmit, sandbox]);
+  }, [amount, address, currency, canSubmit, onClose]);
 
   const setMax = useCallback(() => {
     if (available === null) return;
@@ -120,11 +138,12 @@ export default function WithdrawModal({ open }: { open: boolean }) {
     return (
       <>
         <div className="wal__banner wal__banner--ok" role="status">
-          <b>{sandbox ? 'Test withdrawal settled' : 'Withdrawal requested'}</b>
+          <b>Withdrawal request submitted!</b>
           <span>
-            {sandbox
-              ? `${result.amount} ${result.currency} was debited instantly. No payout was sent.`
-              : `${result.amount} ${result.currency} is on its way. Funds have been reserved from your balance.`}
+            Your funds will be dispatched shortly.
+            {result.review
+              ? ' This request is queued for review — the amount is already reserved from your balance.'
+              : ` ${result.amount} ${result.currency} has been reserved from your balance.`}
           </span>
         </div>
 
@@ -229,17 +248,6 @@ export default function WithdrawModal({ open }: { open: boolean }) {
       >
         {loading ? 'Submitting…' : 'Request Withdrawal'}
       </button>
-
-      {paymentConfig.sandbox && (
-        <label className="wal__toggle">
-          <input
-            type="checkbox"
-            checked={sandbox}
-            onChange={(event) => setSandbox(event.target.checked)}
-          />
-          <span>Sandbox mode — settle instantly, no provider call</span>
-        </label>
-      )}
     </>
   );
 }

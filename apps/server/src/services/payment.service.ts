@@ -18,16 +18,24 @@
  * endpoints are signed with a *different* key to the payment ones.
  */
 
-import { createHash, randomUUID, timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import { Prisma, TransactionType, type CryptoPaymentStatus } from '@prisma/client';
 
 import { config } from '../config';
+import {
+  NOWPAYMENTS_PROVIDER,
+  createNowPayment,
+  createPayout,
+  isPayoutConfigured,
+  mapNowPaymentsStatus,
+  networkLabelFor,
+  payCurrencyFor,
+} from './nowpayments.service';
 import { prisma } from '../config/prisma';
 import {
   requestWithdrawal,
   rejectWithdrawal,
   AccountFrozenError,
-  InsufficientFundsError,
   WalletNotFoundError,
 } from './ledger.service';
 
@@ -44,6 +52,9 @@ const DEFAULT_NETWORK: Record<SupportedCurrency, string | undefined> = {
 };
 
 const LEDGER_CURRENCY = 'USD';
+
+/** Marks a withdrawal an operator has to send by hand. */
+export const MANUAL_PROVIDER = 'MANUAL_ADMIN';
 
 export function isSupportedCurrency(value: unknown): value is SupportedCurrency {
   return (
@@ -203,10 +214,17 @@ export interface CreateDepositInput {
   network?: string;
 }
 
+/** Deposits are quoted in this and paid in the asset the player picks. */
+const PRICE_CURRENCY = 'USD';
+
 export interface CreateDepositResult {
   paymentId: string;
+  /** Asset amount to send, in `currency`. */
   amount: string;
   currency: string;
+  /** What that is worth, and what the ledger credits on settlement. */
+  priceAmount: string;
+  priceCurrency: string;
   status: CryptoPaymentStatus;
   address: string | null;
   payUrl: string | null;
@@ -218,6 +236,8 @@ interface CryptomusInvoice {
   uuid: string;
   order_id: string;
   amount: string;
+  /** What the payer actually has to send, in `payer_currency`. */
+  payer_amount?: string | null;
   payer_currency?: string | null;
   address?: string | null;
   url?: string | null;
@@ -243,11 +263,24 @@ export async function createDeposit(
   if (account.frozen) throw new AccountFrozenError();
 
   const orderId = `dep_${input.userId}_${Date.now().toString(36)}`;
+
+  if (config.paymentsProvider === NOWPAYMENTS_PROVIDER) {
+    return createNowPaymentsDeposit(input, amount, orderId);
+  }
+
   const network = input.network ?? DEFAULT_NETWORK[input.currency];
 
+  // Priced in USD, payable in the chosen asset.
+  //
+  // This used to send `currency: input.currency`, which told Cryptomus the
+  // *price* was 100 BTC — so a "$100" deposit invoiced a hundred bitcoin. The
+  // amount a player types is fiat; `to_currency` is what they pay it in, and
+  // the provider does the conversion at its own live rate. Inventing a rate
+  // here would mean quoting a price the settlement side does not honour.
   const invoice = await cryptomusRequest<CryptomusInvoice>('/payment', {
-    amount: amount.toFixed(8),
-    currency: input.currency,
+    amount: amount.toFixed(2),
+    currency: PRICE_CURRENCY,
+    to_currency: input.currency,
     order_id: orderId,
     ...(network ? { network } : {}),
     ...(config.cryptomus.webhookUrl ? { url_callback: config.cryptomus.webhookUrl } : {}),
@@ -257,6 +290,8 @@ export async function createDeposit(
   const record = await prisma.payment.create({
     data: {
       userId: input.userId,
+      // The invoice's fiat value — settlement credits this, so it must not be
+      // overwritten with the asset amount shown to the payer.
       amount,
       currency: input.currency,
       status: mapStatus(invoice.status),
@@ -269,8 +304,13 @@ export async function createDeposit(
 
   return {
     paymentId: invoice.uuid,
-    amount: amount.toFixed(8),
-    currency: input.currency,
+    // The asset amount the provider computed, when it gives one. Falling back
+    // to the USD figure would put "100" next to "BTC" again.
+    amount: invoice.payer_amount ?? invoice.amount ?? amount.toFixed(2),
+    currency: invoice.payer_currency ?? input.currency,
+    /** What the deposit is worth, which is what the ledger credits. */
+    priceAmount: amount.toFixed(2),
+    priceCurrency: PRICE_CURRENCY,
     status: record.status,
     address: invoice.address ?? null,
     payUrl: invoice.url ?? null,
@@ -278,6 +318,58 @@ export async function createDeposit(
     expiresAt: invoice.expired_at
       ? new Date(invoice.expired_at * 1000).toISOString()
       : null,
+  };
+}
+
+/**
+ * Opens a NOWPayments invoice and records it.
+ *
+ * The row is written with `provider: 'NOWPAYMENTS'` so the callback handler can
+ * tell later which gateway's rules apply to it — the two disagree about what a
+ * partial payment means, and about which field carries the amount to credit.
+ */
+async function createNowPaymentsDeposit(
+  input: CreateDepositInput,
+  amount: Prisma.Decimal,
+  orderId: string
+): Promise<CreateDepositResult> {
+  const payment = await createNowPayment({
+    amount: amount.toFixed(2),
+    currency: input.currency,
+    orderId,
+  });
+
+  const paymentId = String(payment.payment_id);
+  const status = mapNowPaymentsStatus(payment.payment_status);
+
+  await prisma.payment.create({
+    data: {
+      userId: input.userId,
+      amount,
+      currency: input.currency,
+      status,
+      provider: NOWPAYMENTS_PROVIDER,
+      paymentId,
+      address: payment.pay_address ?? null,
+      // NOWPayments returns an address to pay, not a hosted checkout page.
+      payUrl: null,
+    },
+    select: { id: true },
+  });
+
+  return {
+    paymentId,
+    // NOWPayments already priced in USD (`price_amount`) and returns the asset
+    // amount to send, so only the reporting needed aligning with Cryptomus.
+    amount: payment.pay_amount != null ? String(payment.pay_amount) : amount.toFixed(2),
+    currency: input.currency,
+    priceAmount: amount.toFixed(2),
+    priceCurrency: PRICE_CURRENCY,
+    status,
+    address: payment.pay_address ?? null,
+    payUrl: null,
+    network: networkLabelFor(input.currency),
+    expiresAt: payment.valid_until ?? payment.expiration_estimate_date ?? null,
   };
 }
 
@@ -326,6 +418,44 @@ export function verifyWebhookSignature(body: Record<string, unknown>): boolean {
   return signaturesMatch(signPayload(serialized, apiKey), sign);
 }
 
+/**
+ * Handles a verified NOWPayments IPN.
+ *
+ * The signature is checked by the route before this is called — this function
+ * assumes an authentic body and is not safe to call on an unverified one.
+ *
+ * Crediting rule: a `finished` invoice credits the USD figure the player asked
+ * for (`payment.amount`), never `actually_paid`. NOWPayments reports
+ * `actually_paid` in the *pay* currency, so crediting it would push satoshis
+ * into a dollar balance. A `partially_paid` invoice is therefore recorded as
+ * WRONG_AMOUNT and left for an operator: paying half an invoice must not buy a
+ * full deposit, and auto-refunding is not this function's decision to make.
+ */
+export async function handleNowPaymentsIpn(
+  body: Record<string, unknown>
+): Promise<WebhookResult> {
+  const paymentId =
+    typeof body.payment_id === 'string' || typeof body.payment_id === 'number'
+      ? String(body.payment_id)
+      : null;
+  if (!paymentId) return { handled: false };
+
+  const status = mapNowPaymentsStatus(body.payment_status);
+  const txHash =
+    typeof body.payin_hash === 'string' && body.payin_hash.length > 0
+      ? body.payin_hash
+      : null;
+
+  return settleDeposit({
+    provider: NOWPAYMENTS_PROVIDER,
+    paymentId,
+    status,
+    txHash,
+    // Credit the invoiced USD price; see the note above.
+    creditOverride: null,
+  });
+}
+
 export async function handleWebhook(
   body: Record<string, unknown>
 ): Promise<WebhookResult> {
@@ -350,15 +480,9 @@ async function handleDepositWebhook(
   txHash: string | null,
   body: Record<string, unknown>
 ): Promise<WebhookResult> {
-  const payment = await prisma.payment.findUnique({
-    where: { paymentId: uuid },
-    select: { id: true, userId: true, amount: true, transactionId: true },
-  });
-
-  // An unknown invoice is not an error worth retrying — 200 it so the provider
-  // stops redelivering, but do not create a payment we never opened.
-  if (!payment) return { handled: false };
-
+  // Cryptomus prices the invoice in the asset itself and reports what actually
+  // landed, so the received figure — not the invoiced one — is what gets
+  // credited. NOWPayments works the other way round; see handleNowPaymentsIpn.
   const receivedRaw =
     (typeof body.merchant_amount === 'string' && body.merchant_amount) ||
     (typeof body.payment_amount === 'string' && body.payment_amount) ||
@@ -373,6 +497,51 @@ async function handleDepositWebhook(
       received = null;
     }
   }
+
+  return settleDeposit({
+    provider: 'CRYPTOMUS',
+    paymentId: uuid,
+    status,
+    txHash,
+    creditOverride: received,
+  });
+}
+
+interface SettleDepositInput {
+  /** Which gateway is reporting, used for the ledger's fallback txHash. */
+  provider: string;
+  paymentId: string;
+  status: CryptoPaymentStatus;
+  txHash: string | null;
+  /**
+   * Amount to credit instead of the invoiced figure, when the gateway reports
+   * what actually arrived in the ledger's own currency. Null credits
+   * `payment.amount`.
+   */
+  creditOverride: Prisma.Decimal | null;
+}
+
+/**
+ * The one place a confirmed deposit becomes balance, whichever gateway
+ * reported it.
+ *
+ * Idempotency is the `transactionId IS NULL` guard inside the transaction: both
+ * providers retry callbacks until they get a 200, and a redelivery must update
+ * the invoice without crediting a second time.
+ */
+async function settleDeposit(input: SettleDepositInput): Promise<WebhookResult> {
+  const { paymentId, status, txHash } = input;
+
+  const payment = await prisma.payment.findUnique({
+    where: { paymentId },
+    select: { id: true, userId: true, amount: true, transactionId: true },
+  });
+
+  // An unknown invoice is not an error worth retrying — 200 it so the provider
+  // stops redelivering, but do not create a payment we never opened.
+  if (!payment) return { handled: false };
+
+  const received = input.creditOverride;
 
   if (!isSettled(status) || payment.transactionId) {
     await prisma.payment.update({
@@ -426,7 +595,9 @@ async function handleDepositWebhook(
         type: TransactionType.DEPOSIT,
         amount: creditAmount,
         status: 'COMPLETED',
-        txHash: txHash ?? `cryptomus:${uuid}`,
+        // Unique per invoice even before a chain hash exists, so the ledger's
+        // unique txHash still blocks a double credit.
+        txHash: txHash ?? `${input.provider.toLowerCase()}:${paymentId}`,
       },
       select: { id: true },
     });
@@ -490,6 +661,12 @@ export interface CreateWithdrawalInput {
 }
 
 export interface CreateWithdrawalResult {
+  /**
+   * True when no payout gateway was configured and the request is waiting on an
+   * operator. The funds are reserved either way; this only tells the client
+   * whether a machine or a human is going to send them.
+   */
+  review?: boolean;
   withdrawalId: string;
   status: CryptoPaymentStatus;
   amount: string;
@@ -502,6 +679,63 @@ interface CryptomusPayout {
   uuid: string;
   status?: string;
   txid?: string | null;
+}
+
+/**
+ * Hands a reserved withdrawal to NOWPayments Mass Payouts.
+ *
+ * A created batch is "accepted", not "sent" — NOWPayments holds it for 2FA
+ * verification — so the row stays PENDING and only moves on when the payout
+ * callback says so. If the gateway refuses the batch outright the hold is
+ * released, because money reserved against a payout that will never happen is
+ * money quietly taken from the player.
+ */
+async function dispatchNowPaymentsPayout(
+  input: CreateWithdrawalInput,
+  amount: Prisma.Decimal,
+  withdrawalId: string,
+  reserved: { transactionId: string; balance: string }
+): Promise<CreateWithdrawalResult> {
+  try {
+    const batch = await createPayout([
+      {
+        address: input.address,
+        currency: payCurrencyFor(input.currency),
+        amount: amount.toFixed(8),
+      },
+    ]);
+
+    const leg = batch.withdrawals?.[0];
+    const updated = await prisma.withdrawal.update({
+      where: { id: withdrawalId },
+      data: {
+        provider: NOWPAYMENTS_PROVIDER,
+        paymentId: leg?.id ?? batch.id,
+        status: mapNowPaymentsStatus(leg?.status),
+        ...(leg?.hash ? { txHash: leg.hash } : {}),
+      },
+      select: { id: true, status: true },
+    });
+
+    return {
+      withdrawalId: updated.id,
+      status: updated.status,
+      amount: amount.toFixed(8),
+      currency: input.currency,
+      address: input.address,
+      balance: reserved.balance,
+    };
+  } catch (err) {
+    await prisma.withdrawal.update({
+      where: { id: withdrawalId },
+      data: { status: 'FAILED' },
+    });
+    await rejectWithdrawal({
+      transactionId: reserved.transactionId,
+      auditWithin: async () => undefined,
+    }).catch(() => undefined);
+    throw err;
+  }
 }
 
 export async function createWithdrawal(
@@ -534,6 +768,39 @@ export async function createWithdrawal(
     },
     select: { id: true },
   });
+
+  // ── Dispatch ──
+  //
+  // Three outcomes, in order of preference. The important one is the last:
+  // with no payout gateway configured, the request is *queued*, not refused.
+  // The funds are already reserved and the row is already PENDING, so an
+  // operator can settle it from the admin queue — failing here instead would
+  // mean a platform that takes deposits and cannot pay anyone out.
+  if (isPayoutConfigured()) {
+    return dispatchNowPaymentsPayout(input, amount, record.id, reserved);
+  }
+
+  if (!config.cryptomus.merchantId || !config.cryptomus.payoutApiKey) {
+    // Plan B: no gateway can send this, so an operator will. The funds stay
+    // reserved (the ledger row is a PENDING WITHDRAWAL) and the request is
+    // marked so it surfaces in the admin queue as needing a human, not as a
+    // payout a provider is already working on.
+    const queued = await prisma.withdrawal.update({
+      where: { id: record.id },
+      data: { provider: MANUAL_PROVIDER, status: 'PENDING_ADMIN_REVIEW' },
+      select: { id: true, status: true },
+    });
+
+    return {
+      withdrawalId: queued.id,
+      status: queued.status,
+      amount: amount.toFixed(8),
+      currency: input.currency,
+      address: input.address,
+      balance: reserved.balance,
+      review: true,
+    };
+  }
 
   let payout: CryptomusPayout;
   try {
@@ -583,129 +850,6 @@ export async function createWithdrawal(
     currency: input.currency,
     address: input.address,
     balance: reserved.balance,
-  };
-}
-
-export async function mockDeposit(input: {
-  userId: string;
-  amount: string;
-  currency?: SupportedCurrency;
-}): Promise<{ amount: string; balance: string; paymentId: string }> {
-  const amount = new D(input.amount);
-  if (!amount.isFinite() || amount.lessThanOrEqualTo(0)) {
-    throw new Error('payment: mock deposit amount must be positive');
-  }
-
-  const account = await prisma.user.findUnique({
-    where: { id: input.userId },
-    select: { frozen: true },
-  });
-  if (!account) throw new WalletNotFoundError();
-  if (account.frozen) throw new AccountFrozenError();
-
-  // `sandbox:` prefix keeps these obvious in the ledger and guarantees the
-  // uuid can never collide with a real Cryptomus one.
-  const paymentId = `sandbox:${randomUUID()}`;
-
-  return prisma.$transaction(async (tx) => {
-    const wallet = await tx.wallet.upsert({
-      where: {
-        userId_currency: { userId: input.userId, currency: LEDGER_CURRENCY },
-      },
-      update: {},
-      create: {
-        userId: input.userId,
-        currency: LEDGER_CURRENCY,
-        balance: new D(0),
-      },
-      select: { id: true },
-    });
-
-    const updated = await tx.wallet.update({
-      where: { id: wallet.id },
-      data: { balance: { increment: amount } },
-      select: { balance: true },
-    });
-
-    const ledgerRow = await tx.transaction.create({
-      data: {
-        walletId: wallet.id,
-        type: TransactionType.DEPOSIT,
-        amount,
-        status: 'COMPLETED',
-        txHash: paymentId,
-      },
-      select: { id: true },
-    });
-
-    await tx.payment.create({
-      data: {
-        userId: input.userId,
-        amount,
-        currency: input.currency ?? 'USDT',
-        status: 'PAID',
-        paymentId,
-        paidAmount: amount,
-        transactionId: ledgerRow.id,
-      },
-    });
-
-    return {
-      amount: amount.toFixed(8),
-      balance: updated.balance.toString(),
-      paymentId,
-    };
-  });
-}
-
-export async function mockWithdraw(input: {
-  userId: string;
-  amount: string;
-  currency?: SupportedCurrency;
-  address?: string;
-}): Promise<{ amount: string; balance: string; withdrawalId: string }> {
-  const amount = new D(input.amount);
-  if (!amount.isFinite() || amount.lessThanOrEqualTo(0)) {
-    throw new Error('payment: mock withdrawal amount must be positive');
-  }
-
-  // Reserving through the ledger gives the frozen-account and insufficient-
-  // funds checks for free, and yields the Transaction row to settle below.
-  const reserved = await requestWithdrawal({
-    userId: input.userId,
-    amount: amount.toFixed(8),
-    currency: LEDGER_CURRENCY,
-  });
-
-  const paymentId = `sandbox:${randomUUID()}`;
-
-  const record = await prisma.$transaction(async (tx) => {
-    // The funds are already debited; settle the hold so it does not linger in
-    // the admin approval queue as a payout that will never be sent.
-    await tx.transaction.updateMany({
-      where: { id: reserved.transactionId, status: 'PENDING' },
-      data: { status: 'COMPLETED' },
-    });
-
-    return tx.withdrawal.create({
-      data: {
-        userId: input.userId,
-        amount,
-        currency: input.currency ?? 'USDT',
-        status: 'CONFIRMED',
-        address: input.address ?? 'sandbox-address',
-        paymentId,
-        txHash: paymentId,
-        transactionId: reserved.transactionId,
-      },
-      select: { id: true },
-    });
-  });
-
-  return {
-    amount: amount.toFixed(8),
-    balance: reserved.balance,
-    withdrawalId: record.id,
   };
 }
 

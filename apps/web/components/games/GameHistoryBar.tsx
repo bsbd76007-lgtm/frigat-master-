@@ -6,6 +6,7 @@ import type { GameType } from '@frigat/shared/types';
 
 import { formatDecimalString, isDecimalString } from '@/lib/decimal';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
+
 export interface GameHistoryEntry {
   id: string;
   multiplier: number;
@@ -52,12 +53,12 @@ const CSS = `
   animation: fg-hist-in .18s ease-out; }
 .fg-hist__badge--button { cursor: pointer; transition: transform .12s ease, filter .12s ease; }
 .fg-hist__badge--button:hover { transform: translateY(-1px); filter: brightness(1.15); }
-.fg-hist__badge--button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0,231,1,.35); }
+.fg-hist__badge--button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11,.35); }
 .fg-hist__badge--bust { background: rgba(240,97,109,.14); border-color: rgba(240,97,109,.32); color: var(--fg-red); }
 .fg-hist__badge--partial { background: rgba(240,146,97,.13); border-color: rgba(240,146,97,.3); color: #f09261; }
 .fg-hist__badge--low { background: rgba(139,151,166,.14); border-color: rgba(139,151,166,.3); color: var(--fg-text); }
-.fg-hist__badge--mid { background: rgba(0,231,1,.14); border-color: rgba(0,231,1,.32); color: var(--fg-accent); }
-.fg-hist__badge--high { background: rgba(245,184,61,.16); border-color: rgba(245,184,61,.36); color: #f5b83d; }
+.fg-hist__badge--mid { background: rgba(245, 158, 11,.14); border-color: rgba(245, 158, 11,.32); color: var(--fg-accent); }
+.fg-hist__badge--high { background: rgba(217, 164, 65,.16); border-color: rgba(217, 164, 65,.36); color: #d9a441; }
 .fg-hist__empty { font-size: 12.5px; color: var(--fg-dim); }
 @keyframes fg-hist-in { from { opacity: 0; transform: translateX(-6px) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) {

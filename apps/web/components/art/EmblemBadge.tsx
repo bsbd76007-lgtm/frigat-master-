@@ -36,7 +36,7 @@ export function EmblemBadge({
       <defs>
         <linearGradient id={neon} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#ffe600" />
-          <stop offset="100%" stopColor="#00e701" />
+          <stop offset="100%" stopColor="#f59e0b" />
         </linearGradient>
         <filter id={glow} x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur stdDeviation="1.4" result="b" />

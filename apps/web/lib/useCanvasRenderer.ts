@@ -12,6 +12,12 @@ export interface CanvasFrame {
 
 export interface UseCanvasRendererOptions {
   animate?: boolean;
+  /**
+   * Cap on the backing-store scale. The backing store is always sized at
+   * `min(devicePixelRatio, maxPixelRatio)` so drawing stays crisp on retina and
+   * fractional-scaling displays; the cap keeps the fill rate sane on very high
+   * ratios. Raise it for boards whose sprites are drawn as vector paths.
+   */
   maxPixelRatio?: number;
 }
 
@@ -79,6 +85,11 @@ export function useCanvasRenderer(
       if (size) {
         const scale = canvas.width / size.width;
         ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        // Draw calls are issued in CSS pixels and resolved at the backing-store
+        // resolution; smoothing keeps any bitmap a board blits look clean
+        // instead of blocky when the ratio is not a whole number.
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.clearRect(0, 0, size.width, size.height);
         drawRef.current({
           ctx,

@@ -46,7 +46,9 @@ export type GameEngineType =
   | 'DICE'
   | 'LIMBO'
   | 'KENO'
-  | 'CHICKEN';
+  | 'CHICKEN'
+  | 'SLOTS'
+  | 'AVIA';
 
 export const CATALOGUE: readonly CatalogueEntry[] = [
   {
@@ -85,6 +87,18 @@ export const CATALOGUE: readonly CatalogueEntry[] = [
     slug: 'chicken',
     engine: 'CHICKEN',
     categories: ['new', 'instant', 'jackpots'],
+    badge: 'new',
+  },
+  {
+    slug: 'slots',
+    engine: 'SLOTS',
+    categories: ['new', 'slots', 'top'],
+    badge: 'new',
+  },
+  {
+    slug: 'avia-masters',
+    engine: 'AVIA',
+    categories: ['new', 'instant', 'gravity'],
     badge: 'new',
   },
 ] as const;

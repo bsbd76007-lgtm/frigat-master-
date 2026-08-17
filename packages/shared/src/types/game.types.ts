@@ -6,7 +6,8 @@ export type GameType =
   | 'PLINKO'
   | 'DICE'
   | 'LIMBO'
-  | 'KENO';
+  | 'KENO'
+  | 'SLOTS';
 
 export type UserRole = 'USER' | 'ADMIN';
 

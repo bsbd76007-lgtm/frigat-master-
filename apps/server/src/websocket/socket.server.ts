@@ -51,19 +51,78 @@ const sockets = new Set<WebSocket>();
 const connectionMeta = new Map<WebSocket, {
   userId: string;
   username: string;
+  role: 'USER' | 'ADMIN';
   rooms: Set<string>;
+  /** Cleared before each ping, set again by the client's pong. */
+  alive: boolean;
 }>();
+
+/**
+ * How often to ping every socket. A client that has not ponged since the
+ * previous sweep is treated as gone.
+ *
+ * Without this, presence only ever grows. `ws` raises 'close' on a clean
+ * disconnect or a TCP reset the OS actually notices — a slept laptop, a
+ * dropped wifi link or a phone switching networks leaves the socket
+ * half-open, and the entry would sit in `connectionMeta` until TCP keepalive
+ * expires, which is measured in hours.
+ */
+const HEARTBEAT_MS = 30_000;
 
 const roomMembers = new Map<string, Set<WebSocket>>();
 
 export function activeSocketCount(): number {
-  return sockets.size;
+  let open = 0;
+  for (const ws of sockets) if (ws.readyState === ws.OPEN) open += 1;
+  return open;
 }
 
+/**
+ * Unique signed-in players, not raw connections: a user with three tabs open
+ * holds three sockets and counts once. Derived from live state on every read
+ * rather than kept as a running total, so it cannot drift out of step with
+ * reality and cannot go negative.
+ *
+ * A socket mid-close still sits in the map until its 'close' event lands, so
+ * only OPEN ones are counted.
+ */
 export function onlinePlayerCount(): number {
   const players = new Set<string>();
-  for (const meta of connectionMeta.values()) players.add(meta.userId);
+  for (const [ws, meta] of connectionMeta) {
+    if (ws.readyState === ws.OPEN) players.add(meta.userId);
+  }
   return players.size;
+}
+
+/**
+ * Forgets a connection. Idempotent — 'close', 'error' and the heartbeat can
+ * all reach the same socket, and a user stays online until their last one
+ * goes, because presence is derived from what remains here.
+ */
+function releaseSocket(ws: WebSocket) {
+  sockets.delete(ws);
+  leaveAllRooms(ws);
+  connectionMeta.delete(ws);
+}
+
+/**
+ * Delivers a support frame to the ticket's owner and to every signed-in admin.
+ *
+ * Two audiences, one call: the player watching their own thread, and whichever
+ * admins have the queue open. A guest ticket has no userId, so it reaches the
+ * admin side only — there is no socket to deliver it to until they sign in.
+ */
+export function pushSupportEvent(
+  type: 'SUPPORT_MESSAGE' | 'SUPPORT_TICKET',
+  data: Record<string, unknown>,
+  ownerUserId?: string | null
+) {
+  const payload = JSON.stringify({ type, data });
+  for (const [ws, meta] of connectionMeta) {
+    if (ws.readyState !== ws.OPEN) continue;
+    const isOwner = ownerUserId != null && meta.userId === ownerUserId;
+    if (isOwner || meta.role === 'ADMIN') ws.send(payload);
+  }
 }
 
 export function pushBalanceToUser(userId: string, balance: string) {
@@ -138,11 +197,6 @@ function userLabel(email: string): string {
   return prefix.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20) || 'player';
 }
 
-function randomDecimal(min: number, max: number): string {
-  const value = Math.random() * (max - min) + min;
-  return new Prisma.Decimal(value).toFixed(8);
-}
-
 /**
  * Crash rounds are per-player, so every frame is addressed to the one player
  * who owns the round — a tick is not a broadcast. `settleCrashBust` runs when
@@ -210,50 +264,6 @@ async function broadcastLiveBet(event: {
     ...event,
     timestamp: Date.now(),
   });
-}
-
-const RAIN_INTERVAL_MS = 5 * 60 * 1000;
-const RAIN_BONUSES = ['0.5', '1', '2'];
-
-function randomRainBonus(): string {
-  return RAIN_BONUSES[Math.floor(Math.random() * RAIN_BONUSES.length)];
-}
-
-function chooseRandomSocket(): WebSocket | null {
-  const list = Array.from(sockets).filter((socket) => socket.readyState === socket.OPEN);
-  if (list.length === 0) return null;
-  return list[Math.floor(Math.random() * list.length)];
-}
-
-function startRainBot() {
-  setInterval(async () => {
-    const ws = chooseRandomSocket();
-    if (!ws) return;
-    const meta = connectionMeta.get(ws);
-    if (!meta) return;
-
-    const amount = randomRainBonus();
-    try {
-      const result = await awardBonus({
-        userId: meta.userId,
-        amount,
-      });
-
-      send(ws, {
-        type: 'BALANCE',
-        data: { balance: result.balance },
-      });
-
-      broadcastAll('CHAT_MESSAGE', {
-        room: 'ENG',
-        author: 'RainBot',
-        text: `RainBot dropped ${amount} USD to ${meta.username}!`,
-        timestamp: Date.now(),
-      });
-    } catch {
-      return;
-    }
-  }, RAIN_INTERVAL_MS);
 }
 
 async function handleChat(ws: WebSocket, userId: string, username: string, payload: Record<string, unknown>) {
@@ -982,8 +992,20 @@ export function registerSocketServer(app: FastifyInstance) {
     connectionMeta.set(ws, {
       userId: identity.userId,
       username: publicHandle(identity.userId),
+      role: identity.role === 'ADMIN' ? 'ADMIN' : 'USER',
       rooms: new Set(),
+      alive: true,
     });
+
+    // The client's reply to our ping is the only proof it is still there.
+    ws.on('pong', () => {
+      const meta = connectionMeta.get(ws);
+      if (meta) meta.alive = true;
+    });
+
+    // An errored socket does not always reach 'close'; releasing here keeps a
+    // broken connection from being counted as a player forever.
+    ws.on('error', () => releaseSocket(ws));
 
     prisma.user
       .findUnique({
@@ -1048,14 +1070,43 @@ export function registerSocketServer(app: FastifyInstance) {
       }
     });
 
-    ws.on('close', () => {
-      sockets.delete(ws);
-      leaveAllRooms(ws);
-      connectionMeta.delete(ws);
-    });
+    ws.on('close', () => releaseSocket(ws));
   });
+
+  /**
+   * Liveness sweep. Any socket that has not ponged since the last pass is
+   * assumed gone and terminated; `terminate` raises 'close', so the ordinary
+   * cleanup path runs and the player leaves the presence count as soon as
+   * their last connection does.
+   */
+  const heartbeat = setInterval(() => {
+    for (const ws of sockets) {
+      const meta = connectionMeta.get(ws);
+      if (!meta || ws.readyState !== ws.OPEN) {
+        releaseSocket(ws);
+        continue;
+      }
+      if (!meta.alive) {
+        releaseSocket(ws);
+        ws.terminate();
+        continue;
+      }
+      meta.alive = false;
+      try {
+        ws.ping();
+      } catch {
+        releaseSocket(ws);
+        ws.terminate();
+      }
+    }
+  }, HEARTBEAT_MS);
+  // Node would hold the process open for this timer alone otherwise.
+  heartbeat.unref?.();
 
   // No round loop is started here. Crash rounds are per-player and begin only
   // when that player sends BET; an idle server runs no crash timers at all.
-  app.addHook('onClose', async () => crashManager.stopAll());
+  app.addHook('onClose', async () => {
+    clearInterval(heartbeat);
+    crashManager.stopAll();
+  });
 }

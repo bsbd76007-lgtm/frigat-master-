@@ -32,7 +32,7 @@ export function KenoIcon({ size = 40, title, ...rest }: GameIconProps) {
       <defs>
         <radialGradient id={lit} cx="35%" cy="30%" r="70%">
           <stop offset="0%" stopColor="#fff6d8" />
-          <stop offset="45%" stopColor="#00e701" />
+          <stop offset="45%" stopColor="#f59e0b" />
           <stop offset="100%" stopColor="#0f8a68" />
         </radialGradient>
         <radialGradient id={flat} cx="35%" cy="30%" r="70%">
@@ -64,7 +64,7 @@ export function KenoIcon({ size = 40, title, ...rest }: GameIconProps) {
             cy={b.cy}
             r={b.r}
             fill="none"
-            stroke={b.lit ? '#7ef7d4' : '#39485c'}
+            stroke={b.lit ? '#7fb8a6' : '#39485c'}
             strokeWidth="1"
             opacity=".7"
           />

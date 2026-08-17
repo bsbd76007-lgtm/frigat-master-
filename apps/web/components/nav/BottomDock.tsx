@@ -10,6 +10,7 @@ import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { DOCK_ITEMS, type DockItem } from '@/lib/navigation';
 import { openPanel } from '@/lib/appPanels';
 import type { GameCategory } from '@/lib/gameCatalogue';
+
 interface BottomDockProps {
   category?: GameCategory;
   onCategoryChange?: (next: GameCategory) => void;
@@ -26,12 +27,11 @@ export function BottomDock({ category, onCategoryChange }: BottomDockProps) {
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
 
-  const activeIndex = onHome
-    ? Math.max(
-        0,
-        DOCK_ITEMS.findIndex((item) => item.category && item.category === category)
-      )
-    : -1;
+  // A route-backed item is active when that route is open; a filter-backed
+  // one only while the home grid is actually showing its category.
+  const activeIndex = DOCK_ITEMS.findIndex((item) =>
+    item.href ? pathname === item.href : onHome && item.category === category
+  );
 
   const measure = useCallback(() => {
     const el = activeIndex >= 0 ? itemRefs.current[activeIndex] : null;
@@ -57,6 +57,10 @@ export function BottomDock({ category, onCategoryChange }: BottomDockProps) {
   const activate = (item: DockItem) => {
     if (item.panel) {
       openPanel(item.panel);
+      return;
+    }
+    if (item.href) {
+      router.push(item.href);
       return;
     }
     if (!item.category) return;

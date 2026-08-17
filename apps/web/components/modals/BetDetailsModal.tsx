@@ -9,6 +9,7 @@ import { GAME_ICONS } from '@/components/icons';
 import { apiFetch } from '@/lib/api';
 import { gameHref, gameIdentity } from '@/lib/gameIdentity';
 import {
+
   betProfit,
   formatBetTimestamp,
   formatMultiplier,

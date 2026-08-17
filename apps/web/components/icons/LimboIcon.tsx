@@ -20,12 +20,12 @@ export function LimboIcon({ size = 40, title, ...rest }: GameIconProps) {
       {title && <title>{title}</title>}
       <defs>
         <linearGradient id={trail} x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stopColor="#f5b83d" stopOpacity="0" />
-          <stop offset="100%" stopColor="#f5b83d" stopOpacity=".8" />
+          <stop offset="0%" stopColor="#d9a441" stopOpacity="0" />
+          <stop offset="100%" stopColor="#d9a441" stopOpacity=".8" />
         </linearGradient>
         <radialGradient id={orb} cx="40%" cy="35%" r="65%">
           <stop offset="0%" stopColor="#fff6d8" />
-          <stop offset="45%" stopColor="#f5b83d" />
+          <stop offset="45%" stopColor="#d9a441" />
           <stop offset="100%" stopColor="#c97f12" />
         </radialGradient>
         <filter id={glow} x="-60%" y="-60%" width="220%" height="220%">
@@ -87,7 +87,7 @@ export function LimboIcon({ size = 40, title, ...rest }: GameIconProps) {
       {/* "x" multiplier mark trailing the orb. */}
       <path
         d="M27 22.5l3.2 3.2m0-3.2-3.2 3.2"
-        stroke="#f5b83d"
+        stroke="#d9a441"
         strokeWidth="1.6"
         strokeLinecap="round"
         opacity=".85"

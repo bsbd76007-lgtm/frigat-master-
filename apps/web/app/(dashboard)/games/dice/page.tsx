@@ -5,12 +5,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 type Direction = 'OVER' | 'UNDER';
 
 const DICE_EDGE = 0.01;
 
 export default function DicePage() {
   const { socket, balance, send } = useGameSocket();
+  const { t } = useLanguage();
   const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
@@ -45,8 +48,8 @@ export default function DicePage() {
   return (
     <GameShell
       gameType="DICE"
-      title="Dice"
-      subtitle="Roll under or over your target"
+      title={t('games.dice.name')}
+      subtitle={t('games.dice.subtitle')}
       stage={
         <div className="stage__center">
           <div style={{ width: '100%', maxWidth: 460 }}>
@@ -90,7 +93,7 @@ export default function DicePage() {
       panel={
         <>
           <div className="opt">
-            <span className="opt__label">Direction</span>
+            <span className="opt__label">{t('game.direction')}</span>
             <div className="opt__row">
               {(['UNDER', 'OVER'] as const).map((option) => (
                 <button
@@ -126,11 +129,11 @@ export default function DicePage() {
 
           <div className="opt">
             <div className="opt__stat">
-              <span>Win chance</span>
+              <span>{t('game.winChance')}</span>
               <b>{winChance.toFixed(2)}%</b>
             </div>
             <div className="opt__stat">
-              <span>Payout</span>
+              <span>{t('game.payout')}</span>
               <b>{quote.toFixed(2)}×</b>
             </div>
           </div>
@@ -151,7 +154,7 @@ export default function DicePage() {
               });
             }}
             busy={busy}
-            betLabel="Roll"
+            betLabel={t('game.roll')}
           />
         </>
       }

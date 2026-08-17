@@ -13,6 +13,13 @@ export {
   KENO_DRAW_COUNT,
   KENO_MAX_PICKS,
   KENO_PAYTABLE,
+  SLOTS_REELS,
+  SLOTS_ROWS,
+  SLOTS_SYMBOLS,
+  SLOTS_WEIGHTS,
+  SLOTS_PAYTABLE,
+  SLOTS_PAYLINES,
+  SLOTS_PAYLINE_NAMES,
 } from '@frigat/shared';
 
 export const HOUSE_EDGE: Record<GameType, number> = {
@@ -24,6 +31,9 @@ export const HOUSE_EDGE: Record<GameType, number> = {
   DICE: 0.01,
   LIMBO: 0.01,
   KENO: 0.02,
+  // Slots take their edge from the paytable itself rather than a multiplier
+  // haircut, so this is the *target* the RTP self-test asserts against.
+  SLOTS: 0.04,
 };
 
 export const ROULETTE_PAYOUTS = {

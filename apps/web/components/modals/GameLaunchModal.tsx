@@ -36,6 +36,7 @@ import { GAME_ICONS } from '@/components/icons';
 import { useGameRtp } from '@/hooks/useGameRtp';
 import { openPanel } from '@/lib/appPanels';
 import type { CatalogueEntry, GameCategory } from '@/lib/gameCatalogue';
+
 interface GameLaunchModalProps {
   entry: CatalogueEntry | null;
   category: GameCategory;

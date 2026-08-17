@@ -1,35 +1,38 @@
 /**
- * FRIGAT — Cryptomus payment routes
+ * FRIGAT — Payment routes
  *
- *   POST /api/payments/deposit    open an invoice        (player JWT)
- *   POST /api/payments/withdraw   request a payout       (player JWT)
- *   POST /api/payments/webhook    provider status update (MD5 signature)
- *   GET  /api/payments/history    own deposits/withdrawals (player JWT)
- *   GET  /api/payments/config     whether sandbox mode is offered
+ *   POST /api/payments/deposit              open an invoice          (player JWT)
+ *   POST /api/payments/withdraw             request a payout         (player JWT)
+ *   POST /api/payments/webhook              Cryptomus status update  (MD5 sign)
+ *   POST /api/payments/nowpayments/webhook  NOWPayments IPN          (HMAC-SHA512)
+ *   GET  /api/payments/history              own deposits/withdrawals (player JWT)
+ *   GET  /api/payments/config               supported deposit currencies
  *
- * Outside production only:
- *   POST /api/payments/mock-deposit   credit own balance, no gateway (player JWT)
- *   POST /api/payments/mock-withdraw  debit own balance, no gateway  (player JWT)
+ * Deposits open against whichever gateway `config.paymentsProvider` names, but
+ * BOTH callbacks stay registered: invoices opened before a provider switch must
+ * still be able to settle from the gateway that created them.
  *
- * The webhook is deliberately unauthenticated in the JWT sense — Cryptomus has
- * no session and cannot present one. Its signature *is* the credential, and it
- * is checked before the body is trusted for anything.
+ * Both webhooks are deliberately unauthenticated in the JWT sense — a payment
+ * gateway has no session and cannot present one. The signature *is* the
+ * credential, and it is checked before the body is trusted for anything.
  */
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { config } from '../config';
+import {
+  NowPaymentsError,
+  verifyIpnSignature,
+} from '../services/nowpayments.service';
 import { identityFromRequest } from '../http/auth';
 import { pushBalanceToUser } from '../websocket/socket.server';
 import {
   createDeposit,
   createWithdrawal,
   handleWebhook,
+  handleNowPaymentsIpn,
   isSupportedCurrency,
   listDeposits,
   listWithdrawals,
-  mockDeposit,
-  mockWithdraw,
   SUPPORTED_CURRENCIES,
   AccountFrozenError,
   InsufficientFundsError,
@@ -39,7 +42,6 @@ import {
   WalletNotFoundError,
 } from '../services/payment.service';
 
-const MOCK_MAX_AMOUNT = 10_000;
 
 /** Positive decimal with at most 8 fraction digits, matching Decimal(18, 8). */
 const AMOUNT_PATTERN = /^\d{1,10}(\.\d{1,8})?$/;
@@ -120,13 +122,41 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     }
 
     try {
-      return await createWithdrawal({
+      const result = await createWithdrawal({
         userId: identity.userId,
         amount,
         currency,
         address,
         network,
       });
+
+      // The stake is already reserved, so the header must stop showing money
+      // the player can no longer spend. The socket frame is what useBalance
+      // listens to — returning the balance in this body alone would leave the
+      // header stale until the next game event.
+      pushBalanceToUser(identity.userId, result.balance);
+      req.log.info(
+        {
+          userId: identity.userId,
+          withdrawalId: result.withdrawalId,
+          amount: result.amount,
+          awaitingReview: result.review === true,
+        },
+        result.review
+          ? 'withdrawal reserved and queued for admin review'
+          : 'withdrawal reserved and dispatched'
+      );
+
+      return {
+        success: true,
+        message: result.review
+          ? 'Withdrawal request submitted for review.'
+          : 'Withdrawal request submitted.',
+        // The details stay on the response: the modal shows the reserved amount
+        // and the balance left, and a client that only reads `success` is free
+        // to ignore them.
+        ...result,
+      };
     } catch (err) {
       return replyForPaymentError(err, reply, req);
     }
@@ -178,22 +208,59 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     }
   );
 
-  // ── Sandbox endpoints ──
+  // ── NOWPayments IPN ──
   //
-  // Registered only outside production. These credit and debit real balances
-  // with no gateway and no verification, so in production they must not exist
-  // as routes at all — a 404 is the only safe behaviour for an endpoint that
-  // mints money.
-  if (config.mockPaymentsEnabled) {
-    registerMockRoutes(app);
-    app.log.warn(
-      'sandbox payment endpoints are ENABLED (NODE_ENV is not production) — ' +
-        '/api/payments/mock-deposit and /api/payments/mock-withdraw credit real balances'
-    );
-  }
+  // Separate from the Cryptomus webhook above because the two sign differently:
+  // Cryptomus puts a `sign` field in the body, NOWPayments sends an HMAC-SHA512
+  // of the sorted body in `x-nowpayments-sig`. One route trying to guess which
+  // scheme applies is a route that can be talked into checking the weaker one.
+  app.post<{ Body: Record<string, unknown> }>(
+    '/api/payments/nowpayments/webhook',
+    async (req, reply) => {
+      const body = req.body;
+      if (!body || typeof body !== 'object') {
+        return reply.code(400).send({ error: 'invalid_body' });
+      }
+
+      let authentic: boolean;
+      try {
+        authentic = verifyIpnSignature(body, req.headers['x-nowpayments-sig']);
+      } catch (err) {
+        req.log.error({ err }, 'NOWPayments IPN received but no IPN secret is configured');
+        return reply.code(503).send({ error: 'payments_unavailable' });
+      }
+
+      if (!authentic) {
+        req.log.warn({ ip: req.ip }, 'rejected NOWPayments IPN with bad signature');
+        return reply.code(403).send({ error: 'invalid_signature' });
+      }
+
+      try {
+        const result = await handleNowPaymentsIpn(body);
+
+        if (result.credited) {
+          pushBalanceToUser(result.credited.userId, result.credited.balance);
+          req.log.info(
+            { userId: result.credited.userId, amount: result.credited.amount },
+            'deposit credited (nowpayments)'
+          );
+        }
+
+        return reply.code(200).send({ received: true, handled: result.handled });
+      } catch (err) {
+        // 500 so NOWPayments redelivers rather than dropping a paid deposit.
+        req.log.error({ err }, 'NOWPayments IPN processing failed');
+        return reply.code(500).send({ error: 'webhook_processing_failed' });
+      }
+    }
+  );
+
+  // There are deliberately NO sandbox endpoints. Balances move only through a
+  // verified gateway callback or an audited admin adjustment; an endpoint that
+  // mints money on request is indistinguishable from a bug once it exists, and
+  // gating it on NODE_ENV only moves the mistake one deploy away.
 
   app.get('/api/payments/config', async () => ({
-    sandbox: config.mockPaymentsEnabled,
     currencies: SUPPORTED_CURRENCIES,
   }));
 
@@ -210,84 +277,6 @@ export function registerPaymentRoutes(app: FastifyInstance) {
   });
 }
 
-function registerMockRoutes(app: FastifyInstance) {
-  app.post<{ Body: { amount?: string; currency?: string } }>(
-    '/api/payments/mock-deposit',
-    async (req, reply) => {
-      const identity = identityFromRequest(req);
-      if (!identity) return reply.code(401).send({ error: 'unauthorized' });
-
-      const amount = req.body?.amount ?? '50';
-      const currency = req.body?.currency;
-
-      if (!isValidAmount(amount)) {
-        return reply.code(400).send({ error: 'amount must be a positive decimal string' });
-      }
-      if (Number(amount) > MOCK_MAX_AMOUNT) {
-        return reply
-          .code(400)
-          .send({ error: 'amount_too_large', max: String(MOCK_MAX_AMOUNT) });
-      }
-      if (currency !== undefined && !isSupportedCurrency(currency)) {
-        return reply.code(400).send({ error: 'unsupported_currency' });
-      }
-
-      try {
-        const result = await mockDeposit({
-          userId: identity.userId,
-          amount,
-          currency,
-        });
-
-        pushBalanceToUser(identity.userId, result.balance);
-        req.log.info(
-          { userId: identity.userId, amount: result.amount },
-          'sandbox deposit credited'
-        );
-
-        return { sandbox: true, ...result };
-      } catch (err) {
-        return replyForPaymentError(err, reply, req);
-      }
-    }
-  );
-
-  app.post<{ Body: { amount?: string; currency?: string; address?: string } }>(
-    '/api/payments/mock-withdraw',
-    async (req, reply) => {
-      const identity = identityFromRequest(req);
-      if (!identity) return reply.code(401).send({ error: 'unauthorized' });
-
-      const { amount, currency, address } = req.body ?? {};
-
-      if (!isValidAmount(amount)) {
-        return reply.code(400).send({ error: 'amount must be a positive decimal string' });
-      }
-      if (currency !== undefined && !isSupportedCurrency(currency)) {
-        return reply.code(400).send({ error: 'unsupported_currency' });
-      }
-
-      try {
-        const result = await mockWithdraw({
-          userId: identity.userId,
-          amount,
-          currency,
-          address: typeof address === 'string' ? address : undefined,
-        });
-
-        pushBalanceToUser(identity.userId, result.balance);
-        req.log.info(
-          { userId: identity.userId, amount: result.amount },
-          'sandbox withdrawal settled'
-        );
-
-        return { sandbox: true, ...result };
-      } catch (err) {
-        return replyForPaymentError(err, reply, req);
-      }
-    }
-  );
-}
 
 function replyForPaymentError(
   err: unknown,
@@ -309,6 +298,19 @@ function replyForPaymentError(
   }
   if (err instanceof PaymentProviderError) {
     req.log.error({ err }, 'cryptomus request failed');
+    return reply.code(502).send({ error: 'provider_error', detail: err.message });
+  }
+  if (err instanceof NowPaymentsError) {
+    // A credential or account problem at the gateway is ours to fix, not the
+    // player's: log the provider's own wording, but answer with a generic
+    // 503 rather than passing its 401/403 through — a payment gateway
+    // rejecting *our* key must never surface as the player being forbidden.
+    const credentialProblem = err.status === 401 || err.status === 403;
+    if (credentialProblem) {
+      req.log.error({ err }, 'NOWPayments rejected our API key — deposits are down');
+      return reply.code(503).send({ error: 'payments_unavailable' });
+    }
+    req.log.error({ err }, 'nowpayments request failed');
     return reply.code(502).send({ error: 'provider_error', detail: err.message });
   }
   throw err;

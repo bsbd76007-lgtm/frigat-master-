@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { AdminWhoId } from '@/app/admin/AdminGate';
 
 import { writeStoredToken } from '@/lib/token';
+
 const COLLAPSE_KEY = 'frigat.admin.sidebarCollapsed';
 
 export interface AdminNavItem {
@@ -53,6 +54,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         label: 'Transactions',
         icon: '⇄',
         hint: 'Full ledger history',
+      },
+      {
+        href: '/admin/support',
+        label: 'Live Support',
+        icon: '☎',
+        hint: 'Player conversations',
       },
     ],
   },

@@ -15,17 +15,24 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { CurrencyGrid, paymentEndpoint, type CurrencyCode } from '@/components/modals/CurrencyGrid';
+import { RadarLoader } from '@/components/common/RadarLoader';
 
 import { usePaymentConfig } from '@/hooks/usePaymentConfig';
 import { apiJson, ApiError } from '@/lib/api';
 import { encodeQr, qrPath } from '@/lib/qr';
+
 interface DepositInvoice {
   paymentId: string;
+  /** Asset amount to send, in `currency` — converted by the payment provider. */
   amount: string;
   currency: string;
+  /** What that is worth. The field the player typed is this, not the asset. */
+  priceAmount?: string;
+  priceCurrency?: string;
   status: string;
   address: string | null;
   payUrl: string | null;
@@ -34,6 +41,43 @@ interface DepositInvoice {
 }
 
 const AMOUNT_PATTERN = /^\d{1,10}(\.\d{1,8})?$/;
+
+const SESSION_EXPIRED =
+  'Your session has expired. Please log in again to make a deposit.';
+
+/** Grace period before the redirect, so the message can actually be read. */
+const REDIRECT_DELAY_MS = 2500;
+
+/**
+ * Turns the API's error codes into something a player can act on.
+ *
+ * The codes are deliberately kept on the wire — they are stable and greppable
+ * in logs — but showing one raw ("payments_unavailable") tells the player
+ * nothing and reads like a crash. Note that the gateway being misconfigured or
+ * refusing our credentials is *our* problem, so that case says so plainly
+ * rather than implying the player did something wrong.
+ */
+function messageForDepositError(err: unknown): string {
+  if (!(err instanceof ApiError)) {
+    return 'Could not reach the payment service. Please try again.';
+  }
+  switch (err.message) {
+    case 'unauthorized':
+      return SESSION_EXPIRED;
+    case 'payments_unavailable':
+      return 'Deposits are temporarily unavailable — our payment provider is not responding. Nothing was charged; please try again shortly.';
+    case 'provider_error':
+      return 'The payment provider could not open an invoice just now. Please try again in a moment.';
+    case 'account_frozen':
+      return 'This account is frozen. Contact support to deposit.';
+    case 'unsupported_currency':
+      return 'That currency is not supported for deposits.';
+    case 'wallet_not_found':
+      return 'No wallet found for this account yet.';
+    default:
+      return err.message;
+  }
+}
 
 const QUICK_AMOUNTS = ['10', '25', '50', '100'] as const;
 
@@ -78,8 +122,9 @@ function QrCode({ value, label }: { value: string; label: string }) {
 }
 
 export default function DepositModal({ open }: { open: boolean }) {
-  const { balance } = useGameSocket();
-  const paymentConfig = usePaymentConfig();
+  const { balance, setToken } = useGameSocket();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const [currency, setCurrency] = useState<CurrencyCode>('USDT');
   const [amount, setAmount] = useState('25');
@@ -87,9 +132,11 @@ export default function DepositModal({ open }: { open: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<'address' | 'amount' | null>(null);
-  const [mockCredited, setMockCredited] = useState<string | null>(null);
+  /** Set when the API rejects our token, so the panel can offer a way back in. */
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const baselineRef = useRef<string | null>(null);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [credited, setCredited] = useState(false);
 
   const amountValid = useMemo(
@@ -105,8 +152,12 @@ export default function DepositModal({ open }: { open: boolean }) {
     setError(null);
     setCredited(false);
     setCopied(null);
-    setMockCredited(null);
+    setSessionExpired(false);
     baselineRef.current = null;
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
   }, [open]);
 
   useEffect(() => {
@@ -116,6 +167,40 @@ export default function DepositModal({ open }: { open: boolean }) {
     if (current === null || baseline === null) return;
     if (Number(current) > Number(baseline)) setCredited(true);
   }, [balance.balance, invoice, credited]);
+
+  /**
+   * Drops the dead credential and sends the player to sign in again.
+   *
+   * Clearing the token is what actually re-gates the app: the dashboard shell
+   * watches it and swaps in the sign-in gate, so the session cannot linger in a
+   * half-authenticated state where the socket is up but every request 401s.
+   * `next` brings them back to whatever page they were on.
+   */
+  const signOutToLogin = useCallback(
+    (delayMs = 0) => {
+      const target = `/login?next=${encodeURIComponent(pathname || '/')}`;
+      const go = () => {
+        setToken(null);
+        router.push(target);
+      };
+      if (delayMs <= 0) {
+        go();
+        return;
+      }
+      redirectTimerRef.current = setTimeout(go, delayMs);
+    },
+    [pathname, router, setToken]
+  );
+
+  // A pending redirect must not fire after the dialog is gone — the player may
+  // have closed it and carried on, and yanking them to /login then would be
+  // indistinguishable from a random logout.
+  useEffect(
+    () => () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    },
+    []
+  );
 
   const createInvoice = useCallback(async () => {
     if (!amountValid || loading) return;
@@ -131,46 +216,18 @@ export default function DepositModal({ open }: { open: boolean }) {
       baselineRef.current = balance.balance;
       setInvoice(result);
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : 'Could not start the deposit. Please try again.'
-      );
+      setError(messageForDepositError(err));
+      // A 401 here means the stored token is dead, not that the deposit was
+      // bad input. Say so, then hand the player back to the login page rather
+      // than leaving them clicking a button that can only fail.
+      if (err instanceof ApiError && err.status === 401) {
+        setSessionExpired(true);
+        signOutToLogin(REDIRECT_DELAY_MS);
+      }
     } finally {
       setLoading(false);
     }
-  }, [amount, amountValid, currency, loading, balance.balance]);
-
-  // Credits whatever is in the amount field, not a fixed stake — the sandbox
-  // button is there to exercise the real deposit path, which is only useful if
-  // the tester controls the figure. The server re-validates and caps it.
-  const simulateDeposit = useCallback(async () => {
-    if (loading || !amountValid) return;
-    setLoading(true);
-    setError(null);
-    setMockCredited(null);
-
-    try {
-      const result = await apiJson<{ amount: string; balance: string }>(
-        paymentEndpoint('/api/payments/mock-deposit'),
-        {
-          method: 'POST',
-          body: JSON.stringify({ amount, currency }),
-        }
-      );
-      // Echo the server's figure, not the input — it is the amount actually
-      // credited if the backend ever normalises or clamps it.
-      setMockCredited(result.amount);
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : 'Could not simulate the deposit. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [amount, amountValid, currency, loading]);
+  }, [amount, amountValid, currency, loading, balance.balance, signOutToLogin]);
 
   const copy = useCallback(async (text: string, which: 'address' | 'amount') => {
     try {
@@ -192,7 +249,7 @@ export default function DepositModal({ open }: { open: boolean }) {
           </div>
         ) : (
           <div className="wal__banner" role="status">
-            <span className="wal__spinner" aria-hidden="true" />
+            <RadarLoader size={40} label="Waiting for payment" />
             <span>Waiting for payment — this updates itself.</span>
           </div>
         )}
@@ -205,7 +262,12 @@ export default function DepositModal({ open }: { open: boolean }) {
             />
 
             <div className="wal__field">
-              <span className="wal__label">Send exactly</span>
+              <span className="wal__label">
+                Send exactly
+                {invoice.priceAmount
+                  ? ` — worth $${invoice.priceAmount} ${invoice.priceCurrency ?? 'USD'}`
+                  : ''}
+              </span>
               <button
                 type="button"
                 className="wal__copy"
@@ -274,7 +336,7 @@ export default function DepositModal({ open }: { open: boolean }) {
 
       <div className="wal__field">
         <label className="wal__label" htmlFor="deposit-amount">
-          Amount ({currency})
+          Amount (USD)
         </label>
         <input
           id="deposit-amount"
@@ -304,6 +366,15 @@ export default function DepositModal({ open }: { open: boolean }) {
         <p className="wal__error">Enter a positive amount (max 8 decimals).</p>
       )}
       {error && <p className="wal__error">{error}</p>}
+      {sessionExpired && (
+        <button
+          type="button"
+          className="wal__btn wal__btn--primary"
+          onClick={() => signOutToLogin()}
+        >
+          Log in again
+        </button>
+      )}
 
       <button
         type="button"
@@ -314,26 +385,6 @@ export default function DepositModal({ open }: { open: boolean }) {
         {loading ? 'Creating invoice…' : 'Continue to payment'}
       </button>
 
-      {paymentConfig.sandbox && (
-        <div className="wal__sandbox">
-          {mockCredited && (
-            <p className="wal__sandbox-ok" role="status">
-              Credited ${Number(mockCredited)} — balance updated.
-            </p>
-          )}
-          <button
-            type="button"
-            className="wal__btn wal__btn--test"
-            onClick={simulateDeposit}
-            disabled={!amountValid || loading}
-          >
-            {loading ? 'Crediting…' : 'Simulate Test Deposit (Instant)'}
-          </button>
-          <p className="wal__sandbox-note">
-            Development only — credits your balance with no payment provider.
-          </p>
-        </div>
-      )}
     </>
   );
 }

@@ -11,9 +11,9 @@ import ChickenRoad from '@/components/games/ChickenRoad';
  * of the path.
  *
  * Nothing else is needed here: ChickenRoad carries its own board, betting panel
- * and state, and does not use the game socket. That also means it is play money
- * — the round is decided in the browser, so this page must not be treated as a
- * real-stakes game until hazard generation moves server-side.
+ * and state, and reads the wallet only to display it. The crossing roll still
+ * happens in the browser, so this page must not be treated as a real-stakes game
+ * until hazard generation moves server-side — nothing here debits the ledger.
  */
 export default function ChickenPage() {
   return <ChickenRoad />;

@@ -21,8 +21,11 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
 import {
+
   calculateOutcome,
   verifyCoinflip,
   verifyCommitment,
@@ -73,7 +76,7 @@ const CSS = `
   border: 1px solid var(--fg-line); border-radius: 8px; cursor: pointer;
   transition: color .15s ease, border-color .15s ease; }
 .fg-pf__close:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
-.fg-pf__close:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.2); }
+.fg-pf__close:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11,.2); }
 .fg-pf__list { display: flex; flex-direction: column; gap: 12px; margin: 18px 0 0; }
 .fg-pf__item { display: flex; flex-direction: column; gap: 5px; }
 .fg-pf__key { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
@@ -83,7 +86,7 @@ const CSS = `
   font-size: 9.5px; font-weight: 700; letter-spacing: 0; color: var(--fg-muted);
   background: var(--fg-line-2); border-radius: 50%; cursor: help; }
 .fg-pf__hint:hover { color: var(--fg-text); }
-.fg-pf__hint:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0,231,1,.45); }
+.fg-pf__hint:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(245, 158, 11,.45); }
 .fg-pf__code { flex: 1 1 auto; min-width: 0; padding: 9px 11px; font-size: 12.5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--fg-text);
   background: var(--fg-bg); border: 1px solid var(--fg-hover-2); border-radius: 7px;
@@ -93,26 +96,26 @@ const CSS = `
   color: var(--fg-text); background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: 7px;
   cursor: pointer; transition: background .15s ease, color .15s ease; }
 .fg-pf__copy:hover { background: var(--fg-hover-2); color: #fff; }
-.fg-pf__copy:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.2); }
+.fg-pf__copy:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11,.2); }
 .fg-pf__rotate { margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--fg-hover-2); }
 .fg-pf__row { display: flex; gap: 8px; margin-top: 9px; }
 .fg-pf__input { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 10px 12px;
   font-size: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--fg-text); background: var(--fg-bg); border: 1px solid var(--fg-line); border-radius: 10px;
   outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
-.fg-pf__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.18); }
+.fg-pf__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11,.18); }
 .fg-pf__input[aria-invalid="true"] { border-color: var(--fg-red); }
 .fg-pf__dice { flex: 0 0 auto; padding: 0 12px; font-size: 15px; color: var(--fg-text);
   background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: 8px; cursor: pointer; }
 .fg-pf__dice:hover { background: var(--fg-hover-2); }
-.fg-pf__dice:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(0,231,1,.2); }
+.fg-pf__dice:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11,.2); }
 .fg-pf__warn { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--fg-muted); }
 .fg-pf__err { margin: 10px 0 0; font-size: 12.5px; font-weight: 500; color: var(--fg-red); }
 .fg-pf__submit { width: 100%; margin-top: 12px; padding: 12px 16px; font-size: 14px;
   font-weight: 700; color: var(--fg-bg); background: var(--fg-accent); border: none; border-radius: 8px;
   cursor: pointer; transition: filter .15s ease; }
 .fg-pf__submit:hover:not(:disabled) { filter: brightness(1.08); }
-.fg-pf__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0,231,1,.35); }
+.fg-pf__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11,.35); }
 .fg-pf__submit:disabled { opacity: .5; cursor: not-allowed; }
 @keyframes fg-pf-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes fg-pf-rise { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
@@ -147,6 +150,7 @@ function CopyableField({
   placeholder?: string;
   hint?: string;
 }) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const copy = useCallback(async () => {
@@ -187,7 +191,7 @@ function CopyableField({
             type="button"
             className="fg-pf__copy"
             onClick={copy}
-            aria-label={`Copy ${label}`}
+            aria-label={t('fair.copy', { label })}
           >
             {copied ? 'Copied' : 'Copy'}
           </button>
@@ -211,6 +215,7 @@ export function ProvablyFairModal({
   error = null,
   className,
 }: ProvablyFairModalProps) {
+  const { t } = useLanguage();
   useInjectedStyles(STYLE_ID, CSS);
 
   const titleId = useId();
@@ -298,38 +303,6 @@ export function ProvablyFairModal({
       setVerificationError(null);
     }
   }, [open, clientSeed, nonce]);
-
-  const computeHash = async (text: string) => {
-    const data = new TextEncoder().encode(text);
-    const digest = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('');
-  };
-
-  const hexToBytes = (hex: string) => {
-    const normalized = hex.replace(/[^0-9a-fA-F]/g, '');
-    const bytes = new Uint8Array(normalized.length / 2);
-    for (let i = 0; i < bytes.length; i += 1) {
-      bytes[i] = parseInt(normalized.slice(i * 2, i * 2 + 2), 16);
-    }
-    return bytes;
-  };
-
-  const hmacSha256Hex = async (keyHex: string, message: string) => {
-    const key = await crypto.subtle.importKey(
-      'raw',
-      hexToBytes(keyHex),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    const data = new TextEncoder().encode(message);
-    const signature = await crypto.subtle.sign('HMAC', key, data);
-    return Array.from(new Uint8Array(signature))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('');
-  };
 
   /**
    * Recomputes a round from the seed triple and reports the game-specific
@@ -439,7 +412,7 @@ export function ProvablyFairModal({
         <div className="fg-pf__head">
           <div>
             <h2 className="fg-pf__title" id={titleId}>
-              Provably Fair
+              {t('fair.title')}
             </h2>
             <p className="fg-pf__sub">
               Every outcome is derived from HMAC-SHA256(server seed, client
@@ -451,7 +424,7 @@ export function ProvablyFairModal({
             type="button"
             className="fg-pf__close"
             onClick={onClose}
-            aria-label="Close provably fair dialog"
+            aria-label={t('fair.close')}
           >
             ×
           </button>
@@ -462,20 +435,20 @@ export function ProvablyFairModal({
             hint="Your half of the randomness. You choose it, so the server cannot know the outcome in advance."
             label="Client seed"
             value={clientSeed}
-            placeholder={loading ? 'Loading…' : undefined}
+            placeholder={loading ? t('fair.loading') : undefined}
           />
           <CopyableField
             hint="The server's half, published as a hash before you bet. It commits to a seed that cannot be changed afterwards."
             label="Server seed (hashed)"
             value={hashedServerSeed}
-            placeholder={loading ? 'Loading…' : undefined}
+            placeholder={loading ? t('fair.loading') : undefined}
           />
           <div className="fg-pf__item">
             <span className="fg-pf__key">
-              Nonce
+              {t('fair.nonce')}
               <span
                 className="fg-pf__hint tip"
-                title="A counter that increases by one with every bet, so the same seed pair never produces the same result twice."
+                title={t('fair.nonceHint')}
                 tabIndex={0}
                 role="note"
               >
@@ -492,7 +465,7 @@ export function ProvablyFairModal({
             hint="The seed behind your earlier rounds, revealed now that the pair is retired. Hash it to check it matches the commitment shown at the time."
             label="Previous server seed (revealed)"
             value={previousServerSeed}
-            placeholder="Rotate your seed to reveal the current one"
+            placeholder={t('fair.previousSeedPlaceholder')}
           />
           {previousHashedServerSeed && (
             <CopyableField
@@ -504,7 +477,7 @@ export function ProvablyFairModal({
 
         <form className="fg-pf__rotate" onSubmit={handleRotate} noValidate>
           <label className="fg-pf__key" htmlFor={seedInputId}>
-            Rotate seed pair
+            {t('fair.rotatePair')}
           </label>
           <div className="fg-pf__row">
             <input
@@ -515,7 +488,7 @@ export function ProvablyFairModal({
               spellCheck={false}
               value={nextSeed}
               maxLength={CLIENT_SEED_MAX_LENGTH}
-              placeholder="Your new client seed"
+              placeholder={t('fair.newClientSeed')}
               onChange={(event) => setNextSeed(event.target.value)}
               onBlur={() => setTouched(true)}
               disabled={rotating || loading}
@@ -527,7 +500,7 @@ export function ProvablyFairModal({
               className="fg-pf__dice"
               onClick={() => setNextSeed(randomClientSeed())}
               disabled={rotating || loading}
-              aria-label="Generate a random client seed"
+              aria-label={t('fair.randomSeed')}
             >
               ⟳
             </button>
@@ -559,21 +532,21 @@ export function ProvablyFairModal({
         </form>
 
         <section className="fg-pf__verify">
-          <h3 className="fg-pf__title">Seed verifier</h3>
+          <h3 className="fg-pf__title">{t('fair.verifier')}</h3>
           <p className="fg-pf__sub">
             Paste a revealed server seed, your client seed, and the nonce to recompute a round outcome.
           </p>
           <div className="fg-pf__item">
-            <span className="fg-pf__key">Revealed server seed</span>
+            <span className="fg-pf__key">{t('fair.revealedServerSeed')}</span>
             <input
               className="fg-pf__input"
               value={verifierServerSeed}
               onChange={(event) => setVerifierServerSeed(event.target.value)}
-              placeholder="Enter revealed server seed"
+              placeholder={t('fair.revealedPlaceholder')}
             />
           </div>
           <div className="fg-pf__item">
-            <span className="fg-pf__key">Client seed</span>
+            <span className="fg-pf__key">{t('fair.clientSeed')}</span>
             <input
               className="fg-pf__input"
               value={verifierClientSeed}
@@ -581,7 +554,7 @@ export function ProvablyFairModal({
             />
           </div>
           <div className="fg-pf__item">
-            <span className="fg-pf__key">Nonce</span>
+            <span className="fg-pf__key">{t('fair.nonce')}</span>
             <input
               className="fg-pf__input"
               value={verifierNonce}
@@ -591,7 +564,7 @@ export function ProvablyFairModal({
             />
           </div>
           <div className="fg-pf__item">
-            <span className="fg-pf__key">Game</span>
+            <span className="fg-pf__key">{t('fair.game')}</span>
             <select
               className="fg-pf__input"
               value={verifierGame}
@@ -608,7 +581,7 @@ export function ProvablyFairModal({
           </div>
           {verifierGame === 'MINES' && (
             <div className="fg-pf__item">
-              <span className="fg-pf__key">Mines in play</span>
+              <span className="fg-pf__key">{t('fair.minesInPlay')}</span>
               <input
                 className="fg-pf__input"
                 value={verifierMines}
@@ -624,7 +597,7 @@ export function ProvablyFairModal({
             className="fg-pf__submit"
             onClick={verifyOutcome}
           >
-            Verify outcome
+            {t('fair.verifyOutcome')}
           </button>
 
           {verificationError && (
@@ -636,7 +609,7 @@ export function ProvablyFairModal({
             <p className="fg-pf__warn">{verificationResult}</p>
           )}
           {computedOutcome && (
-            <p className="fg-pf__note">Computed outcome: {computedOutcome}</p>
+            <p className="fg-pf__note">{t('fair.computedOutcome', { outcome: computedOutcome })}</p>
           )}
         </section>
       </div>

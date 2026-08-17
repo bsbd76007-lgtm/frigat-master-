@@ -44,8 +44,8 @@ export function RouletteIcon({ size = 40, title, ...rest }: GameIconProps) {
       {title && <title>{title}</title>}
       <defs>
         <radialGradient id={hub} cx="38%" cy="32%" r="70%">
-          <stop offset="0%" stopColor="#7ef7d4" />
-          <stop offset="55%" stopColor="#00e701" />
+          <stop offset="0%" stopColor="#7fb8a6" />
+          <stop offset="55%" stopColor="#f59e0b" />
           <stop offset="100%" stopColor="#126b56" />
         </radialGradient>
         <filter id={glow} x="-40%" y="-40%" width="180%" height="180%">
@@ -62,7 +62,7 @@ export function RouletteIcon({ size = 40, title, ...rest }: GameIconProps) {
         cy={CENTER}
         r="22"
         fill="none"
-        stroke="#00e701"
+        stroke="#f59e0b"
         strokeWidth="1.6"
         opacity=".45"
         filter={`url(#${glow})`}
@@ -73,7 +73,7 @@ export function RouletteIcon({ size = 40, title, ...rest }: GameIconProps) {
         <path
           key={i}
           d={wedgePath(i)}
-          fill={i % 2 === 0 ? '#f0616d' : '#1a222c'}
+          fill={i % 2 === 0 ? '#c25560' : '#1a222c'}
           stroke="#0a0f14"
           strokeWidth=".6"
         />

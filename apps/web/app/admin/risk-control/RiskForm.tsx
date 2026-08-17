@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { apiFetch } from '@/lib/api';
+
 const GAMES = ['CRASH', 'MINES', 'ROULETTE', 'COINFLIP', 'PLINKO', 'DICE', 'LIMBO', 'KENO'] as const;
 const DECIMAL = /^\d+(\.\d{1,8})?$/;
 

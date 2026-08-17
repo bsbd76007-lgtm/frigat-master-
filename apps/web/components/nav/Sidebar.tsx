@@ -1,19 +1,33 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Crown,
+  Gift,
+  Headphones,
+  LayoutGrid,
+  ShieldCheck,
+  UserPlus,
+} from 'lucide-react';
 
 import { GAME_ICONS } from '@/components/icons';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
 import { openPanel } from '@/lib/appPanels';
-import { NAV_GAMES } from '@/lib/navigation';
+import { NAV_GROUPS } from '@/lib/navigation';
 
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
 }
+
+/** Remembers the collapsed rail between visits. */
+const COLLAPSE_KEY = 'frigat.rail.collapsed';
 
 /**
  * Fixed left rail: casino sections over the game list.
@@ -26,6 +40,30 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
+
+  // Collapse is desktop chrome and independent of `open`, which is the mobile
+  // drawer. Read after mount so the server-rendered markup cannot disagree
+  // with localStorage and hydrate mismatched.
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem(COLLAPSE_KEY) === '1');
+    } catch {
+      /* no-op */
+    }
+  }, []);
+
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
+      } catch {
+        /* no-op */
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -52,119 +90,188 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {open && <div className="rail__scrim" onClick={onClose} aria-hidden="true" />}
 
       <aside
-        className={`rail${open ? ' rail--open' : ''}`}
+        className={`rail${open ? ' rail--open' : ''}${collapsed ? ' rail--mini' : ''}`}
         aria-label={t('nav.aria')}
       >
-        <nav className="rail__section">
-          <Link
-            href="/"
-            className={`rail__link${pathname === '/' ? ' rail__link--on' : ''}`}
-            onClick={onClose}
-          >
-            <RailIcon name="casino" />
-            <span>Casino</span>
-          </Link>
+        {/* Rail header. The navbar is hidden behind the drawer on mobile, so
+            without this the open drawer carried no brand at all. */}
+        <Link className="rail__brand" href="/" onClick={onClose} aria-label="FRIGAT home">
+          <Image
+            src="/frigat-model.jpg"
+            alt="FRIGAT"
+            width={1034}
+            height={808}
+            className="brandmark"
+          />
+        </Link>
 
-          <Link
-            href="/vip"
-            className={`rail__link${pathname === '/vip' ? ' rail__link--on' : ''}`}
-            onClick={onClose}
-          >
-            <RailIcon name="vip" />
-            <span>VIP Club</span>
-          </Link>
+        <div className="rail__scroll">
+          <nav className="rail__section">
+            <RailLink
+              href="/"
+              active={pathname === '/'}
+              onNavigate={onClose}
+              icon={<RailIcon name="casino" />}
+              label="Casino"
+            />
+            <RailLink
+              href="/vip"
+              active={pathname === '/vip'}
+              onNavigate={onClose}
+              icon={<RailIcon name="vip" />}
+              label="VIP Club"
+            />
+            <RailLink
+              href="/referrals"
+              active={pathname === '/referrals'}
+              onNavigate={onClose}
+              icon={<RailIcon name="referrals" />}
+              label={t('nav.referrals')}
+            />
+            <RailLink
+              href="/freemoney"
+              active={pathname === '/freemoney'}
+              onNavigate={onClose}
+              icon={<RailIcon name="rewards" />}
+              label={t('nav.freeMoney')}
+            />
+            <RailLink
+              href="/architecture"
+              active={pathname === '/architecture'}
+              onNavigate={onClose}
+              icon={<RailIcon name="architecture" />}
+              label={t('nav.architecture')}
+            />
+          </nav>
 
-          <Link
-            href="/referrals"
-            className={`rail__link${pathname === '/referrals' ? ' rail__link--on' : ''}`}
-            onClick={onClose}
-          >
-            <RailIcon name="referrals" />
-            <span>{t('nav.referrals')}</span>
-          </Link>
+          <div className="rail__divider" />
 
+          {/* Grouped by catalogue category. See NAV_GROUPS for why there is no
+              Sports section. */}
+          {NAV_GROUPS.map((group) => (
+            <div className="rail__group" key={group.id}>
+              <p className="rail__heading">{group.label}</p>
+              <nav className="rail__section">
+                {group.games.map((game) => {
+                  const href = `/games/${game.slug}`;
+                  const Icon = GAME_ICONS[game.slug as keyof typeof GAME_ICONS];
+                  return (
+                    <RailLink
+                      key={game.slug}
+                      href={href}
+                      active={pathname === href}
+                      onNavigate={onClose}
+                      icon={
+                        <span className="rail__game-icon">
+                          {Icon ? <Icon size={18} /> : null}
+                        </span>
+                      }
+                      label={t(game.labelKey)}
+                    />
+                  );
+                })}
+              </nav>
+            </div>
+          ))}
+        </div>
+
+        {/* Anchored to the bottom of the rail, out of the scrolling region, so
+            support is reachable without scrolling past every game. */}
+        <div className="rail__foot">
           <button
             type="button"
-            className="rail__link"
+            className="rail__link rail__link--support"
+            title="Support"
             onClick={() => {
-              openPanel('chat');
+              openPanel('support');
               onClose();
             }}
           >
             <RailIcon name="support" />
-            <span>Support</span>
+            <span className="rail__label">Support</span>
           </button>
-        </nav>
 
-        <div className="rail__divider" />
-
-        <p className="rail__heading">Games</p>
-        <nav className="rail__section">
-          {NAV_GAMES.map((game) => {
-            const href = `/games/${game.slug}`;
-            const Icon = GAME_ICONS[game.slug as keyof typeof GAME_ICONS];
-            return (
-              <Link
-                key={game.slug}
-                href={href}
-                className={`rail__link${pathname === href ? ' rail__link--on' : ''}`}
-                onClick={onClose}
-                aria-current={pathname === href ? 'page' : undefined}
-              >
-                <span className="rail__game-icon">
-                  {Icon ? <Icon size={18} /> : null}
-                </span>
-                <span>{t(game.labelKey)}</span>
-              </Link>
-            );
-          })}
-        </nav>
+          <button
+            type="button"
+            className="rail__collapse"
+            onClick={toggleCollapsed}
+            aria-pressed={collapsed}
+            title={collapsed ? 'Expand menu' : 'Collapse menu'}
+            aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}
+          >
+            {collapsed ? (
+              <ChevronRight size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
+            ) : (
+              <ChevronLeft size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
+            )}
+            <span className="rail__label">Collapse</span>
+          </button>
+        </div>
       </aside>
     </>
   );
 }
 
-function RailIcon({ name }: { name: 'casino' | 'vip' | 'referrals' | 'support' }) {
-  const common = {
-    width: 18,
-    height: 18,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 2,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    'aria-hidden': true,
-  };
-  if (name === 'casino')
-    return (
-      <svg {...common}>
-        <rect x="3" y="3" width="18" height="18" rx="4" />
-        <path d="M8 8h.01M16 16h.01M12 12h.01" strokeWidth={2.6} />
-      </svg>
-    );
-  if (name === 'vip')
-    return (
-      <svg {...common}>
-        <path d="M3 7l4.5 3.5L12 4l4.5 6.5L21 7l-2 12H5z" />
-      </svg>
-    );
-  if (name === 'referrals')
-    return (
-      <svg {...common}>
-        <circle cx="9" cy="8" r="3.2" />
-        <path d="M2.5 20c0-3.6 2.9-5.6 6.5-5.6s6.5 2 6.5 5.6" />
-        <path d="M17 9.5h4M19 7.5v4" />
-      </svg>
-    );
+/**
+ * One rail row. The label is always rendered — the collapsed rail hides it in
+ * CSS rather than dropping it from the DOM, so a screen reader still announces
+ * the destination and `title` gives sighted users a tooltip in mini mode.
+ */
+type RailIconName = keyof typeof RAIL_ICONS;
+
+/** Name -> glyph. Adding a rail entry means adding a line here, not an SVG. */
+const RAIL_ICONS = {
+  casino: LayoutGrid,
+  vip: Crown,
+  referrals: UserPlus,
+  rewards: Gift,
+  architecture: ShieldCheck,
+  support: Headphones,
+} as const;
+
+function RailLink({
+  href,
+  active,
+  onNavigate,
+  icon,
+  label,
+}: {
+  href: string;
+  active: boolean;
+  onNavigate: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
-    <svg {...common}>
-      <path d="M4 13.5v-1.6a8 8 0 0 1 16 0v1.6" />
-      <path d="M4 13.2h2.1a1 1 0 0 1 1 1v3.4a1 1 0 0 1-1 1H5.4A1.4 1.4 0 0 1 4 17.2z" />
-      <path d="M20 13.2h-2.1a1 1 0 0 0-1 1v3.4a1 1 0 0 0 1 1h.7a1.4 1.4 0 0 0 1.4-1.4z" />
-      <path d="M20 18.2v.6a2.6 2.6 0 0 1-2.6 2.6H13" />
-    </svg>
+    <Link
+      href={href}
+      className={`rail__link${active ? ' rail__link--on' : ''}`}
+      onClick={onNavigate}
+      aria-current={active ? 'page' : undefined}
+      title={label}
+    >
+      {icon}
+      <span className="rail__label">{label}</span>
+    </Link>
   );
+}
+
+/**
+ * Category icons, from lucide-react's outline set.
+ *
+ * These were six hand-drawn SVGs with their own stroke weights and optical
+ * sizes, which is why the rail never looked settled — a 2.6 stroke sitting
+ * next to a 2 reads as a wobble down the column even though every icon is
+ * "18px". One family, one weight, one size fixes that by construction.
+ *
+ * The bespoke game icons in components/icons/ stay: those are brand artwork
+ * for individual titles, not category glyphs, and lucide has no Plinko.
+ */
+function RailIcon({ name }: { name: RailIconName }) {
+  const Icon = RAIL_ICONS[name];
+  // absoluteStrokeWidth keeps the stroke at 2 device-independent pixels
+  // regardless of the box, so the icons stay optically equal to each other.
+  return <Icon size={18} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />;
 }
 
 export default Sidebar;

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { LedgerTable, type LedgerRow } from '@/app/admin/transactions/LedgerTable';
 
 import { SESSION_COOKIE } from '@/lib/adminAuth';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
