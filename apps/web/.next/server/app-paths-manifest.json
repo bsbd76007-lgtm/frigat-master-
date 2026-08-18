@@ -1,7 +1,0 @@
-{
-  "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/(dashboard)/freemoney/page": "app/(dashboard)/freemoney/page.js",
-  "/(information)/architecture/page": "app/(information)/architecture/page.js",
-  "/(dashboard)/games/avia-masters/page": "app/(dashboard)/games/avia-masters/page.js"
-}
