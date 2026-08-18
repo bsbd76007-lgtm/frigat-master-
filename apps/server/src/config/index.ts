@@ -6,6 +6,7 @@
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'path';
 
+
 // Load apps/server/.env first (server-specific), then the repo-root .env that
 // the Prisma CLI also reads. dotenv never overwrites an already-set variable,
 // so the real process environment always wins.
@@ -22,6 +23,32 @@ function required(name: string): string {
 
 function optional(name: string, fallback: string): string {
   return process.env[name] ?? fallback;
+}
+
+/**
+ * The deployed web app, pinned so the frontend keeps working even if the
+ * origin variables on the host are missing, renamed or mistyped.
+ */
+const DEPLOYED_WEB_ORIGIN = 'https://frigat-web.onrender.com';
+
+/**
+ * Splits a comma-separated origin list.
+ *
+ * The trailing slash is stripped because `CLIENT_URL` is normally a page URL
+ * ("https://app.example.com/") while a browser's `Origin` header never carries
+ * a path or a trailing slash. Comparing the two verbatim never matches, which
+ * looks exactly like the origin not being configured at all.
+ */
+function splitOrigins(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+}
+
+function dedupe(origins: string[]): string[] {
+  return [...new Set(origins)];
 }
 
 export const config = {
@@ -146,16 +173,30 @@ export const config = {
   },
 
   /**
-   * Allowed browser origins, comma-separated.
+   * Allowed browser origins.
    *
-   * CORS_ORIGIN is checked first because that is what most hosting platforms
-   * name the variable; WEB_ORIGINS is the name this server shipped with and
-   * still works, so an existing deployment does not break on upgrade.
+   * The *union* of every source rather than the first one that happens to be
+   * set. CORS_ORIGIN is what most hosting platforms name the variable,
+   * CLIENT_URL is what Render emits for a linked frontend, and WEB_ORIGINS is
+   * the name this server shipped with. Each may carry a comma-separated list.
+   *
+   * Reading only the first defined name — which this did, via `??` — meant
+   * that setting CORS_ORIGIN on a deployment silently discarded everything
+   * WEB_ORIGINS still listed, and the drop was invisible until a browser call
+   * failed in production.
+   *
+   * The deployed web app is pinned in code so a missing or mistyped variable
+   * on Render cannot lock the frontend out of its own API. Localhost is added
+   * only outside production: a live API has no reason to trust an origin any
+   * attacker can host on their own machine.
    */
-  webOrigins: (process.env.CORS_ORIGIN ?? optional('WEB_ORIGINS', 'http://localhost:3000'))
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  webOrigins: dedupe([
+    DEPLOYED_WEB_ORIGIN,
+    ...splitOrigins(process.env.CORS_ORIGIN),
+    ...splitOrigins(process.env.CLIENT_URL),
+    ...splitOrigins(process.env.WEB_ORIGINS),
+    ...(process.env.NODE_ENV === 'production' ? [] : ['http://localhost:3000']),
+  ]),
 } as const;
 
 if (config.env !== 'production' && !process.env.JWT_SECRET) {

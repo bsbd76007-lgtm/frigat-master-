@@ -68,6 +68,13 @@ function claimsFromRequest(req: FastifyRequest): FrigatJwtClaims | null {
  */
 export function registerSessionGuard(app: FastifyInstance) {
   app.addHook('onRequest', async (req) => {
+    // A CORS preflight carries no credentials — browsers strip Authorization
+    // and cookies from it by design — so there is never a session to check.
+    // Skipping it saves a database round trip on every cross-origin call, and
+    // leaves `sessionChecked` unset so nothing downstream mistakes a preflight
+    // for a request that was examined and found to have no session.
+    if (req.method === 'OPTIONS') return;
+
     req.sessionChecked = true;
 
     const claims = claimsFromRequest(req);

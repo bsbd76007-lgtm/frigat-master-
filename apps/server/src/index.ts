@@ -44,11 +44,42 @@ export async function buildApp(options: { logger?: boolean } = {}) {
 
   // Browser calls come from the Next app on another origin. The allow-list is
   // explicit — a wildcard here would let any site read admin JSON using a
-  // victim admin's token.
+  // victim admin's token, and `credentials: true` makes a wildcard illegal in
+  // every browser anyway.
+  //
+  // Resolved per request rather than handed in as a static array so a rejected
+  // origin can be logged: a frontend that has been deployed to a new URL fails
+  // as a silent browser-side CORS error with nothing in the server log to say
+  // why, and that is a genuinely expensive hour to lose.
   await app.register(cors, {
-    origin: config.webOrigins,
+    origin(origin, cb) {
+      // Requests with no Origin header are not browser cross-site calls:
+      // gateway webhooks, uptime probes and curl all arrive this way. CORS
+      // exists to stop one *site* spending another site's credentials, so
+      // there is nothing here to withhold.
+      if (!origin) return cb(null, true);
+      if (config.webOrigins.includes(origin)) return cb(null, true);
+
+      app.log.warn(
+        { origin, allowed: config.webOrigins },
+        'CORS: rejected an origin that is not on the allow-list'
+      );
+      // `false`, not an error: the response simply carries no CORS headers and
+      // the browser blocks it. Throwing would turn a misconfigured origin into
+      // a 500 and bury the cause.
+      cb(null, false);
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    // PUT and OPTIONS join the list the routes actually use: OPTIONS so the
+    // preflight reply advertises itself, PUT so adding one later is not a
+    // mystery CORS failure.
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    // The web app sends exactly these two; anything else should have to be
+    // added here deliberately.
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    // Cache the preflight for a day — every authenticated call is preceded by
+    // one, and the session guard below costs a database round trip.
+    maxAge: 86_400,
   });
 
   /**
