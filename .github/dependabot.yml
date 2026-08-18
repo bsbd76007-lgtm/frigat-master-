@@ -1,0 +1,31 @@
+version: 2
+
+updates:
+  # One ecosystem entry covers the whole npm workspace tree: the root manifest
+  # and every apps/* and packages/* package, because they share one lockfile.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    # Patch and minor bumps arrive as one PR per group so a quiet week is one
+    # review rather than fifteen. Majors stay separate — they carry breaking
+    # changes and deserve to be read on their own.
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Prisma's client and CLI must move together; a lone bump to either
+      # breaks generation. Upgrade them deliberately, as a pair.
+      - dependency-name: prisma
+        update-types: [version-update:semver-major]
+      - dependency-name: '@prisma/client'
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencies, ci]

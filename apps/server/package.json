@@ -8,11 +8,13 @@
     "predev": "npm run shared",
     "dev": "tsx watch src/index.ts",
     "prebuild": "npm run shared",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "pretest": "npm run shared",
-    "test": "tsx src/engines/__selftest__.ts",
-    "seed": "prisma db seed"
+    "test": "vitest run",
+    "seed": "prisma db seed",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "prisma": {
     "seed": "tsx ../../prisma/seed.ts"
@@ -36,7 +38,9 @@
     "@types/node": "^20.14.0",
     "@types/nodemailer": "^8.0.1",
     "@types/ws": "^8.5.10",
+    "@vitest/coverage-v8": "^4.1.10",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.10"
   }
 }

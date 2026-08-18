@@ -22,12 +22,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
 import { apiJson } from '@/lib/api';
+import { consumedAsSessionExpiry, handleSessionExpiry } from '@/lib/sessionExpiry';
 import { formatDecimalString } from '@/lib/decimal';
 import {
   AuthError,
@@ -98,13 +100,15 @@ const CSS = `
 /* Identity strip: avatar initial plus the address the account is known by. */
 .acc__ident { display: flex; align-items: center; gap: 13px; margin-bottom: 18px;
   padding: 14px; background: #0b141b; border: 1px solid #1e293b; border-radius: 14px; }
-.acc__avatar { flex: 0 0 auto; display: grid; place-items: center; width: 46px;
-  height: 46px; font-size: 19px; font-weight: 800; color: #0b0e14;
-  background: linear-gradient(135deg, var(--fg-pos), var(--fg-accent-deep)); border-radius: 999px; }
+/* The brand monogram, replacing the amber initial disc. White ink with real
+   transparency, so it needs no invert treatment on the dark panel. */
+.acc__mark { flex: 0 0 auto; height: 28px; width: auto; object-fit: contain; }
+html[data-theme='light'] .acc__mark { filter: invert(1); }
+.acc__ident-name { font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+  color: var(--fg-text); }
 .acc__ident-main { min-width: 0; }
-.acc__ident-email { font-size: 14px; font-weight: 700; overflow: hidden;
-  text-overflow: ellipsis; white-space: nowrap; }
-.acc__ident-meta { margin-top: 3px; font-size: 11px; color: #64748b; }
+.acc__ident-meta { margin-top: 3px; font-size: 11px; color: #64748b;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .acc__section { margin-bottom: 16px; }
 .acc__section-title { margin: 0 0 8px; font-size: 11px; font-weight: 700;
@@ -198,10 +202,6 @@ const CSS = `
   border: 1px solid rgba(239,68,68,.4); }
 `;
 
-function initialFor(email: string): string {
-  return email.trim().charAt(0).toUpperCase() || '?';
-}
-
 function formatJoined(iso: string, locale: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
@@ -262,25 +262,44 @@ export function AccountModal({
   useEffect(() => setIsMounted(true), []);
 
   const load = useCallback(async () => {
-    if (!token) return;
+    // No token at all: there is no account to show and no request worth making.
+    // Previously this returned silently, leaving an empty panel open with no
+    // way forward. Hand off to sign-in instead.
+    if (!token) {
+      onClose();
+      handleSessionExpiry();
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       setProfile(await apiJson<AccountProfile>('api/auth/me'));
-    } catch {
+    } catch (err) {
+      // A 401 is not something the player can retry their way out of — the
+      // session is gone. The bare `catch` here used to turn it into "Could not
+      // load your account details", which reads as a server fault and leaves a
+      // dead token in localStorage so every later call fails the same way.
+      // consumedAsSessionExpiry clears it and redirects to /login?error=invalid.
+      if (consumedAsSessionExpiry(err)) {
+        onClose();
+        return;
+      }
       setError(t('account.loadError'));
     } finally {
       setLoading(false);
     }
 
     // VIP is supporting detail: a failure here leaves the section hidden rather
-    // than failing the whole panel.
+    // than failing the whole panel. An expiry is still worth acting on, but the
+    // profile call above will have caught it first in every ordinary case.
     try {
       setVip(await apiJson<VipSummary>('api/vip/me'));
-    } catch {
+    } catch (err) {
+      if (consumedAsSessionExpiry(err)) return;
       setVip(null);
     }
-  }, [token, t]);
+  }, [token, t, onClose]);
 
   // Fetched on open rather than on mount: the panel lives in the header on
   // every page, and a dialog nobody opened should not be polling the API.
@@ -657,15 +676,21 @@ export function AccountModal({
         {view === 'overview' && profile && (
           <>
             <div className="acc__ident">
-              <div className="acc__avatar" aria-hidden="true">
-                {initialFor(profile.email)}
-              </div>
+              <Image
+                src="/frigat-monogram.png"
+                alt=""
+                width={400}
+                height={345}
+                className="acc__mark"
+              />
               <div className="acc__ident-main">
-                <div className="acc__ident-email" title={profile.email}>
-                  {profile.email}
-                </div>
-                <div className="acc__ident-meta">
-                  {t('account.memberSince')} {formatJoined(profile.createdAt, locale)}
+                <div className="acc__ident-name">Frigat</div>
+                {/* The account is still named here. The strip identifies which
+                    login you are in, so dropping the address for the brand
+                    would leave two signed-in accounts looking identical. */}
+                <div className="acc__ident-meta" title={profile.email}>
+                  {profile.email} · {t('account.memberSince')}{' '}
+                  {formatJoined(profile.createdAt, locale)}
                 </div>
               </div>
             </div>

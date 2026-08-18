@@ -40,6 +40,17 @@ export function RestoreStreakModal() {
 
   const close = useCallback(() => setIsOpen(false), []);
 
+  // Escape closes it too. A dialog that can only be dismissed by hitting a
+  // specific control is a trap for anyone on a keyboard.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, close]);
+
   const restore = useCallback(() => {
     setIsBusy(true);
     setError(null);
@@ -60,6 +71,24 @@ export function RestoreStreakModal() {
   return createPortal(
     <div className="rsm__overlay" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="rsm__panel" role="dialog" aria-modal="true" aria-labelledby="rsm-title">
+        <button
+          type="button"
+          className="rsm__close"
+          onClick={close}
+          disabled={isBusy}
+          aria-label="Close"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+
         <h2 className="rsm__title" id="rsm-title">
           Your {summary.restorableStreak}-day streak ended
         </h2>

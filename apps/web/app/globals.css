@@ -170,6 +170,21 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* The page is one full-height column: header, route content, then the footer.
+   Without the min-height a short route (a 404, an empty search) leaves the
+   footer floating mid-viewport with the page colour below it; without the
+   column the footer cannot be pushed down by the content above it. */
+body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+/* Takes the slack so the footer lands at the bottom rather than under the
+   last row of games. */
+.shell { flex: 1 0 auto; }
+
 /* Cross-fade the surfaces on a theme swap. Scoped to the body and the large
    chrome surfaces rather than `*`, which would drag every hover transition on
    the page out to the same duration. */
@@ -214,28 +229,28 @@ h1, h2, h3, h4 { color: var(--fg-gold); }
 .dash__brand {
   display: inline-flex;
   align-items: center;
+  gap: 9px;
   flex: none;
 }
+.dash__mark { display: block; height: 26px; width: auto; object-fit: contain; }
+.dash__word {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--fg-text);
+}
+@media (max-width: 640px) {
+  .dash__mark { height: 22px; }
+  .dash__word { font-size: 16px; }
+}
+/* White ink, so it needs flipping on a light page. */
+html[data-theme='light'] .dash__mark { filter: invert(1); }
 .dash__brand svg { display: block; }
 
-/* Height pinned to the header band; width follows the image's own ratio so it
-   can never be stretched. `w-auto` in Tailwind terms — expressed here because
-   next/image writes inline width/height attributes that would otherwise force
-   the intrinsic 1070x672 into the layout. */
-.dash__brand-img {
-  display: block;
-  height: 34px;
-  width: auto;
-  object-fit: contain;
-  /* Scaled visually, not in layout. The lockup ships with wide padding, so at
-     34px the artwork itself is only ~20px; enlarging it here fills that back in
-     without growing the header — `.rail` is offset by a hardcoded 57px that
-     assumes this exact band height. The padding is invisible (see .brandmark),
-     so the overflow shows nothing. */
-  transform: scale(1.3);
-  transform-origin: left center;
-}
-@media (max-width: 640px) { .dash__brand-img { height: 28px; } }
+/* The header's height is content-driven, and .rail's sticky offset has to
+   match it exactly or the sidebar leaves a gap under the bar. Pinning it here
+   means changing the logo size can no longer desync the two. */
+.dash__header { min-height: var(--fg-header-h); box-sizing: border-box; }
 .dash__nav { display: flex; gap: 4px; flex: 1 1 auto; flex-wrap: wrap; }
 .dash__link {
   padding: 7px 12px;
@@ -2684,31 +2699,6 @@ html[data-theme='light'] .wal__input {
   text-transform: uppercase;
   border-radius: 999px;
 }
-/* Provenance mark, bottom-left — the opposite corner from the HOT/NEW ribbon
-   so the two never collide on a card that carries both. */
-/* Anchored to the top-left of the artwork, not the bottom of the card: the
-   card's bottom is now the copy plate, where this sat on top of the blurb. The
-   HOT/NEW ribbon holds the opposite corner. */
-.tile__emblem {
-  position: absolute;
-  left: 9px;
-  top: 9px;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  /* A dark disc behind it: the emblem sits over artwork whose top-left corner
-     varies from near-black (Crash) to 99% bright (Plinko), and an unbacked
-     mark disappears into the light ones. */
-  padding: 3px;
-  background: rgba(8, 9, 13, .62);
-  border-radius: 8px;
-  backdrop-filter: blur(3px);
-  line-height: 0;
-  opacity: .85;
-  transition: opacity .15s ease;
-}
-.tile:hover .tile__emblem { opacity: 1; }
-
 .tile__badge--hot { color: #2a1206; background: var(--fg-brass); }
 .tile__badge--new { color: var(--fg-bg); background: var(--fg-accent); }
 
@@ -3705,19 +3695,47 @@ html[data-theme='light'] .wal__input {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(0, 0, 0, .62);
+  background: rgba(0, 0, 0, .7);
   backdrop-filter: blur(6px);
 }
 .rsm__panel {
+  position: relative;
   width: min(400px, 100%);
   padding: 22px;
-  background: #14161b;
-  border: 1px solid #2a2f3a;
+  background: var(--fg-panel);
+  border: 1px solid var(--fg-line);
   border-radius: 16px;
-  color: #fff;
+  box-shadow: var(--fg-inset), 0 24px 60px -20px rgba(0, 0, 0, .8);
+  color: var(--fg-text);
 }
+/* Sits in the panel's own top-right corner, clear of the title's text box. */
+.rsm__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--fg-muted);
+  background: transparent;
+  border: 1px solid var(--fg-line);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color var(--fg-snap), background-color var(--fg-snap),
+    border-color var(--fg-snap), transform var(--fg-snap);
+}
+.rsm__close:hover { color: var(--fg-text); background: var(--fg-hover); }
+.rsm__close:active { transform: scale(.94); }
+.rsm__close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, .5);
+}
+/* Room for the button so a long heading cannot run under it. */
+.rsm__title { padding-right: 34px; }
 .rsm__title { margin: 0; font-size: 17px; font-weight: 800; color: var(--fg-text); }
-.rsm__copy { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: #8a8f99; }
+.rsm__copy { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: var(--fg-muted); }
 
 .rsm__price {
   display: flex;
@@ -3841,8 +3859,8 @@ html[data-theme='light'] .wal__input {
   letter-spacing: .01em;
 }
 
-/* Badges and the emblem float over the art, so they need lifting above it. */
-.tile__badge, .tile__emblem { z-index: 3; }
+/* Badges float over the art, so they need lifting above it. */
+.tile__badge { z-index: 3; }
 
 /* Wider columns: a poster needs more room than the old 168px icon square. */
 .grid { grid-template-columns: repeat(auto-fill, minmax(186px, 1fr)); }
@@ -3857,10 +3875,10 @@ html[data-theme='light'] .wal__input {
    so it scrolls with the page but holds position under the sticky header. */
 .rail {
   position: sticky;
-  top: 57px;
+  top: var(--fg-header-h);
   flex: 0 0 240px;
   width: 240px;
-  height: calc(100vh - 57px);
+  height: calc(100vh - var(--fg-header-h));
   /* Column, so the scrolling nav takes the slack and the footer is pinned to
      the bottom rather than trailing the last game. */
   display: flex;
@@ -4139,7 +4157,7 @@ html[data-theme='light'] .wal__input {
   border: 1px solid rgba(255, 255, 255, .1);
   border-radius: 50%;
   cursor: pointer;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(8px);
   /* Above .tile__overlay (10) and .tile__link (1): the overlay covers the art
      box on hover, so anything lower is unclickable precisely when shown. */
   z-index: 20;
@@ -4245,9 +4263,9 @@ html[data-theme='light'] .brandmark {
   padding-bottom: 10px;
   border-bottom: 1px solid var(--fg-line);
 }
-.rail__brand .brandmark { height: 40px; }
+
 .rail--mini .rail__brand { height: 38px; }
-.rail--mini .rail__brand .brandmark { height: 32px; }
+
 
 /* ═══════════════════════════════════════════════
    Motion & glass upgrade
@@ -4396,30 +4414,6 @@ html[data-theme='light'] .brandmark {
 /* ── Originals badge ───────────────────────────
    Glass pill over the art: blurred plate, hairline edge, and a live green dot
    with its own halo. Replaces the bare emblem, which read as a watermark. */
-.tile__emblem {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 9px 4px 6px;
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--fg-text);
-  background: rgba(11, 14, 20, .58);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, .14);
-  border-radius: 999px;
-  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, .8);
-}
-.tile__emblem-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--fg-accent);
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, .18), 0 0 10px rgba(245, 158, 11, .9);
-  animation: fg-pulse 2.4s ease-in-out infinite;
-}
 @keyframes fg-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: .55; transform: scale(.82); }
@@ -4429,7 +4423,6 @@ html[data-theme='light'] .brandmark {
   .dash__cta::after,
   .auth__submit::after { transition: none; }
   .tile { transform: none !important; }
-  .tile__emblem-dot { animation: none; }
 }
 
 /* ═══════════════════════════════════════════════
@@ -4462,6 +4455,8 @@ html[data-theme='light'] .brandmark {
   /* Reserved for the accent. Nothing else in the UI glows. */
   --fg-cta-glow: 0 0 20px rgba(245, 158, 11, .3);
   --fg-placeholder: #64748b;
+  /* Header band height. Shared by .dash__header and .rail's sticky offset. */
+  --fg-header-h: 57px;
 }
 
 /* ── 2. Typography ─────────────────────────────
@@ -4626,7 +4621,12 @@ input[type='password'].fg-field {
    card would drag its neighbours' spacing around with it. */
 .tile__art {
   position: relative;
-  aspect-ratio: 3 / 4;
+  /* 2:3, matching the source posters (238x418, 250x400, 251x394 …). A 3/4 or
+     4/5 box is WIDER than the art, so `cover` scales to fill the width and
+     crops the top and bottom — 24% off Crash and Dice, which eats the
+     "FRIGAT ORIGINALS" line printed into the bottom of the artwork. This was
+     tried at 4/5 before and reverted for the same reason. */
+  aspect-ratio: 2 / 3;
   overflow: hidden;
   border: 1px solid var(--fg-line);
   border-radius: 12px;
@@ -4695,3 +4695,20 @@ input[type='password'].fg-field {
   .authm__submit:active:not(:disabled),
   button.fg-press:active:not(:disabled) { transform: none; }
 }
+
+/* ── Brand wordmark ───────────────────────────
+   The rail carries the mark plus the name, so the drawer reads as branded on
+   mobile where the header is hidden behind it. Hidden in the collapsed rail
+   rather than removed from the DOM, so the link is still announced. */
+.rail__brand { gap: 9px; }
+.rail__mark { height: 26px; width: auto; object-fit: contain; }
+.rail--mini .rail__mark { height: 24px; }
+/* White ink, so it needs flipping on a light page. */
+html[data-theme='light'] .rail__mark { filter: invert(1); }
+.rail__word {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--fg-text);
+}
+.rail--mini .rail__word { display: none; }

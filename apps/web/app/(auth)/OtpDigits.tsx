@@ -106,7 +106,6 @@ export function OtpDigits({
         {digits.map((digit, index) => (
           <input
             // Position is the identity here; the boxes are never reordered.
-            // eslint-disable-next-line react/no-array-index-key
             key={index}
             ref={(el) => {
               boxes.current[index] = el;

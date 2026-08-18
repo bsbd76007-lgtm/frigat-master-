@@ -22,7 +22,6 @@ import { verifyTurnstileToken } from '../utils/turnstile';
 import { MailerNotConfiguredError, sendMail } from '../services/mailer.service';
 import {
   discardOtp,
-  findOrCreateOtpUser,
   issueOtp,
   OTP_POLICY,
   OtpCooldownError,
@@ -85,8 +84,13 @@ function parseCredentials(body: CredentialsBody | undefined): ParsedCredentials 
   return { email, password };
 }
 
-function signToken(userId: string, role: Role): string {
-  return jwt.sign({ userId, role }, config.jwtSecret, {
+/**
+ * `tokenVersion` is signed in as `tv` and compared on every authenticated
+ * request. Bumping the stored value therefore retires every token already
+ * issued for that account.
+ */
+function signToken(userId: string, role: Role, tokenVersion: number): string {
+  return jwt.sign({ userId, role, tv: tokenVersion }, config.jwtSecret, {
     algorithm: 'HS256',
     expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'],
     subject: userId,
@@ -200,11 +204,23 @@ async function turnstileRejected(
     // error rather than the routine warning a failed challenge gets.
     req.log.error(
       { scope, codes: outcome.codes },
-      'turnstile is misconfigured — TURNSTILE_SECRET_KEY is not accepted by Cloudflare, so ALL auth requests are being rejected'
+      'turnstile is misconfigured — TURNSTILE_SECRET_KEY is missing or not accepted by Cloudflare, so ALL auth requests are being rejected. ' +
+        'Set a valid secret, or set TURNSTILE_DISABLED=true to bypass while configuring the deployment.'
     );
-  } else {
-    req.log.warn({ scope, ip: req.ip, codes: outcome.codes }, 'turnstile verification failed');
+
+    // 503, not 403. A 403 saying "human verification failed" tells an operator
+    // testing a fresh deploy that they look like a bot, which sends them
+    // looking in the wrong place entirely. This is a server fault, it is
+    // retryable once the key is set, and it says which.
+    await reply.code(503).send({
+      error: 'turnstile_misconfigured',
+      message:
+        'Human verification is not configured on this server. This is a server-side problem, not a failed check.',
+    });
+    return true;
   }
+
+  req.log.warn({ scope, ip: req.ip, codes: outcome.codes }, 'turnstile verification failed');
   await reply.code(403).send({
     error: 'turnstile_failed',
     message: 'Human verification failed. Please try again.',
@@ -604,7 +620,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
     req.log.info({ userId: user.id, referredById }, 'account registered after email verification');
 
     return reply.code(201).send({
-      token: signToken(user.id, user.role),
+      token: signToken(user.id, user.role, user.tokenVersion),
       user: {
         id: user.id,
         email: user.email,
@@ -666,6 +682,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
         email: true,
         role: true,
         passwordHash: true,
+        tokenVersion: true,
         // Only the bypass path returns a profile, but the columns are selected
         // unconditionally: branching the query on the account's role would let
         // response timing hint at which addresses are admins.
@@ -676,16 +693,16 @@ export function registerAuthRoutes(app: FastifyInstance) {
     });
 
     const hash = user?.passwordHash ?? (await DUMMY_HASH_PROMISE);
-    let ok = false;
-    try {
-      ok = await argon2.verify(hash, credentials.password);
-    } catch (err) {
+    // An unreadable stored hash is a failed sign-in, not a 500: argon2 throws
+    // on a malformed digest, and letting that escape would tell an attacker
+    // which accounts have corrupt hashes.
+    const ok = await argon2.verify(hash, credentials.password).catch((err: unknown) => {
       req.log.error(
         { err, email: credentials.email, userId: user?.id },
         'argon2 verify threw — stored hash is unreadable'
       );
-      ok = false;
-    }
+      return false;
+    });
 
     if (!user) return invalid('unknown_email', { email: credentials.email });
     if (!ok) return invalid('wrong_password', { email: credentials.email, userId: user.id });
@@ -716,7 +733,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
 
       return reply.send({
         requiresOtp: false,
-        token: signToken(user.id, user.role),
+        token: signToken(user.id, user.role, user.tokenVersion),
         user: {
           id: user.id,
           email: user.email,
@@ -758,61 +775,18 @@ export function registerAuthRoutes(app: FastifyInstance) {
   // requireAdmin — is unchanged.
 
   /**
-   * POST /api/auth/otp/send
+   * POST /api/auth/otp/send — REMOVED.
    *
-   * Always answers the same way, whether or not the address has an account.
-   * The response is the one place this endpoint could leak whether an email is
-   * registered, and "which of these addresses are your customers" is not a
-   * question an unauthenticated caller gets to ask.
+   * This minted a LOGIN code for any address the caller named, and
+   * /api/auth/otp/verify exchanged that code for a session. Together they were
+   * a complete sign-in that never asked for a password: anyone who could read
+   * a player's inbox held their account, and the password protected nothing.
+   *
+   * Sign-in now starts at /api/auth/login, which verifies the password *first*
+   * and only then issues a LOGIN code. Because that is the sole remaining
+   * issuer, a LOGIN code can no longer exist without a correct password having
+   * been presented, which is what makes /verify below safe to keep.
    */
-  app.post<{ Body: CredentialsBody }>('/api/auth/otp/send', async (req, reply) => {
-    const email =
-      typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-
-    if (!EMAIL_RE.test(email) || email.length > 254) {
-      return reply.code(400).send({
-        error: 'invalid_email',
-        message: 'Enter a valid email address.',
-      });
-    }
-
-    // The IP axis still applies: the per-address cooldown alone would let one
-    // client fan out across a list of addresses as fast as it likes.
-    if (throttled(req, 'otp-send')) {
-      return reply.code(429).send({
-        error: 'too_many_requests',
-        message: 'Too many codes requested. Please wait a few minutes.',
-      });
-    }
-
-    // This endpoint sends mail to an address the caller chooses, so it is the
-    // one most worth a human check: unguarded it is a free mail cannon aimed at
-    // anyone's inbox.
-    if (await turnstileRejected(req, reply, 'otp-send')) return reply;
-
-    const delivery = await deliverCode(req, email, {
-      purpose: 'LOGIN',
-      subject: (code) => `${code} is your FRIGAT sign-in code`,
-      body: (code) =>
-        [
-          `Your FRIGAT sign-in code is ${code}.`,
-          ``,
-          `It expires in ${Math.floor(OTP_POLICY.ttlMs / 60000)} minutes and can be used once.`,
-          `If you did not ask to sign in, you can ignore this email — nobody can`,
-          `use the code without access to this inbox.`,
-        ].join('\n'),
-    });
-
-    if (!delivery.ok) return reply.code(delivery.status).send(delivery.body);
-
-    // `success` and `message` predate the shared envelope and are kept so an
-    // older client reading them still sees what it expects.
-    return reply.send({
-      success: true,
-      message: 'Code sent to your email.',
-      ...delivery.body,
-    });
-  });
 
   /**
    * POST /api/auth/otp/verify
@@ -870,26 +844,43 @@ export function registerAuthRoutes(app: FastifyInstance) {
         });
       }
 
-      const ref = typeof req.query?.ref === 'string' ? req.query.ref.trim() : '';
-      let referredById: string | null = null;
-      if (ref && REFERRAL_CODE_RE.test(ref)) {
-        const referrer = await prisma.user.findUnique({
-          where: { referralCode: ref },
-          select: { id: true },
+      // No ?ref handling here any more: referral attribution only ever
+      // applied to the account this endpoint used to create, and it creates
+      // none. Sign-up carries its own ref through /api/auth/register.
+
+      // Look up only. This endpoint used to create the account when the
+      // address was unknown, which made an emailed code a complete sign-UP
+      // with no password ever chosen. Registration has its own two-step flow
+      // that sets one; a code alone must never mint an account.
+      //
+      // In practice a LOGIN code now only exists after /api/auth/login checked
+      // a password, so the account is always present — a miss here means a
+      // stale code, and it answers like any other invalid code.
+      const account = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          frozen: true,
+          createdAt: true,
+          tokenVersion: true,
+        },
+      });
+
+      if (!account) {
+        req.log.warn({ email, ip: req.ip }, 'otp verify for an address with no account');
+        return reply.code(401).send({
+          error: 'invalid_code',
+          message: 'That code is not valid or has expired. Request a new one.',
         });
-        referredById = referrer?.id ?? null;
       }
 
-      const account = await findOrCreateOtpUser(email, referredById);
       clearThrottle(req, 'otp-verify', email);
+      req.log.info({ userId: account.id }, 'sign-in via email code');
 
-      req.log.info(
-        { userId: account.id, created: account.created },
-        account.created ? 'account created via email code' : 'sign-in via email code'
-      );
-
-      return reply.code(account.created ? 201 : 200).send({
-        token: signToken(account.id, account.role),
+      return reply.code(200).send({
+        token: signToken(account.id, account.role, account.tokenVersion),
         user: {
           id: account.id,
           email: account.email,
@@ -897,7 +888,6 @@ export function registerAuthRoutes(app: FastifyInstance) {
           frozen: account.frozen,
           createdAt: account.createdAt,
         },
-        created: account.created,
       });
     }
   );
@@ -1100,9 +1090,12 @@ export function registerAuthRoutes(app: FastifyInstance) {
     // even if the update below fails.
     const passwordHash = await hashPassword(newPassword);
 
+    // The version bump is the point of the reset. Someone who knew the old
+    // password — or stole a live token — keeps that token working until this
+    // increments, which would make a reset a formality rather than a recovery.
     const updated = await prisma.user.updateMany({
       where: { email },
-      data: { passwordHash },
+      data: { passwordHash, tokenVersion: { increment: 1 } },
     });
 
     if (updated.count === 0) {

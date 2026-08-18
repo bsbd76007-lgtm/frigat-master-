@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.next/
+coverage/
+*.tsbuildinfo
+package-lock.json
+graphify-out/
+apps/web/public/

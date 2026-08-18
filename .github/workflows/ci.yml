@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# A new push to the same branch makes the in-flight run obsolete, so cancel it
+# rather than queueing behind work nobody is waiting on.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # The integration suite runs against a real Postgres: it asserts atomic
+    # debits, unique-constraint races and rollback behaviour, none of which a
+    # mock can demonstrate. Each test file gets its own throwaway database
+    # created from the committed migrations.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: frigat
+          POSTGRES_PASSWORD: frigat
+          POSTGRES_DB: frigat
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://frigat:frigat@localhost:5432/frigat?schema=public
+      # Signing key for tokens minted inside the tests. Not a secret: this
+      # database exists for the length of one job.
+      JWT_SECRET: ci-test-secret-not-used-anywhere-else
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 20.x is the floor declared in the root package.json "engines".
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # createdb/dropdb, used by the integration harness to build a scratch
+      # database per run. The postgres service container ships the server, not
+      # the client tools.
+      - name: Install postgres client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      # The server imports types from @prisma/client, which do not exist until
+      # the client is generated. No database is contacted — generate reads the
+      # schema only — so this needs no DATABASE_URL.
+      - name: Generate Prisma client
+        run: npx prisma generate --schema prisma/schema.prisma
+
+      # Both workspaces resolve @frigat/shared from its compiled dist/, which
+      # is gitignored. The pretypecheck/prebuild hooks build it, but doing it
+      # once up front means a failure here is legible as a shared-package
+      # problem rather than surfacing inside an unrelated typecheck.
+      - name: Build shared package
+        run: npm run build -w packages/shared
+
+      # Warnings do not fail the build; errors do. The baseline is 0 errors,
+      # so any new one is a genuine regression rather than pre-existing noise.
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck server
+        run: npx tsc --noEmit
+        working-directory: apps/server
+
+      - name: Typecheck web
+        run: npm run typecheck -w apps/web
+
+      # Engine self-tests: RTP calibration, determinism and payout maths.
+      # They touch no database and skip the IPN case when its secret is absent.
+      # Engine tests (apps/server/src/engines/engines.test.ts) under Vitest:
+      # RTP calibration, determinism and payout maths. No database, and the
+      # IPN case skips itself when its secret is absent.
+      - name: Test
+        run: npm test -w apps/server
+
+      - name: Build server
+        run: npm run build -w apps/server
+
+      - name: Build web
+        run: npm run build -w apps/web
+        env:
+          # Baked into the client bundle at build time. A placeholder keeps the
+          # build hermetic; the deploy target supplies the real value.
+          NEXT_PUBLIC_API_URL: http://localhost:4000

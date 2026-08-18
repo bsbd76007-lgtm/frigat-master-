@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1787064775154" clover="3.2.0">
+  <project timestamp="1787064775154" name="All files">
+    <metrics statements="31" coveredstatements="31" conditionals="16" coveredconditionals="16" methods="7" coveredmethods="7" elements="54" coveredelements="54" complexity="0" loc="31" ncloc="31" packages="2" files="3" classes="3"/>
+    <package name="config">
+      <metrics statements="2" coveredstatements="2" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      <file name="game.config.ts" path="/Users/artyom/Downloads/frigat 2/apps/server/src/config/game.config.ts">
+        <metrics statements="2" coveredstatements="2" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="25" count="1" type="stmt"/>
+        <line num="39" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="engines">
+      <metrics statements="29" coveredstatements="29" conditionals="16" coveredconditionals="16" methods="7" coveredmethods="7"/>
+      <file name="mines.engine.ts" path="/Users/artyom/Downloads/frigat 2/apps/server/src/engines/mines.engine.ts">
+        <metrics statements="19" coveredstatements="19" conditionals="16" coveredconditionals="16" methods="4" coveredmethods="4"/>
+        <line num="26" count="1" type="stmt"/>
+        <line num="27" count="1" type="stmt"/>
+        <line num="35" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="40" count="6" type="stmt"/>
+        <line num="45" count="27" type="stmt"/>
+        <line num="46" count="268" type="stmt"/>
+        <line num="48" count="27" type="stmt"/>
+        <line num="52" count="30" type="cond" truecount="5" falsecount="0"/>
+        <line num="53" count="5" type="stmt"/>
+        <line num="55" count="25" type="stmt"/>
+        <line num="59" count="27" type="stmt"/>
+        <line num="60" count="27" type="cond" truecount="4" falsecount="0"/>
+        <line num="61" count="2" type="stmt"/>
+        <line num="63" count="25" type="cond" truecount="2" falsecount="0"/>
+        <line num="65" count="23" type="stmt"/>
+        <line num="66" count="23" type="stmt"/>
+        <line num="67" count="217" type="stmt"/>
+        <line num="69" count="23" type="stmt"/>
+        <line num="70" count="23" type="stmt"/>
+      </file>
+      <file name="provable.ts" path="/Users/artyom/Downloads/frigat 2/apps/server/src/engines/provable.ts">
+        <metrics statements="10" coveredstatements="10" conditionals="0" coveredconditionals="0" methods="3" coveredmethods="3"/>
+        <line num="21" count="1" type="stmt"/>
+        <line num="22" count="1" type="stmt"/>
+        <line num="30" count="648" type="stmt"/>
+        <line num="33" count="648" type="stmt"/>
+        <line num="46" count="675" type="stmt"/>
+        <line num="47" count="27" type="stmt"/>
+        <line num="48" count="648" type="stmt"/>
+        <line num="49" count="648" type="stmt"/>
+        <line num="50" count="648" type="stmt"/>
+        <line num="52" count="27" type="stmt"/>
+      </file>
+    </package>
+  </project>
+</coverage>

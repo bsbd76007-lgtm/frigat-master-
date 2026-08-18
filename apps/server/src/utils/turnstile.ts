@@ -7,17 +7,20 @@
  * and never retry with the same token.
  *
  * ── On bypassing ────────────────────────────────────────────────────────────
- * The check bypasses when no secret is configured, and only then. That is what
- * lets the repo run without a Cloudflare account — but it also means a
- * production deployment that forgets `TURNSTILE_SECRET_KEY` silently accepts
- * every request, which is the failure nobody notices. It is logged loudly at
- * the first bypass so it shows up in production logs rather than in an
- * incident.
+ * Outside development the check is skipped in exactly one case: someone set
+ * `TURNSTILE_DISABLED=true` on purpose. Nothing else infers a bypass, because
+ * the alternative — treating an unset secret as "accept everything" — turns a
+ * forgotten variable into open season on a platform that holds balances, and
+ * that is the failure nobody notices until it is expensive.
+ *
+ * An unset secret therefore *refuses* traffic rather than waving it through,
+ * and says so: the route answers 503 with a misconfiguration code, not the 403
+ * a failed challenge gets, so a deploy that is missing its keys is diagnosable
+ * from a single request instead of looking like every visitor is a bot.
  *
  * A missing *token* is only forgiven in development. In production an absent
  * token is a failure like any other: a bot that simply omits the field must not
- * be treated better than one that sends a bad value, which is precisely what
- * "no token means skip" would do.
+ * be treated better than one that sends a bad value.
  */
 
 import { config } from '../config';
@@ -69,21 +72,50 @@ function warnOnceAboutMissingSecret(): void {
   warnedAboutMissingSecret = true;
 
   // eslint-disable-next-line no-console
+  console.error(
+    '[turnstile] TURNSTILE_SECRET_KEY is not set. Human verification cannot run, so every sign-in and sign-up is being REFUSED with 503. ' +
+      'Set the secret, or set TURNSTILE_DISABLED=true to accept traffic unchecked while you finish configuring the deployment.'
+  );
+}
+
+let warnedAboutDisabled = false;
+
+function warnOnceAboutDisabled(): void {
+  if (warnedAboutDisabled) return;
+  warnedAboutDisabled = true;
+
+  // eslint-disable-next-line no-console
   console.warn(
-    '[turnstile] TURNSTILE_SECRET_KEY is not set — human verification is DISABLED in production. Every request is being accepted unchecked.'
+    '[turnstile] TURNSTILE_DISABLED is set — human verification is OFF and every request is accepted unchecked. ' +
+      'This is for first-deploy testing only. Unset it before taking real money.'
   );
 }
 
 /**
- * True when this process will not check tokens at all.
+ * True when this process will not check a token at all.
  *
- * Development is included deliberately: a local checkout has no route to a
- * working Cloudflare secret, and the widget still mints tokens, so verifying
- * them locally means every sign-in fails on a key the developer cannot fix.
+ * Narrower than it used to be. The old rule bypassed the whole of development
+ * unconditionally, because the configured secret was invalid and every local
+ * sign-in failed on a key the developer could not fix. That secret has since
+ * been corrected, so development can and does verify for real — which is the
+ * only way a local run tells you the key still works.
+ *
+ * What remains is the genuine tooling gap: a checkout with no secret, or a
+ * form that submitted no token because the widget was never configured. Both
+ * are development-only; in any other environment a missing secret is a
+ * misconfiguration and a missing token is a failed challenge, and both are
+ * handled as failures below.
  */
-function bypassReason(): 'development' | 'no-secret' | null {
-  if (config.env === 'development') return 'development';
-  if (!config.turnstile.secretKey) return 'no-secret';
+function bypassReason(
+  token: string,
+  secret: string
+): 'disabled' | 'no-secret' | 'no-token' | null {
+  // Opt-in, and the only way any environment skips the check. Checked before
+  // everything else so a first deploy can come up before the keys exist.
+  if (config.turnstile.disabled) return 'disabled';
+  if (config.env !== 'development') return null;
+  if (!secret) return 'no-secret';
+  if (!token) return 'no-token';
   return null;
 }
 
@@ -103,27 +135,33 @@ export async function verifyTurnstileToken(
 ): Promise<TurnstileOutcome> {
   const secret = config.turnstile.secretKey;
 
+  const trimmed = typeof token === 'string' ? token.trim() : '';
+
   // ── Bypass, decided before anything is sent to Cloudflare ──
-  //
-  // Development bypasses whether or not a token was supplied. Checking the
-  // token locally is what caused every sign-in to fail: the widget mints a
-  // real token, Cloudflare rejects it against a secret the developer has no
-  // way to make valid, and the form is stuck on "Human verification failed".
-  const bypass = bypassReason();
-  if (bypass === 'development') {
-    // eslint-disable-next-line no-console
-    console.log('[DEV] Bypassing Turnstile verification on localhost');
+  // Development only, and only when there is nothing to check with or nothing
+  // to check. A development run that has both a secret and a token verifies
+  // against Cloudflare like any other.
+  const bypass = bypassReason(trimmed, secret);
+  if (bypass === 'disabled') {
+    warnOnceAboutDisabled();
     return { ok: true, bypassed: true };
   }
   if (bypass === 'no-secret') {
     warnOnceAboutMissingSecret();
     return { ok: true, bypassed: true };
   }
+  if (bypass === 'no-token') {
+    // eslint-disable-next-line no-console
+    console.log('[DEV] No Turnstile token supplied — skipping verification on localhost');
+    return { ok: true, bypassed: true };
+  }
 
-  const trimmed = typeof token === 'string' ? token.trim() : '';
-
-  // Past this point the environment is not development and a secret is set, so
-  // a missing token is a genuine miss rather than a local-tooling gap.
+  // Outside development a missing secret cannot be waved through: it would
+  // silently disable the protection on the environment that needs it.
+  if (!secret) {
+    warnOnceAboutMissingSecret();
+    return rejection(['missing-input-secret']);
+  }
   if (!trimmed) return rejection(['missing-input-response']);
 
   const body = new URLSearchParams({ secret, response: trimmed });
@@ -165,12 +203,12 @@ export async function verifyTurnstileToken(
 }
 
 /**
- * True when tokens are actually checked.
+ * True when a submitted token will actually be checked.
  *
- * Deliberately not "is a secret configured": in development a secret is
- * present but never used, and a caller asking this question wants to know
- * whether verification is enforced, not whether a string exists in the env.
+ * Now equivalent to "a secret is configured": verification is skipped only
+ * when the secret or the token is missing in development, and a caller asking
+ * this wants to know whether a token it *does* send will be verified.
  */
 export function isTurnstileEnforced(): boolean {
-  return bypassReason() === null;
+  return Boolean(config.turnstile.secretKey);
 }

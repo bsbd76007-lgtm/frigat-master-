@@ -96,13 +96,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* Rail header. The navbar is hidden behind the drawer on mobile, so
             without this the open drawer carried no brand at all. */}
         <Link className="rail__brand" href="/" onClick={onClose} aria-label="FRIGAT home">
+          {/* Monogram only, keyed out of frigat-model.jpg. The full asset
+              spells "FRIGAT" beneath the mark, which set the brand name twice
+              next to the label below. Already white with real transparency, so
+              it needs none of .brandmark's invert treatment. */}
           <Image
-            src="/frigat-model.jpg"
-            alt="FRIGAT"
-            width={1034}
-            height={808}
-            className="brandmark"
+            src="/frigat-monogram.png"
+            alt=""
+            width={400}
+            height={345}
+            className="rail__mark"
           />
+          {/* Hidden by CSS in the collapsed rail, kept in the DOM so the
+              destination is still announced. */}
+          <span className="rail__word">Frigat</span>
         </Link>
 
         <div className="rail__scroll">

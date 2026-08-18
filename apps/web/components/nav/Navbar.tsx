@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
@@ -81,19 +81,20 @@ export function Navbar({ onMenuToggle, menuOpen }: NavbarProps) {
       </button>
 
       {/* The SVG carries its own <title>, so the link needs no extra label. */}
-      <Link className="dash__brand" href="/" aria-label="FRIGAT home">
-        {/* The official lockup. Intrinsic size is the file's own 1034x808, so
-            next/image reserves the right box; height is pinned in CSS and the
-            width follows. `.brandmark` carries the dark-theme treatment — see
-            the note on that class for why a JPEG works here at all. */}
+      <Link className="dash__brand" href="/" aria-label="Frigat home">
+        {/* Monogram plus the name in text, matching the rail so the two chrome
+            surfaces carry one lockup. The mark is keyed out of
+            frigat-model.jpg and ships white with real transparency, so it
+            needs none of .brandmark's invert treatment. */}
         <Image
-          src="/frigat-model.jpg"
-          alt="FRIGAT"
-          width={1034}
-          height={808}
+          src="/frigat-monogram.png"
+          alt=""
+          width={400}
+          height={345}
           priority
-          className="dash__brand-img brandmark"
+          className="dash__mark"
         />
+        <span className="dash__word">Frigat</span>
       </Link>
 
       {/* Search sits where the game links were: the rail owns navigation now,

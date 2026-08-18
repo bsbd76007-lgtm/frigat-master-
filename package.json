@@ -14,22 +14,28 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "eslint .",
+    "prisma:deploy": "prisma migrate deploy",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.14.0",
     "concurrently": "^8.2.2",
+    "eslint": "^10.8.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prisma": "^5.16.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.67.0"
   },
   "dependencies": {
     "@prisma/client": "^5.16.0",
-    "argon2": "^0.40.3",
-    "node": "^26.5.1"
+    "argon2": "^0.40.3"
   },
   "engines": {
     "node": ">=20.0.0"

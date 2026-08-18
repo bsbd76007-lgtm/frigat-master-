@@ -132,13 +132,27 @@ export const config = {
    */
   turnstile: {
     secretKey: optional('TURNSTILE_SECRET_KEY', ''),
+    /**
+     * Deliberate kill switch for a first deploy, before the Cloudflare keys
+     * exist. Must be set to the literal 'true' or '1' — nothing infers it, so
+     * bot protection can never switch itself off because a variable was
+     * forgotten. Every skipped check is logged.
+     */
+    disabled: ['true', '1'].includes(optional('TURNSTILE_DISABLED', '').toLowerCase()),
     verifyUrl: optional(
       'TURNSTILE_VERIFY_URL',
       'https://challenges.cloudflare.com/turnstile/v0/siteverify'
     ),
   },
 
-  webOrigins: optional('WEB_ORIGINS', 'http://localhost:3000')
+  /**
+   * Allowed browser origins, comma-separated.
+   *
+   * CORS_ORIGIN is checked first because that is what most hosting platforms
+   * name the variable; WEB_ORIGINS is the name this server shipped with and
+   * still works, so an existing deployment does not break on upgrade.
+   */
+  webOrigins: (process.env.CORS_ORIGIN ?? optional('WEB_ORIGINS', 'http://localhost:3000'))
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),

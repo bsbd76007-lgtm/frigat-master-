@@ -86,15 +86,6 @@ export function GameCard({ entry, onLaunch }: GameCardProps) {
       {/* Specular sheen, tracking the same pointer position as the tilt. */}
       <span className="tile__sheen" aria-hidden="true" />
 
-      {/* Marks the tile as a FRIGAT original. True of every game in the
-          catalogue — all eight run on this platform's own engines — so it is
-          a provenance mark rather than a category that some cards lack.
-          Bottom-left, clear of the HOT/NEW ribbon in the opposite corner. */}
-      <span className="tile__emblem" title={t('home.sections.originals')}>
-        <span className="tile__emblem-dot" aria-hidden="true" />
-        FRIGAT ORIGINALS
-      </span>
-
       <button
         type="button"
         className={favorite ? 'tile__fav tile__fav--on' : 'tile__fav'}

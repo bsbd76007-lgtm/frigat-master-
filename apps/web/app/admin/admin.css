@@ -740,3 +740,18 @@ html[data-admin-theme='light'] .adm-table td { border-bottom-color: #eef2f7; }
 .supadm__hint { margin: 14px; font-size: 12.5px; color: #7d8b9c; }
 .supadm__hint--center { margin: auto; text-align: center; }
 .supadm__error { grid-column: 1 / -1; margin: 0; font-size: 12.5px; color: #ff6b6b; }
+
+/* Brand lockup: the name in title case, no graphic. The mark is redundant
+   beside it — the asset already spells "FRIGAT" under its monogram. */
+.adm-side__mark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.adm-side__word {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--admin-text);
+}

@@ -78,31 +78,21 @@ export interface OtpSendResult {
   devCode?: string;
 }
 
-/** Step one: ask for a code. Never reveals whether the address has an account. */
-export async function sendLoginCode(
-  email: string,
-  turnstileToken?: string
-): Promise<OtpSendResult> {
-  const { response, body } = await postJson('/api/auth/otp/send', {
-    email,
-    turnstileToken,
-  });
-
-  if (!response.ok) throw new AuthError(messageFor(body, response.status));
-
-  const challenge = challengeFrom(body, email);
-  return {
-    resendAfterSeconds: challenge.resendAfterSeconds,
-    expiresInSeconds: challenge.expiresInSeconds,
-    devCode: challenge.devCode,
-  };
-}
+/*
+ * sendLoginCode was removed alongside POST /api/auth/otp/send.
+ *
+ * That pair let a caller name any address, receive a code, and exchange it for
+ * a session without ever presenting a password. Sign-in now goes through
+ * submitPassword() below, which verifies the password first and only then
+ * triggers the code that verifyLoginCode() completes.
+ */
 
 /**
  * Step two: exchange the code for a session.
  *
- * Shared by both sign-in paths — passwordless, and the second factor after a
- * password — because the server treats them as the same LOGIN code.
+ * The second step of password sign-in. Formerly shared with a passwordless
+ * path; that path is gone, so a LOGIN code now only exists once a password has
+ * been accepted.
  */
 export async function verifyLoginCode(
   email: string,

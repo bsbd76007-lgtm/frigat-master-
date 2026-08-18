@@ -15,7 +15,7 @@
 
 ## Overview
 
-FRIGAT is an npm-workspaces monorepo split into two applications and one shared
+Frigat is an npm-workspaces monorepo split into two applications and one shared
 library:
 
 | Workspace | Role | Port |

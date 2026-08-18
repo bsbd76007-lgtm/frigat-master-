@@ -140,8 +140,11 @@ export function AdminSidebar({ adminId }: { adminId?: string | null }) {
       data-collapsed={collapsed ? 'true' : 'false'}
     >
       <div className="adm-side__brand">
+        {/* Wordmark only. The frigat-model asset already carries the word
+            "FRIGAT" under its monogram, so pairing it with a text label
+            printed the brand name twice in a 240px column. */}
         <Link href="/admin/dashboard" className="adm-side__mark">
-          {collapsed ? 'F' : 'FRIGAT'}
+          <span className="adm-side__word">{collapsed ? 'F' : 'Frigat'}</span>
         </Link>
         {!collapsed && <span className="adm-side__tag">Admin</span>}
         <button

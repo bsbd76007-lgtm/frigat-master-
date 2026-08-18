@@ -138,7 +138,7 @@ export const SLOTS_WEIGHTS: Record<SlotSymbol, number> = {
  * across the paylines). Index by match length: 3, 4 or 5 from the leftmost reel.
  *
  * Calibrated against SLOTS_WEIGHTS to land near the house edge below — see the
- * RTP self-test in apps/server/src/engines/__selftest__.ts, which fails if a
+ * RTP test in apps/server/src/engines/engines.test.ts, which fails if a
  * change to either table moves the return outside its band.
  */
 export const SLOTS_PAYTABLE: Record<SlotSymbol, Record<3 | 4 | 5, number>> = {

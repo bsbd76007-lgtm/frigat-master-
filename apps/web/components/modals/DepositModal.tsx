@@ -21,7 +21,6 @@ import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { CurrencyGrid, paymentEndpoint, type CurrencyCode } from '@/components/modals/CurrencyGrid';
 import { RadarLoader } from '@/components/common/RadarLoader';
 
-import { usePaymentConfig } from '@/hooks/usePaymentConfig';
 import { apiJson, ApiError } from '@/lib/api';
 import { encodeQr, qrPath } from '@/lib/qr';
 

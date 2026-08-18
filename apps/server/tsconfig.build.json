@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "//": "Production build. Tests stay out of dist/ — they import vitest, which is a devDependency, so shipping them puts dev-only code in the deployed image. `tsc --noEmit` still uses tsconfig.json, so tests remain typechecked.",
+  "exclude": ["src/**/*.test.ts", "src/__tests__/**"]
+}

@@ -31,7 +31,6 @@ import {
   processWin,
   getBalance,
   settleAffiliateReward,
-  awardBonus,
   transferBetweenUsers,
   InsufficientFundsError,
   AccountFrozenError,

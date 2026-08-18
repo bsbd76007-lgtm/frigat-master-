@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { describe, it } from 'vitest';
 import { createHmac } from 'crypto';
 import {
   canonicalIpnPayload,
@@ -45,68 +46,68 @@ function ctx(nonce = 0): SeedContext {
   };
 }
 
-let passed = 0;
-function check(name: string, fn: () => void) {
-  fn();
-  passed++;
-  console.log(`  ✓ ${name}`);
-}
 
-console.log('Provably-fair core');
-check('serverSeed is 64 hex chars', () => {
+describe('Provably-fair core', () => {
+  it('serverSeed is 64 hex chars', () => {
   const s = generateServerSeed();
   assert.match(s, /^[0-9a-f]{64}$/);
 });
-check('commitment verifies', () => {
+  it('commitment verifies', () => {
   const s = generateServerSeed();
   assert.equal(verifySeedCommitment(s, hashServerSeed(s)), true);
   assert.equal(verifySeedCommitment(s, hashServerSeed('other')), false);
 });
-check('calculateOutcome ∈ [0,1) and deterministic', () => {
+  it('calculateOutcome ∈ [0,1) and deterministic', () => {
   const a = calculateOutcome('seed', 'client', 0);
   const b = calculateOutcome('seed', 'client', 0);
   assert.equal(a, b);
   assert.ok(a >= 0 && a < 1);
 });
-check('floatAt stream is deterministic & distinct per cursor', () => {
+  it('floatAt stream is deterministic & distinct per cursor', () => {
   const a0 = floatAt('s', 'c', 0, 0);
   const a1 = floatAt('s', 'c', 0, 1);
   assert.equal(a0, floatAt('s', 'c', 0, 0));
   assert.notEqual(a0, a1);
 });
-check('provableShuffle is a permutation', () => {
+  it('provableShuffle is a permutation', () => {
   const sh = provableShuffle(25, 's', 'c', 0);
   assert.equal(sh.length, 25);
   assert.equal(new Set(sh).size, 25);
   assert.deepEqual([...sh].sort((a, b) => a - b), Array.from({ length: 25 }, (_, i) => i));
 });
 
-console.log('Dice');
-check('UNDER win pays ~ (100/chance)*(1-edge)', () => {
+});
+
+describe('Dice', () => {
+  it('UNDER win pays ~ (100/chance)*(1-edge)', () => {
   // find a nonce that rolls low
-  let r = dice.play({ target: 50, direction: 'UNDER' }, ctx(0));
+  const r = dice.play({ target: 50, direction: 'UNDER' }, ctx(0));
   assert.ok(typeof r.multiplier === 'number');
   const win = dice.play({ target: 99, direction: 'UNDER' }, ctx(0));
   if (win.win) assert.ok(win.multiplier > 0 && win.multiplier < 1.02);
 });
-check('dice rejects bad target', () => {
+  it('dice rejects bad target', () => {
   assert.throws(() => dice.play({ target: 0, direction: 'UNDER' }, ctx()));
   assert.throws(() => dice.play({ target: 100, direction: 'OVER' }, ctx()));
 });
 
-console.log('Coinflip');
-check('coinflip multiplier is 0 or ~1.98', () => {
+});
+
+describe('Coinflip', () => {
+  it('coinflip multiplier is 0 or ~1.98', () => {
   const r = coinflip.play({ side: 'HEADS' }, ctx(3));
   assert.ok(r.multiplier === 0 || Math.abs(r.multiplier - 1.98) < 0.001);
 });
 
-console.log('Roulette');
-check('pocket in 0..36, edge from single zero', () => {
+});
+
+describe('Roulette', () => {
+  it('pocket in 0..36, edge from single zero', () => {
   const r = roulette.spin({ bets: [{ position: 'red', amount: '1' }] }, ctx(7));
   const pocket = (r.resultData as any).pocket;
   assert.ok(pocket >= 0 && pocket <= 36);
 });
-check('straight bet pays 36x gross when hit', () => {
+  it('straight bet pays 36x gross when hit', () => {
   // brute force a nonce that lands on pocket 17
   for (let n = 0; n < 500; n++) {
     const r = roulette.spin({ bets: [{ position: 'straight:17', amount: '1' }] }, ctx(n));
@@ -118,22 +119,26 @@ check('straight bet pays 36x gross when hit', () => {
   throw new Error('never hit pocket 17 in 500 tries (suspicious)');
 });
 
-console.log('Plinko');
-check('bucket in [0,rows], multiplier from table', () => {
+});
+
+describe('Plinko', () => {
+  it('bucket in [0,rows], multiplier from table', () => {
   const r = plinko.drop({ rows: 16, risk: 'HIGH' }, ctx(2));
   const bucket = (r.resultData as any).bucket;
   assert.ok(bucket >= 0 && bucket <= 16);
   assert.ok((r.resultData as any).path.length === 16);
 });
 
-console.log('Crash');
-check('crashPoint >= 1.00, deterministic', () => {
+});
+
+describe('Crash', () => {
+  it('crashPoint >= 1.00, deterministic', () => {
   const cp1 = crash.computeCrashPoint(ctx(5));
   const cp2 = crash.computeCrashPoint(ctx(5));
   assert.equal(cp1, cp2);
   assert.ok(cp1 >= 1);
 });
-check('raw instant-bust probability ≈ house edge (1%)', () => {
+  it('raw instant-bust probability ≈ house edge (1%)', () => {
   // The *unfloored* formula busts (raw < 1) exactly when u < houseEdge.
   // Verified directly against calculateOutcome to isolate the model from rounding.
   let rawBusts = 0;
@@ -146,7 +151,7 @@ check('raw instant-bust probability ≈ house edge (1%)', () => {
   const rate = rawBusts / N;
   assert.ok(Math.abs(rate - 0.01) < 0.004, `raw bust rate ${rate}`);
 });
-check('effective 1.00x rate ≈ 2% (raw 1% + floored [1.00,1.01) band)', () => {
+  it('effective 1.00x rate ≈ 2% (raw 1% + floored [1.00,1.01) band)', () => {
   // Flooring to 2dp collapses the [1.00, 1.01) band onto 1.00x — a house-favouring
   // rounding that roughly doubles the visible instant-loss rate. Documented, intentional.
   let flooredToOne = 0;
@@ -163,38 +168,42 @@ check('effective 1.00x rate ≈ 2% (raw 1% + floored [1.00,1.01) band)', () => {
   const rate = flooredToOne / N;
   assert.ok(rate > 0.015 && rate < 0.025, `effective 1.00x rate ${rate}`);
 });
-check('multiplier grows monotonically with time', () => {
+  it('multiplier grows monotonically with time', () => {
   assert.ok(crash.multiplierAtElapsed(1000) < crash.multiplierAtElapsed(5000));
 });
 
-console.log('Mines');
-check('layout has exactly minesCount mines in range', () => {
+});
+
+describe('Mines', () => {
+  it('layout has exactly minesCount mines in range', () => {
   const layout = mines.generateLayout(5, ctx(9));
   assert.equal(layout.minePositions.length, 5);
   layout.minePositions.forEach((p) => assert.ok(p >= 0 && p < 25));
   assert.equal(new Set(layout.minePositions).size, 5);
 });
-check('multiplier increases with safe reveals', () => {
+  it('multiplier increases with safe reveals', () => {
   const m1 = mines.multiplierAfter(3, 1);
   const m2 = mines.multiplierAfter(3, 2);
   const m3 = mines.multiplierAfter(3, 3);
   assert.ok(m1 < m2 && m2 < m3);
   assert.equal(mines.multiplierAfter(3, 0), 1);
 });
-check('mines layout reproducible from same seed', () => {
+  it('mines layout reproducible from same seed', () => {
   const a = mines.generateLayout(5, ctx(9)).minePositions;
   const b = mines.generateLayout(5, ctx(9)).minePositions;
   assert.deepEqual(a, b);
 });
 
-console.log('Limbo');
-check('deterministic and always >= 1.00', () => {
+});
+
+describe('Limbo', () => {
+  it('deterministic and always >= 1.00', () => {
   const r1 = limbo.play({ targetMultiplier: 2 }, ctx(11));
   const r2 = limbo.play({ targetMultiplier: 2 }, ctx(11));
   assert.deepEqual(r1, r2);
   assert.ok((r1.resultData as any).achievedMultiplier >= 1);
 });
-check('win iff achieved >= target; payout is the target, not the achieved value', () => {
+  it('win iff achieved >= target; payout is the target, not the achieved value', () => {
   for (let n = 0; n < 500; n++) {
     const r = limbo.play({ targetMultiplier: 3 }, ctx(n));
     const achieved = (r.resultData as any).achievedMultiplier as number;
@@ -202,11 +211,11 @@ check('win iff achieved >= target; payout is the target, not the achieved value'
     assert.equal(r.multiplier, r.win ? 3 : 0);
   }
 });
-check('rejects out-of-range targets', () => {
+  it('rejects out-of-range targets', () => {
   assert.throws(() => limbo.play({ targetMultiplier: 1 }, ctx()));
   assert.throws(() => limbo.play({ targetMultiplier: 2_000_000 }, ctx()));
 });
-check('win rate at target T tracks (1-edge)/T', () => {
+  it('win rate at target T tracks (1-edge)/T', () => {
   const target = 5;
   const N = 20000;
   let wins = 0;
@@ -218,8 +227,10 @@ check('win rate at target T tracks (1-edge)/T', () => {
   assert.ok(Math.abs(rate - expected) < 0.01, `win rate ${rate}, expected ~${expected}`);
 });
 
-console.log('Keno');
-check('drawn numbers are 10 unique tiles in range, deterministic', () => {
+});
+
+describe('Keno', () => {
+  it('drawn numbers are 10 unique tiles in range, deterministic', () => {
   const r1 = keno.play({ picks: [1, 2, 3] }, ctx(4));
   const r2 = keno.play({ picks: [1, 2, 3] }, ctx(4));
   assert.deepEqual(r1, r2);
@@ -228,7 +239,7 @@ check('drawn numbers are 10 unique tiles in range, deterministic', () => {
   assert.equal(new Set(drawn).size, 10);
   drawn.forEach((d) => assert.ok(d >= 0 && d < 40));
 });
-check('hits = intersection of picks and drawn; multiplier from paytable', () => {
+  it('hits = intersection of picks and drawn; multiplier from paytable', () => {
   const picks = [0, 5, 10, 15, 20];
   const r = keno.play({ picks }, ctx(6));
   const drawn = new Set((r.resultData as any).drawn as number[]);
@@ -236,13 +247,13 @@ check('hits = intersection of picks and drawn; multiplier from paytable', () => 
   assert.deepEqual((r.resultData as any).hits, expectedHits);
   assert.equal(r.multiplier, KENO_PAYTABLE[5][expectedHits.length]);
 });
-check('rejects too many picks, duplicates, and out-of-range picks', () => {
+  it('rejects too many picks, duplicates, and out-of-range picks', () => {
   assert.throws(() => keno.play({ picks: Array.from({ length: 11 }, (_, i) => i) }, ctx()));
   assert.throws(() => keno.play({ picks: [1, 1] }, ctx()));
   assert.throws(() => keno.play({ picks: [40] }, ctx()));
   assert.throws(() => keno.play({ picks: [] }, ctx()));
 });
-check('every paytable row is calibrated to ~98% RTP', () => {
+  it('every paytable row is calibrated to ~98% RTP', () => {
   const N = 40;
   const K = 10;
   function comb(n: number, k: number): number {
@@ -264,8 +275,10 @@ check('every paytable row is calibrated to ~98% RTP', () => {
   }
 });
 
-console.log('\nSlots');
-check('matrix is 5×3 of known symbols and is deterministic', () => {
+});
+
+describe('Slots', () => {
+  it('matrix is 5×3 of known symbols and is deterministic', () => {
   const a = slots.spinMatrix(ctx(11));
   const b = slots.spinMatrix(ctx(11));
   assert.deepEqual(a, b);
@@ -277,14 +290,14 @@ check('matrix is 5×3 of known symbols and is deterministic', () => {
   // A different nonce must not replay the same screen.
   assert.notDeepEqual(a, slots.spinMatrix(ctx(12)));
 });
-check('spin() is deterministic and reports the matrix it paid on', () => {
+  it('spin() is deterministic and reports the matrix it paid on', () => {
   const r1 = slots.spin({}, ctx(13));
   const r2 = slots.spin({}, ctx(13));
   assert.deepEqual(r1, r2);
   assert.deepEqual((r1.resultData as any).reelMatrix, slots.spinMatrix(ctx(13)));
   assert.equal(r1.win, r1.multiplier > 0);
 });
-check('symbolAt covers every symbol and respects weight order', () => {
+  it('symbolAt covers every symbol and respects weight order', () => {
   const seen = new Set<SlotSymbol>();
   for (let i = 0; i < 20_000; i += 1) seen.add(slots.symbolAt(i / 20_000));
   assert.equal(seen.size, SLOTS_SYMBOLS.length);
@@ -292,7 +305,7 @@ check('symbolAt covers every symbol and respects weight order', () => {
   assert.ok(SLOTS_SYMBOLS.includes(slots.symbolAt(0)));
   assert.ok(SLOTS_SYMBOLS.includes(slots.symbolAt(0.999999999)));
 });
-check('lines pay left-to-right only, from reel 0', () => {
+  it('lines pay left-to-right only, from reel 0', () => {
   const grid = (rows: SlotSymbol[][]): SlotSymbol[][] => rows;
   // BELL BELL BELL on the middle row.
   const hit = grid([
@@ -318,7 +331,7 @@ check('lines pay left-to-right only, from reel 0', () => {
   ]);
   assert.equal(slots.evaluateLine(shifted, 1), null);
 });
-check('WILD substitutes, and a pure WILD line pays as WILD', () => {
+  it('WILD substitutes, and a pure WILD line pays as WILD', () => {
   const substituted: SlotSymbol[][] = [
     ['x' as SlotSymbol, 'WILD', 'x' as SlotSymbol],
     ['x' as SlotSymbol, 'SEVEN', 'x' as SlotSymbol],
@@ -342,7 +355,7 @@ check('WILD substitutes, and a pure WILD line pays as WILD', () => {
   assert.equal(jackpot!.count, 5);
   assert.equal(jackpot!.multiplier, SLOTS_PAYTABLE.WILD[5]);
 });
-check('every payline is 5 rows inside the grid, and all 5 are evaluated', () => {
+  it('every payline is 5 rows inside the grid, and all 5 are evaluated', () => {
   assert.equal(SLOTS_PAYLINES.length, 5);
   for (const line of SLOTS_PAYLINES) {
     assert.equal(line.length, SLOTS_REELS);
@@ -355,7 +368,7 @@ check('every payline is 5 rows inside the grid, and all 5 are evaluated', () => 
   ]);
   assert.equal(slots.evaluateMatrix(allWild).length, SLOTS_PAYLINES.length);
 });
-check('stake multiplier is the line award divided by the payline count', () => {
+  it('stake multiplier is the line award divided by the payline count', () => {
   const allWild: SlotSymbol[][] = Array.from({ length: SLOTS_REELS }, () => [
     'WILD',
     'WILD',
@@ -367,7 +380,7 @@ check('stake multiplier is the line award divided by the payline count', () => {
   // 5 lines × the WILD award, spread over 5 line stakes, is the award itself.
   assert.equal(lineTotal / SLOTS_PAYLINES.length, SLOTS_PAYTABLE.WILD[5]);
 });
-check('paytable is calibrated to the configured house edge', () => {
+  it('paytable is calibrated to the configured house edge', () => {
   // Exact, not sampled: the cells are i.i.d., so one payline's expected award
   // *is* the game's RTP, and 8^5 lines enumerate in a few milliseconds.
   const total = SLOTS_SYMBOLS.reduce((sum, s) => sum + SLOTS_WEIGHTS[s], 0);
@@ -397,8 +410,10 @@ check('paytable is calibrated to the configured house edge', () => {
   );
 });
 
-console.log('\nNOWPayments IPN');
-check('canonical payload sorts top-level keys only', () => {
+});
+
+describe('NOWPayments IPN', () => {
+  it('canonical payload sorts top-level keys only', () => {
   const canonical = canonicalIpnPayload({
     payment_status: 'finished',
     actually_paid: 25,
@@ -420,7 +435,7 @@ check('canonical payload sorts top-level keys only', () => {
     })
   );
 });
-check('a genuine HMAC-SHA512 signature verifies, a tampered body does not', () => {
+  it('a genuine HMAC-SHA512 signature verifies, a tampered body does not', () => {
   const secret = process.env.NOWPAYMENTS_IPN_SECRET ?? '';
   if (!secret) {
     // Nothing to verify against without the shared secret; skip rather than
@@ -449,7 +464,7 @@ check('a genuine HMAC-SHA512 signature verifies, a tampered body does not', () =
   assert.equal(verifyIpnSignature(body, ''), false);
   assert.equal(verifyIpnSignature(body, undefined), false);
 });
-check('payment_status maps to gateway status; a short payment is not settled', () => {
+  it('payment_status maps to gateway status; a short payment is not settled', () => {
   assert.equal(mapNowPaymentsStatus('waiting'), 'PENDING');
   assert.equal(mapNowPaymentsStatus('confirming'), 'CONFIRMING');
   assert.equal(mapNowPaymentsStatus('finished'), 'PAID');
@@ -461,11 +476,10 @@ check('payment_status maps to gateway status; a short payment is not settled', (
   assert.equal(mapNowPaymentsStatus('who_knows'), 'PENDING');
   assert.equal(mapNowPaymentsStatus(undefined), 'PENDING');
 });
-check('pay currencies are pinned to a chain', () => {
+  it('pay currencies are pinned to a chain', () => {
   assert.equal(payCurrencyFor('USDT'), 'usdttrc20');
   assert.equal(payCurrencyFor('BTC'), 'btc');
   assert.equal(payCurrencyFor('ETH'), 'eth');
   assert.equal(payCurrencyFor('LTC'), 'ltc');
 });
-
-console.log(`\n✅ All ${passed} checks passed.`);
+});

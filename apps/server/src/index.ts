@@ -6,6 +6,8 @@ import { config } from './config';
 import { prisma } from './config/prisma';
 import { version as SERVER_VERSION } from '../package.json';
 import { registerSocketServer } from './websocket/socket.server';
+import { registerSessionGuard } from './http/auth';
+import { registerHealthRoutes } from './routes/health.routes';
 import { registerAdminRoutes } from './http/admin.routes';
 import { registerAdminUserRoutes } from './http/adminUsers.routes';
 import { registerAdminRiskRoutes } from './http/adminRisk.routes';
@@ -21,9 +23,17 @@ import { registerPaymentRoutes } from './routes/payment.routes';
 import { registerSupportRoutes } from './routes/support.routes';
 import { registerGameRoutes } from './routes/games';
 
-async function bootstrap() {
+/**
+ * Builds the fully-wired app without binding a port.
+ *
+ * Split out of bootstrap so tests can drive real routes through
+ * `app.inject()` — same CORS, same hooks, same handlers, no socket. Anything
+ * registered here is therefore covered by the integration suite; anything
+ * added only in bootstrap is not.
+ */
+export async function buildApp(options: { logger?: boolean } = {}) {
   const app = Fastify({
-    logger: {
+    logger: options.logger === false ? false : {
       level: config.env === 'production' ? 'info' : 'debug',
       transport:
         config.env === 'production'
@@ -78,7 +88,7 @@ async function bootstrap() {
 
   app.get('/', async () => ({
     status: 'ok',
-    server: 'FRIGAT API',
+    server: 'Frigat API',
     version: SERVER_VERSION,
   }));
 
@@ -89,6 +99,13 @@ async function bootstrap() {
   });
 
   // Public credential endpoints (register / login). Unauthenticated by design.
+  // Before every route: verifies the token's signature *and* that its
+  // tokenVersion still matches the account. Registered here rather than per
+  // route so a new endpoint cannot forget it.
+  registerSessionGuard(app);
+
+  registerHealthRoutes(app);
+
   registerAuthRoutes(app);
 
   registerAdminRoutes(app);
@@ -113,6 +130,12 @@ async function bootstrap() {
 
   registerSocketServer(app);
 
+  return app;
+}
+
+async function bootstrap() {
+  const app = await buildApp();
+
   const shutdown = async (signal: string) => {
     app.log.info(`${signal} received — shutting down`);
     try {
@@ -128,11 +151,17 @@ async function bootstrap() {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 
   await app.listen({ host: config.host, port: config.port });
-  app.log.info(`FRIGAT server listening on ${config.host}:${config.port}`);
+  app.log.info(`Frigat server listening on ${config.host}:${config.port}`);
 }
 
-bootstrap().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error('Fatal: failed to start server', err);
-  process.exit(1);
-});
+// Only when this file *is* the process entry point. Importing it for
+// `buildApp` — which the integration tests do — must not bind a port or
+// install signal handlers, or every test run would start a real server and
+// fight whatever is already on :4000.
+if (require.main === module) {
+  bootstrap().catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('Fatal: failed to start server', err);
+    process.exit(1);
+  });
+}

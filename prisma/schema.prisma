@@ -94,6 +94,11 @@ model User {
   telegramId   String?  @unique
   email        String   @unique
   passwordHash String
+  /// Bumped whenever every existing session must stop working — a password
+  /// reset or change. It is signed into each JWT and compared on every
+  /// authenticated request, so raising it invalidates tokens already issued.
+  /// Without this, resetting a stolen password leaves the thief signed in.
+  tokenVersion Int      @default(0)
   role         Role     @default(USER)
   createdAt    DateTime @default(now())
 
