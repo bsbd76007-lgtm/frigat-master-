@@ -21,3 +21,4 @@ dist/
 CLAUDE.md
 graphify-out
 .claudeignore
+.env.production
