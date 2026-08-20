@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { apiFetch } from '@/lib/api';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export interface StreakState {
   currentStreak: number;
@@ -15,6 +16,7 @@ export interface StreakState {
 const VISIBLE_STOPS = 5;
 
 export function StreakProgressBar() {
+  const { t } = useLanguage();
   const [state, setState] = useState<StreakState | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -66,7 +68,7 @@ export function StreakProgressBar() {
         type="button"
         className="streak__close"
         onClick={() => setIsVisible(false)}
-        aria-label="Dismiss streak"
+        aria-label={t('streak.dismiss')}
       >
         ×
       </button>

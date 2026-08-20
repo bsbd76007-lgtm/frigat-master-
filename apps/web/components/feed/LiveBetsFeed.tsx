@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 import { BetDetailsModal } from '@/components/modals/BetDetailsModal';
 import { FeedSkeleton } from '@/components/feed/ShimmerSkeleton';
 import { GAME_ICONS } from '@/components/icons';
@@ -23,6 +24,7 @@ interface LiveBetsFeedProps {
 
 export default function LiveBetsFeed({ compact = false }: LiveBetsFeedProps) {
   const { socket, token } = useGameSocket();
+  const { t } = useLanguage();
   const [tab, setTab] = useState<Tab>('All Bets');
   const [bets, setBets] = useState<LiveBet[]>([]);
   const [selfUserId, setSelfUserId] = useState<string | null>(null);
@@ -115,8 +117,8 @@ export default function LiveBetsFeed({ compact = false }: LiveBetsFeedProps) {
     <section className={`feed${compact ? ' feed--compact' : ''}`}>
       <div className="feed__header">
         <div>
-          <h3>Live Bets</h3>
-          <p className="feed__subtitle">Real-time action from the tables and crash rounds.</p>
+          <h3>{t('feed.liveTitle')}</h3>
+          <p className="feed__subtitle">{t('feed.liveSubtitle')}</p>
         </div>
         {!compact && <div className="feed__tabs">
           {TABS.map((option) => (
@@ -133,8 +135,8 @@ export default function LiveBetsFeed({ compact = false }: LiveBetsFeedProps) {
       </div>
 
       <div className="feed__columns" aria-hidden="true">
-        <span>Игра</span>
-        <span>Выплата</span>
+        <span>{t('feed.colGame')}</span>
+        <span>{t('feed.colPayout')}</span>
       </div>
 
       {!hasLoaded ? (
@@ -142,7 +144,7 @@ export default function LiveBetsFeed({ compact = false }: LiveBetsFeedProps) {
       ) : (
       <div className="feed__list">
         {rows.length === 0 ? (
-          <div className="feed__empty">No live bets yet.</div>
+          <div className="feed__empty">{t('feed.liveEmpty')}</div>
         ) : (
           rows.map((bet) => {
             const { slug, name } = gameIdentity(bet.gameType);

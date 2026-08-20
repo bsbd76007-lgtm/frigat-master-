@@ -327,7 +327,10 @@ function formatTicket(n: number): string {
   return `#${String(n).padStart(5, '0')}`;
 }
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 export default function FreeMoneyPage() {
+  const { t } = useLanguage();
   useInjectedStyles(STYLE_ID, CSS);
 
   const { balance, token } = useGameSocket();
@@ -798,19 +801,20 @@ export default function FreeMoneyPage() {
   return (
     <section className="fm">
       <div className="fm__head">
-        <h1>Free money</h1>
+        <h1>{t('freemoney.title')}</h1>
         <p>
-          Daily rewards, promo codes and tasks. Everything here credits your
-          real balance — currently {balance.hasSynced ? balance.formatted : '—'}{' '}
-          {balance.currency}.
+          {t('freemoney.lede', {
+            balance: balance.hasSynced ? balance.formatted : '—',
+            currency: balance.currency,
+          })}
         </p>
       </div>
 
       <div className="fm__grid">
         {/* ── Section 1: the wheel ── */}
         <div className="fm__card">
-          <h2>Daily wheel</h2>
-          <p>One free spin every 24 hours. The segment is drawn server-side before the wheel moves.</p>
+          <h2>{t('freemoney.wheelTitle')}</h2>
+          <p>{t('freemoney.wheelBody')}</p>
 
           <div className="fm__wheel-wrap">
             <canvas ref={wheelRef} className="fm__wheel" />
@@ -828,12 +832,12 @@ export default function FreeMoneyPage() {
             onClick={() => void spin()}
             disabled={spinning || !token || segments.length === 0 || spinCountdown !== null}
           >
-            {spinning ? 'Spinning…' : spinCountdown ? 'Come back tomorrow' : 'Spin the wheel'}
+            {spinning ? t('freemoney.spinning') : spinCountdown ? t('freemoney.comeBackTomorrow') : t('freemoney.spinTheWheel')}
           </button>
 
           {spinCountdown && (
             <p className="fm__timer">
-              Next free spin in <b>{spinCountdown}</b>
+              {t('freemoney.nextSpinIn')} <b>{spinCountdown}</b>
             </p>
           )}
         </div>
@@ -841,14 +845,14 @@ export default function FreeMoneyPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* ── Section 2: promo code ── */}
           <div className="fm__card">
-            <h2>Promo code</h2>
-            <p>Got a code? Redeem it here. One use per account.</p>
+            <h2>{t('freemoney.promoTitle')}</h2>
+            <p>{t('freemoney.promoBody')}</p>
             <div className="fm__row">
               <input
                 className="fm__input"
                 value={promo}
-                placeholder="ENTER CODE"
-                aria-label="Promo code"
+                placeholder={t('freemoney.promoPlaceholder')}
+                aria-label={t('freemoney.promoTitle')}
                 maxLength={64}
                 disabled={promoBusy}
                 onChange={(event) => setPromo(event.target.value.toUpperCase())}
@@ -862,7 +866,7 @@ export default function FreeMoneyPage() {
                 onClick={() => void activatePromo()}
                 disabled={promoBusy || !promo.trim() || !token}
               >
-                {promoBusy ? '…' : 'Activate'}
+                {promoBusy ? '…' : t('freemoney.activate')}
               </button>
             </div>
             {promoMessage && (
@@ -874,11 +878,11 @@ export default function FreeMoneyPage() {
 
           {/* ── Check-in ladder ── */}
           <div className="fm__card">
-            <h2>Check-in streak</h2>
+            <h2>{t('freemoney.checkInTitle')}</h2>
             <p>
               {checkIn
-                ? `Day ${checkIn.streak} of ${ladder.length}. Miss a day and it starts again.`
-                : 'Loading your streak…'}
+                ? t('freemoney.checkInDay', { day: checkIn.streak, total: ladder.length })
+                : t('freemoney.checkInLoading')}
             </p>
             <div className="fm__ladder">
               {ladder.map((amount, i) => (
@@ -898,27 +902,28 @@ export default function FreeMoneyPage() {
       {/* ── Raffle / Розыгрыш ── */}
       {raffle && (
         <div className="fm__card">
-          <h2>Giveaway · Розыгрыш</h2>
+          <h2>{t('freemoney.giveawayTitle')}</h2>
           <p>
-            {raffle.totalTickets.toLocaleString('en-US')} tickets issued across{' '}
-            {raffle.participants.toLocaleString('en-US')} players. Tickets are earned,
-            never bought.
+            {t('freemoney.giveawayBody', {
+              tickets: raffle.totalTickets.toLocaleString('en-US'),
+              players: raffle.participants.toLocaleString('en-US'),
+            })}
           </p>
 
           <div className="fm__raffle">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="fm__prize">
-                <span className="fm__prize-label">Grand prize</span>
+                <span className="fm__prize-label">{t('freemoney.grandPrize')}</span>
                 <span className="fm__prize-pool">{raffle.prizePool}</span>
                 <span className="fm__prize-title">{raffle.title}</span>
 
                 {raffleLeft ? (
                   <div className="fm__countdown">
                     {([
-                      ['Days', raffleLeft.d],
-                      ['Hrs', raffleLeft.h],
-                      ['Min', raffleLeft.m],
-                      ['Sec', raffleLeft.s],
+                      [t('freemoney.unitDays'), raffleLeft.d],
+                      [t('freemoney.unitHrs'), raffleLeft.h],
+                      [t('freemoney.unitMin'), raffleLeft.m],
+                      [t('freemoney.unitSec'), raffleLeft.s],
                     ] as const).map(([label, value]) => (
                       <div className="fm__unit" key={label}>
                         <b>{String(value).padStart(2, '0')}</b>
@@ -927,18 +932,18 @@ export default function FreeMoneyPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="fm__timer">Drawing now — winners announced shortly.</p>
+                  <p className="fm__timer">{t('freemoney.drawingNow')}</p>
                 )}
               </div>
 
               <div className="fm__stat-row">
                 <div className="fm__stat">
                   <b>{raffle.you?.ticketCount ?? 0}</b>
-                  <span>Your tickets</span>
+                  <span>{t('freemoney.yourTickets')}</span>
                 </div>
                 <div className="fm__stat">
                   <b>{raffle.totalTickets.toLocaleString('en-US')}</b>
-                  <span>In the draw</span>
+                  <span>{t('freemoney.inTheDraw')}</span>
                 </div>
                 <div className="fm__stat">
                   <b>
@@ -946,7 +951,7 @@ export default function FreeMoneyPage() {
                       ? `${((raffle.you.ticketCount / raffle.totalTickets) * 100).toFixed(1)}%`
                       : '—'}
                   </b>
-                  <span>Your odds</span>
+                  <span>{t('freemoney.yourOdds')}</span>
                 </div>
               </div>
 
@@ -1040,7 +1045,7 @@ export default function FreeMoneyPage() {
               {/* Live ticker */}
               {board && board.recent.length > 0 && (
                 <div>
-                  <p style={{ marginBottom: 6 }}>Latest tickets</p>
+                  <p style={{ marginBottom: 6 }}>{t('freemoney.latestTickets')}</p>
                   <div className="fm__ticker">
                     {board.recent.map((row) => (
                       <div className="fm__tick" key={`${row.ticketNumber}-${row.createdAt}`}>
@@ -1055,7 +1060,7 @@ export default function FreeMoneyPage() {
               {/* Leaderboard */}
               {board && board.leaders.length > 0 && (
                 <div>
-                  <p style={{ marginBottom: 6 }}>Top holders</p>
+                  <p style={{ marginBottom: 6 }}>{t('freemoney.topHolders')}</p>
                   <table className="fm__board">
                     <tbody>
                       {board.leaders.map((row) => (
@@ -1072,13 +1077,13 @@ export default function FreeMoneyPage() {
 
               {board && board.past.length > 0 && (
                 <div>
-                  <p style={{ marginBottom: 6 }}>Past winners</p>
+                  <p style={{ marginBottom: 6 }}>{t('freemoney.pastWinners')}</p>
                   <table className="fm__board">
                     <tbody>
                       {board.past.map((row, i) => (
                         <tr key={i}>
                           <td>{row.winningTicketNumber ? formatTicket(row.winningTicketNumber) : '—'}</td>
-                          <td>{row.player ?? 'Undrawn'}</td>
+                          <td>{row.player ?? t('freemoney.undrawn')}</td>
                           <td>{row.prizePool}</td>
                         </tr>
                       ))}
@@ -1093,8 +1098,8 @@ export default function FreeMoneyPage() {
 
       {/* ── Section 3: tasks ── */}
       <div className="fm__card">
-        <h2>Tasks &amp; bonuses</h2>
-        <p>Rewards the server can verify are claimable here.</p>
+        <h2>{t('freemoney.tasksTitle')}</h2>
+        <p>{t('freemoney.tasksBody')}</p>
 
         {taskMessage && (
           <p className={`fm__msg ${taskMessage.ok ? 'fm__msg--ok' : 'fm__msg--err'}`}>

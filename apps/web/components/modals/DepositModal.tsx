@@ -23,6 +23,7 @@ import { RadarLoader } from '@/components/common/RadarLoader';
 
 import { apiJson, ApiError } from '@/lib/api';
 import { encodeQr, qrPath } from '@/lib/qr';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface DepositInvoice {
   paymentId: string;
@@ -91,6 +92,7 @@ function paymentUri(currency: CurrencyCode, address: string, amount: string): st
 }
 
 function QrCode({ value, label }: { value: string; label: string }) {
+  const { t } = useLanguage();
   const path = useMemo(() => {
     try {
       const matrix = encodeQr(value);
@@ -101,7 +103,7 @@ function QrCode({ value, label }: { value: string; label: string }) {
   }, [value]);
 
   if (!path) {
-    return <p className="wal__hint">Address is too long to show as a QR code.</p>;
+    return <p className="wal__hint">{t('wallet.dpQrTooLong')}</p>;
   }
 
   return (
@@ -122,6 +124,7 @@ function QrCode({ value, label }: { value: string; label: string }) {
 
 export default function DepositModal({ open }: { open: boolean }) {
   const { balance, setToken } = useGameSocket();
+  const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -243,13 +246,13 @@ export default function DepositModal({ open }: { open: boolean }) {
       <>
         {credited ? (
           <div className="wal__banner wal__banner--ok" role="status">
-            <b>Deposit received</b>
-            <span>Your balance has been updated.</span>
+            <b>{t('wallet.dpReceived')}</b>
+            <span>{t('wallet.dpBalanceUpdated')}</span>
           </div>
         ) : (
           <div className="wal__banner" role="status">
             <RadarLoader size={40} label="Waiting for payment" />
-            <span>Waiting for payment — this updates itself.</span>
+            <span>{t('wallet.dpWaiting')}</span>
           </div>
         )}
 
@@ -362,7 +365,7 @@ export default function DepositModal({ open }: { open: boolean }) {
       </div>
 
       {amount.length > 0 && !amountValid && (
-        <p className="wal__error">Enter a positive amount (max 8 decimals).</p>
+        <p className="wal__error">{t('wallet.wdBadAmount')}</p>
       )}
       {error && <p className="wal__error">{error}</p>}
       {sessionExpired && (

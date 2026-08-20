@@ -48,7 +48,10 @@ import { PasswordChecklist } from '@/app/(auth)/PasswordChecklist';
 
 const MIN_PASSWORD = PASSWORD_POLICY.minLength;
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 function RegisterForm() {
+  const { t } = useLanguage();
   const router = useRouter();
   const ref = useSearchParams().get('ref');
 
@@ -181,10 +184,10 @@ function RegisterForm() {
     return (
       <div className="auth__card">
         <span className="auth__brand">FRIGAT</span>
-        <h1 className="auth__title">Verify your email</h1>
+        <h1 className="auth__title">{t('auth.verifyEmailTitle')}</h1>
         <p className="auth__sub">
-          We sent a {OTP_DIGITS}-digit code to <strong>{challenge.email}</strong>. Enter
-          it to finish creating your account — nothing is saved until you do.
+          {t('auth.verifyEmailSub', { digits: OTP_DIGITS })}{' '}
+          <strong>{challenge.email}</strong>. {t('auth.verifyEmailSubTail')}
         </p>
 
         {error && (
@@ -194,7 +197,7 @@ function RegisterForm() {
         )}
         {!error && challenge.devCode && (
           <p className="auth__notice" role="status">
-            Development mode — no email was sent. Your code is {challenge.devCode}.
+            {t('auth.devMode', { code: challenge.devCode })}
           </p>
         )}
 
@@ -212,7 +215,7 @@ function RegisterForm() {
           disabled={busy || digits.join('').length !== OTP_DIGITS}
           onClick={() => void submitCode(digits.join(''))}
         >
-          {busy ? 'Creating account…' : 'Verify and create account'}
+          {busy ? t('auth.creatingAccount') : t('auth.verifyAndCreate')}
         </button>
 
         {/* Mounted for the resend control, which goes back through the guarded
@@ -232,7 +235,7 @@ function RegisterForm() {
             }
             onClick={() => void resendCode()}
           >
-            {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+            {cooldown > 0 ? t('auth.resendIn', { seconds: cooldown }) : t('auth.resendCode')}
           </button>
           <button
             type="button"
@@ -245,7 +248,7 @@ function RegisterForm() {
               setCooldown(0);
             }}
           >
-            Change details
+            {t('auth.changeDetails')}
           </button>
         </div>
       </div>
@@ -256,14 +259,14 @@ function RegisterForm() {
   return (
     <div className="auth__card">
       <span className="auth__brand">FRIGAT</span>
-      <h1 className="auth__title">Create account</h1>
+      <h1 className="auth__title">{t('auth.createAccountTitle')}</h1>
       <p className="auth__sub">
-        Your wallet is created with your account. Provably fair from the first bet.
+        {t('auth.createAccountSub')}
       </p>
 
       {ref && (
         <p className="auth__sub" style={{ color: 'var(--fg-accent)' }}>
-          You were invited — your account will be linked to your referrer.
+          {t('auth.invited')}
         </p>
       )}
 
@@ -276,7 +279,7 @@ function RegisterForm() {
       <form onSubmit={requestCode} noValidate>
         <div className="auth__field">
           <label className="auth__label" htmlFor="register-email">
-            Email
+            {t('auth.email')}
           </label>
           <input
             id="register-email"
@@ -291,13 +294,13 @@ function RegisterForm() {
             aria-invalid={error ? true : undefined}
           />
           <span className="auth__hint">
-            We will email a {OTP_DIGITS}-digit code here to confirm the address.
+            {t('auth.emailCodeHint', { digits: OTP_DIGITS })}
           </span>
         </div>
 
         <div className="auth__field">
           <label className="auth__label" htmlFor="register-password">
-            Password
+            {t('auth.password')}
           </label>
           <input
             id="register-password"
@@ -322,7 +325,7 @@ function RegisterForm() {
 
         <div className="auth__field">
           <label className="auth__label" htmlFor="register-confirm">
-            Confirm password
+            {t('auth.confirmPassword')}
           </label>
           <input
             id="register-confirm"
@@ -344,12 +347,12 @@ function RegisterForm() {
           className="auth__submit"
           disabled={busy || (isTurnstileConfigured() && !turnstileToken)}
         >
-          {busy ? 'Sending code…' : 'Verify email'}
+          {busy ? t('auth.sendingCode') : t('auth.verifyEmailAction')}
         </button>
       </form>
 
       <p className="auth__alt">
-        Already have an account? <Link href="/login">Sign in</Link>
+        {t('auth.haveAccount')} <Link href="/login">{t('auth.signInLink')}</Link>
       </p>
     </div>
   );

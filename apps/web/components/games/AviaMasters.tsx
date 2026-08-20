@@ -681,7 +681,10 @@ const CSS = `
 // Component
 // ─────────────────────────────────────────────
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 export default function AviaMasters() {
+  const { t } = useLanguage();
   useInjectedStyles(STYLE_ID, CSS);
 
   const { balance } = useGameSocket();
@@ -1370,24 +1373,24 @@ export default function AviaMasters() {
           className="avia__canvas"
           onPointerDown={onCanvasPointerDown}
           role="application"
-          aria-label="Flight area — tap anywhere to jump"
+          aria-label={t('gameUi.aviaFlightAria')}
         />
 
         <div className="avia__hud" aria-live="off">
           <div className="avia__tile">
-            <span className="avia__tile-label">Altitude</span>
+            <span className="avia__tile-label">{t('gameUi.aviaAltitude')}</span>
             <span className="avia__tile-value">{formatMetres(hud.altitude)}</span>
           </div>
           <div className="avia__tile">
-            <span className="avia__tile-label">Distance</span>
+            <span className="avia__tile-label">{t('gameUi.aviaDistance')}</span>
             <span className="avia__tile-value">{formatMetres(hud.distance)}</span>
           </div>
           <div className="avia__tile avia__tile--mult">
-            <span className="avia__tile-label">Multiplier</span>
+            <span className="avia__tile-label">{t('gameUi.aviaMultiplier')}</span>
             <span className="avia__tile-value">{formatMultiplier(hud.multiplier)}</span>
           </div>
           <div className="avia__tile avia__tile--payout">
-            <span className="avia__tile-label">Payout</span>
+            <span className="avia__tile-label">{t('gameUi.aviaPayout')}</span>
             <span className="avia__tile-value">${formatDecimalString(payout, 2)}</span>
           </div>
         </div>
@@ -1407,7 +1410,7 @@ export default function AviaMasters() {
             ) : (
               <>
                 Ditched in the sea
-                <small>Stake lost — practice round</small>
+                <small>{t('gameUi.aviaStakeLost')}</small>
               </>
             )}
           </div>
@@ -1415,8 +1418,8 @@ export default function AviaMasters() {
 
         <p className="avia__hint">
           {isFlying
-            ? 'Tap anywhere (or Space) to jump · land on a deck to cash out'
-            : 'Tap the board or press Space to launch'}
+            ? t('gameUi.aviaHintFlying')
+            : t('gameUi.aviaHintIdle')}
         </p>
       </div>
 
@@ -1424,7 +1427,7 @@ export default function AviaMasters() {
       <div className="avia__panel">
         <div>
           <div className="avia__label">
-            <span>Bet amount</span>
+            <span>{t('gameUi.betAmount')}</span>
             <b>
               {balance.hasSynced ? `${balance.formatted} ${balance.currency}` : '—'}
             </b>
@@ -1436,14 +1439,14 @@ export default function AviaMasters() {
               value={bet}
               disabled={isFlying || isLanding}
               aria-invalid={betError !== null}
-              aria-label="Bet amount"
+              aria-label={t('gameUi.betAmount')}
               onChange={(event) => setBet(sanitizeDecimalInput(event.target.value))}
             />
             <button
               type="button"
               className="avia__mod"
               disabled={isFlying || isLanding}
-              aria-label="Halve bet amount"
+              aria-label={t('gameUi.halveBet')}
               onClick={() => scaleBet(0.5)}
             >
               ½
@@ -1452,7 +1455,7 @@ export default function AviaMasters() {
               type="button"
               className="avia__mod"
               disabled={isFlying || isLanding}
-              aria-label="Double bet amount"
+              aria-label={t('gameUi.doubleBet')}
               onClick={() => scaleBet(2)}
             >
               2x
@@ -1461,7 +1464,7 @@ export default function AviaMasters() {
               type="button"
               className="avia__mod"
               disabled={isFlying || isLanding}
-              aria-label="Bet maximum"
+              aria-label={t('gameUi.maxBet')}
               onClick={maxStake}
             >
               Max
@@ -1486,12 +1489,12 @@ export default function AviaMasters() {
           // Not a button. Cashing out is landing on a deck, and a control that
           // banked the round from the panel would make the platforms pointless.
           <div className="avia__standing" role="status">
-            <span>{isLanding ? 'Touchdown — banking' : 'In flight'}</span>
+            <span>{isLanding ? t('gameUi.aviaTouchdown') : t('gameUi.aviaInFlight')}</span>
             <b>
               {formatMultiplier(hud.multiplier)} · ${formatDecimalString(payout, 2)}
             </b>
             <small>
-              {isLanding ? 'Cashing out automatically' : 'Land on a deck to bank it'}
+              {isLanding ? t('gameUi.aviaAutoCashout') : t('gameUi.aviaLandToBank')}
             </small>
           </div>
         ) : (

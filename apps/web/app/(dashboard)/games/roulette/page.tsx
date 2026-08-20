@@ -160,7 +160,7 @@ export default function RoulettePage() {
           </div>
 
           <div className="opt">
-            <span className="opt__label">Straight up (36×)</span>
+            <span className="opt__label">{t('gameUi.rouletteStraightUp')}</span>
             <input
               className="dash__input"
               inputMode="numeric"

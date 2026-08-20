@@ -93,7 +93,10 @@ export interface CloudflareGuardProps {
   children: React.ReactNode;
 }
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 export function CloudflareGuard({ children }: CloudflareGuardProps) {
+  const { t } = useLanguage();
   useInjectedStyles(STYLE_ID, CSS);
 
   // Starts "unknown" rather than "blocked": the server has no idea what the
@@ -146,7 +149,7 @@ export function CloudflareGuard({ children }: CloudflareGuardProps) {
       <div className="sec" role="status" aria-live="polite">
         <div className="sec__box">
           <div className="sec__brand">FRIGAT</div>
-          <h1 className="sec__title">Performing security verification</h1>
+          <h1 className="sec__title">{t('common.securityTitle')}</h1>
           <p className="sec__sub">
             Checking your browser before you continue. This takes a few seconds
             and happens once per session.
@@ -155,7 +158,7 @@ export function CloudflareGuard({ children }: CloudflareGuardProps) {
           <div className="sec__radar">
             <RadarLoader size={110} label="Performing security verification" />
           </div>
-          <p className="sec__status">Verifying…</p>
+          <p className="sec__status">{t('common.securityVerifying')}</p>
 
           <div className="sec__widget">
             {live ? (
@@ -174,7 +177,7 @@ export function CloudflareGuard({ children }: CloudflareGuardProps) {
           <div className="sec__foot">
             <p className="sec__meta">
               {live ? (
-                <>Protected by Cloudflare Turnstile.</>
+                <>{t('common.securityFooter')}</>
               ) : (
                 <>
                   Verification is not configured on this deployment — continuing

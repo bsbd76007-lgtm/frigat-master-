@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 
 import { apiFetch } from '@/lib/api';
 import { formatDecimalString } from '@/lib/decimal';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface StreakSummary {
   restorableStreak: number;
@@ -13,6 +14,7 @@ interface StreakSummary {
 }
 
 export function RestoreStreakModal() {
+  const { t } = useLanguage();
   const [summary, setSummary] = useState<StreakSummary | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -76,7 +78,7 @@ export function RestoreStreakModal() {
           className="rsm__close"
           onClick={close}
           disabled={isBusy}
-          aria-label="Close"
+          aria-label={t('common.close')}
         >
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
             <path
@@ -90,15 +92,14 @@ export function RestoreStreakModal() {
         </button>
 
         <h2 className="rsm__title" id="rsm-title">
-          Your {summary.restorableStreak}-day streak ended
+          {t('streak.endedTitle', { days: summary.restorableStreak })}
         </h2>
         <p className="rsm__copy">
-          You can put it back and carry on from day {summary.restorableStreak + 1},
-          or start again from day one at no cost.
+          {t('streak.endedCopy', { next: summary.restorableStreak + 1 })}
         </p>
 
         <div className="rsm__price">
-          <span>Restore cost</span>
+          <span>{t('streak.restoreCost')}</span>
           <b>${formatDecimalString(summary.streakRestoreCost, 2)}</b>
         </div>
 

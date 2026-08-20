@@ -42,6 +42,7 @@ import {
 import { evaluatePassword } from '@/app/(auth)/passwordRules';
 import { PasswordChecklist } from '@/app/(auth)/PasswordChecklist';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 type View = 'signin' | 'code' | 'forgot' | 'reset';
 
@@ -99,6 +100,7 @@ export interface AuthModalProps {
 
 export function AuthModal({ open, onClose }: AuthModalProps) {
   useInjectedStyles(STYLE_ID, CSS);
+  const { t } = useLanguage();
 
   const [view, setView] = useState<View>('signin');
   const [email, setEmail] = useState('');
@@ -286,7 +288,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             </h2>
             <p className="authm__sub">{titles[view].sub}</p>
           </div>
-          <button type="button" className="authm__close" onClick={onClose} aria-label="Close">
+          <button type="button" className="authm__close" onClick={onClose} aria-label={t('common.close')}>
             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
             </svg>
@@ -299,7 +301,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
         {view === 'signin' && (
           <form onSubmit={signIn} noValidate>
             <div className="authm__field">
-              <label htmlFor="authm-email">Email</label>
+              <label htmlFor="authm-email">{t('common.email')}</label>
               <input
                 id="authm-email"
                 className="authm__input"
@@ -312,7 +314,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               />
             </div>
             <div className="authm__field">
-              <label htmlFor="authm-password">Password</label>
+              <label htmlFor="authm-password">{t('common.password')}</label>
               <input
                 id="authm-password"
                 className="authm__input"
@@ -384,7 +386,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
         {view === 'forgot' && (
           <form onSubmit={sendReset} noValidate>
             <div className="authm__field">
-              <label htmlFor="authm-forgot-email">Email</label>
+              <label htmlFor="authm-forgot-email">{t('common.email')}</label>
               <input
                 id="authm-forgot-email"
                 className="authm__input"
@@ -426,7 +428,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               label="Reset code"
             />
             <div className="authm__field">
-              <label htmlFor="authm-new-password">New password</label>
+              <label htmlFor="authm-new-password">{t('common.newPassword')}</label>
               <input
                 id="authm-new-password"
                 className="authm__input"
@@ -440,7 +442,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               <PasswordChecklist password={newPassword} failing={failing} />
             </div>
             <div className="authm__field">
-              <label htmlFor="authm-confirm-password">Confirm new password</label>
+              <label htmlFor="authm-confirm-password">{t('common.confirmNewPassword')}</label>
               <input
                 id="authm-confirm-password"
                 className="authm__input"

@@ -25,6 +25,7 @@
 import Link from 'next/link';
 
 import { useStoredToken } from '@/hooks/useStoredToken';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface Promo {
   id: string;
@@ -36,63 +37,58 @@ interface Promo {
 }
 
 export default function PromotionsPage() {
+  const { t } = useLanguage();
   const token = useStoredToken();
 
   const promos: Promo[] = [
     {
       id: 'wheel',
-      name: 'Daily wheel spin',
-      tag: 'Daily',
-      blurb: 'One free spin every day, credited straight to your balance.',
-      detail:
-        'Resets 24 hours after your last spin. The prize is drawn from the same committed seed scheme the games use, so the segment you land on was fixed before the wheel started turning.',
-      action: { label: 'Spin the wheel', href: '/vip' },
+      name: t('promos.wheelName'),
+      tag: t('promos.wheelTag'),
+      blurb: t('promos.wheelBlurb'),
+      detail: t('promos.wheelDetail'),
+      action: { label: t('promos.wheelAction'), href: '/vip' },
     },
     {
       id: 'rakeback',
-      name: 'VIP rakeback',
-      tag: 'Weekly',
-      blurb: 'A percentage of everything you wager comes back, win or lose.',
-      detail:
-        'The rate rises with your tier — from 5% at Bronze to 10% at Platinum and above. It accrues on every settled bet and can be claimed whenever there is a balance to take.',
-      action: { label: 'View tier & claim', href: '/vip' },
+      name: t('promos.rakebackName'),
+      tag: t('promos.rakebackTag'),
+      blurb: t('promos.rakebackBlurb'),
+      detail: t('promos.rakebackDetail'),
+      action: { label: t('promos.rakebackAction'), href: '/vip' },
     },
     {
       id: 'cashback',
-      name: 'Streak cashback',
-      tag: 'Daily',
-      blurb: 'Play on consecutive days and take a share of net losses back.',
-      detail:
-        'Quoted fresh by the server each time you open it, and claimable once per day. Breaking the streak resets the multiplier, not your history.',
-      action: { label: 'Check today’s cashback', href: '/vip' },
+      name: t('promos.cashbackName'),
+      tag: t('promos.wheelTag'),
+      blurb: t('promos.cashbackBlurb'),
+      detail: t('promos.cashbackDetail'),
+      action: { label: t('promos.cashbackAction'), href: '/vip' },
     },
     {
       id: 'partner',
-      name: 'Partner revenue share',
-      tag: 'Ongoing',
-      blurb: 'Earn a cut of what everyone you invite wagers, for as long as they play.',
-      detail:
-        'Tiered revenue share paid into a separate affiliate balance you can claim at any time. No cap on referrals and no expiry on the link.',
-      action: { label: 'Partner program', href: '/partner-program' },
+      name: t('promos.partnerName'),
+      tag: t('promos.partnerTag'),
+      blurb: t('promos.partnerBlurb'),
+      detail: t('promos.partnerDetail'),
+      action: { label: t('promos.partnerAction'), href: '/partner-program' },
     },
   ];
 
   return (
     <>
-      <h1 className="info__title">Promotions</h1>
+      <h1 className="info__title">{t('promos.title')}</h1>
       <p className="info__lede">
-        Everything below is live and pays into your real balance. Bonuses are
-        credited by the server when you claim them — there is no bonus wallet
-        and no wagering requirement to clear first.
+        {t('promos.lede')}
       </p>
 
       {!token && (
         <p className="info__note">
-          <b>Signed out.</b>
+          <b>{t('promos.signedOut')}</b>
           <span>
-            These offers are tied to an account.{' '}
-            <Link href="/login">Sign in</Link> or{' '}
-            <Link href="/register">create an account</Link> to claim them.
+            {t('promos.signedOutBody')}{' '}
+            <Link href="/login">{t('promos.signIn')}</Link> {t('promos.or')}{' '}
+            <Link href="/register">{t('promos.createAccount')}</Link> {t('promos.toClaim')}
           </span>
         </p>
       )}
@@ -125,33 +121,28 @@ export default function PromotionsPage() {
       </div>
 
       <section className="info__section" style={{ marginTop: 22 }}>
-        <h2>How claiming works</h2>
+        <h2>{t('promos.howTitle')}</h2>
         <ul className="info__list">
           <li>
-            <b>The amount is calculated server-side.</b> Whatever a page shows
-            you is a display of that same calculation, never an input to it — so
-            a stale tab cannot claim yesterday&apos;s figure.
+            <b>{t('promos.howServerLead')}</b> {t('promos.howServerBody')}
           </li>
           <li>
-            <b>Claims are once per period.</b> A second attempt in the same
-            window is refused rather than double-paid.
+            <b>{t('promos.howOnceLead')}</b> {t('promos.howOnceBody')}
           </li>
           <li>
-            <b>Credited to your real balance</b> through the ledger, in the same
-            transaction that marks the bonus as taken.
+            <b>{t('promos.howCreditLead')}</b> {t('promos.howCreditBody')}
           </li>
           <li>
-            <b>Abuse voids it.</b> Multiple accounts, self-referral, or
-            deposit-and-withdraw cycles with no play forfeit outstanding bonuses
-            — see <Link href="/rules#aml">the AML summary</Link>.
+            <b>{t('promos.howAbuseLead')}</b> {t('promos.howAbuseBody')}{' '}
+            <Link href="/rules#aml">{t('promos.amlLink')}</Link>.
           </li>
         </ul>
       </section>
 
       <p className="info__lede" style={{ marginTop: 22 }}>
-        Topping up? The cashier lives in the header once you are on the casino.{' '}
+        {t('promos.toppingUp')}{' '}
         <Link className="info__cta info__cta--ghost" href="/">
-          Go to the casino
+          {t('promos.goToCasino')}
         </Link>
       </p>
     </>

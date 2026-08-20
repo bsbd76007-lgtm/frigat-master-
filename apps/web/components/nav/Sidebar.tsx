@@ -95,7 +95,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       >
         {/* Rail header. The navbar is hidden behind the drawer on mobile, so
             without this the open drawer carried no brand at all. */}
-        <Link className="rail__brand" href="/" onClick={onClose} aria-label="FRIGAT home">
+        <Link className="rail__brand" href="/" onClick={onClose} aria-label={t('nav.homeAria')}>
           {/* Monogram only, keyed out of frigat-model.jpg. The full asset
               spells "FRIGAT" beneath the mark, which set the brand name twice
               next to the label below. Already white with real transparency, so
@@ -188,14 +188,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <button
             type="button"
             className="rail__link rail__link--support"
-            title="Support"
+            title={t('support.open')}
             onClick={() => {
               openPanel('support');
               onClose();
             }}
           >
             <RailIcon name="support" />
-            <span className="rail__label">Support</span>
+            <span className="rail__label">{t('support.open')}</span>
           </button>
 
           <button
@@ -203,15 +203,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             className="rail__collapse"
             onClick={toggleCollapsed}
             aria-pressed={collapsed}
-            title={collapsed ? 'Expand menu' : 'Collapse menu'}
-            aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}
+            title={collapsed ? t('nav.expandMenu') : t('nav.collapseMenu')}
+            aria-label={collapsed ? t('nav.expandMenu') : t('nav.collapseMenu')}
           >
             {collapsed ? (
               <ChevronRight size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
             ) : (
               <ChevronLeft size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
             )}
-            <span className="rail__label">Collapse</span>
+            <span className="rail__label">{t('nav.collapse')}</span>
           </button>
         </div>
       </aside>

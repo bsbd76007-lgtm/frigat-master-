@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
 import { useStoredToken } from '@/hooks/useStoredToken';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 import { apiJson } from '@/lib/api';
 import { formatDecimalString } from '@/lib/decimal';
 import { consumedAsSessionExpiry } from '@/lib/sessionExpiry';
@@ -42,6 +43,7 @@ const TIERS = [
 ];
 
 export default function PartnerProgramPage() {
+  const { t } = useLanguage();
   const token = useStoredToken();
   const [summary, setSummary] = useState<ReferralSummary | null>(null);
   const [copied, setCopied] = useState(false);
@@ -90,27 +92,24 @@ export default function PartnerProgramPage() {
 
   return (
     <>
-      <h1 className="info__title">Partner program</h1>
+      <h1 className="info__title">{t('partner.title')}</h1>
       <p className="info__lede">
-        Send players to FRIGAT and earn a share of what they lose, for as long
-        as they keep playing. No cap on referrals, no expiry on your link, and
-        earnings land in a separate balance you can draw down whenever you like.
+        {t('partner.lede')}
       </p>
 
       <section className="info__section">
-        <h2>Commission structure</h2>
+        <h2>{t('partner.commissionTitle')}</h2>
         <p>
-          Revenue share is paid on the <b>net losses</b> of players who signed
-          up through your link — not on their deposits and not on turnover, so
-          the number moves with the same figure the house books.
+          {t('partner.commissionBodyA')} <b>{t('partner.netLosses')}</b>{' '}
+          {t('partner.commissionBodyB')}
         </p>
         <div className="info__table-wrap">
           <table className="info__table">
             <thead>
               <tr>
-                <th>Band</th>
-                <th>Referred players</th>
-                <th>Revenue share</th>
+                <th>{t('partner.colBand')}</th>
+                <th>{t('partner.colReferred')}</th>
+                <th>{t('partner.colShare')}</th>
               </tr>
             </thead>
             <tbody>
@@ -129,44 +128,41 @@ export default function PartnerProgramPage() {
           </table>
         </div>
         <p style={{ marginTop: 12 }}>
-          Every account starts at the standard rate. Bands above it are set per
-          account by the affiliate team rather than granted automatically —
-          reach out once you are sending consistent volume and we will move you
-          up.
+          {t('partner.bandsNote')}
         </p>
       </section>
 
       <section className="info__section">
-        <h2>Your dashboard</h2>
+        <h2>{t('partner.dashboardTitle')}</h2>
         {summary ? (
           <>
             <p>
-              Live figures for your account. The full breakdown, including
-              claiming, lives on <Link href="/referrals">your referral page</Link>.
+              {t('partner.dashboardIntroA')}{' '}
+              <Link href="/referrals">{t('partner.referralPage')}</Link>.
             </p>
             <div className="info__table-wrap">
               <table className="info__table">
                 <tbody>
                   <tr>
-                    <td>Your revenue share</td>
+                    <td>{t('partner.yourShare')}</td>
                     <td>
                       <b>{summary.revSharePercentage}%</b>
                     </td>
                   </tr>
                   <tr>
-                    <td>Players invited</td>
+                    <td>{t('partner.invited')}</td>
                     <td>
                       <b>{summary.totalInvited}</b>
                     </td>
                   </tr>
                   <tr>
-                    <td>Active depositors</td>
+                    <td>{t('partner.activeDepositors')}</td>
                     <td>
                       <b>{summary.activeDepositors}</b>
                     </td>
                   </tr>
                   <tr>
-                    <td>Available to claim</td>
+                    <td>{t('partner.claimable')}</td>
                     <td>
                       <b>
                         {formatDecimalString(summary.claimable, 2)}{' '}
@@ -180,22 +176,20 @@ export default function PartnerProgramPage() {
           </>
         ) : (
           <p>
-            Tracking is real-time: invited players, how many have deposited, and
-            the balance available to claim, all updated as rounds settle.{' '}
+            {t('partner.trackingNote')}{' '}
             {token
-              ? 'Loading your figures…'
-              : 'Sign in to see your own figures here.'}
+              ? t('partner.loadingFigures')
+              : t('partner.signInForFigures')}
           </p>
         )}
       </section>
 
       <section className="info__section">
-        <h2>{summary ? 'Your link' : 'Join the program'}</h2>
+        <h2>{summary ? t('partner.yourLink') : t('partner.joinProgram')}</h2>
         {summary ? (
           <>
             <p>
-              Anyone who registers through this link is attributed to you
-              permanently. Share it anywhere you like.
+              {t('partner.linkNote')}
             </p>
             <div className="info__card-foot" style={{ paddingTop: 0 }}>
               <code
@@ -212,23 +206,22 @@ export default function PartnerProgramPage() {
                 {link}
               </code>
               <button type="button" className="info__cta" onClick={() => void copy()}>
-                {copied ? 'Copied' : 'Copy link'}
+                {copied ? t('partner.copied') : t('partner.copyLink')}
               </button>
             </div>
           </>
         ) : (
           <>
             <p>
-              There is no application to fill in: <b>every account is a partner
-              account</b>. Registering issues you a referral code, and your link
-              works from that moment.
+              {t('partner.noApplicationA')} <b>{t('partner.everyAccount')}</b>.{' '}
+              {t('partner.noApplicationB')}
             </p>
             <div className="info__card-foot" style={{ paddingTop: 0 }}>
               <Link className="info__cta" href="/register">
-                Create an account
+                {t('partner.createAccount')}
               </Link>
               <Link className="info__cta info__cta--ghost" href="/login">
-                I already have one
+                {t('partner.alreadyHaveOne')}
               </Link>
             </div>
           </>
@@ -236,28 +229,23 @@ export default function PartnerProgramPage() {
       </section>
 
       <section className="info__section">
-        <h2>Terms</h2>
+        <h2>{t('partner.termsTitle')}</h2>
         <ul className="info__list">
           <li>
-            <b>Self-referral is not allowed.</b> Signing up through your own link
-            or running a second account to farm commission forfeits the balance.
+            <b>{t('partner.termsSelfLead')}</b> {t('partner.termsSelfBody')}
           </li>
           <li>
-            <b>No incentivised or misleading traffic.</b> Promising players a cut
-            of your commission, or advertising odds and offers this site does not
-            run, voids earnings.
+            <b>{t('partner.termsTrafficLead')}</b> {t('partner.termsTrafficBody')}
           </li>
           <li>
-            <b>Attribution is on registration.</b> A player is credited to the
-            link they signed up through, and stays yours from then on.
+            <b>{t('partner.termsAttrLead')}</b> {t('partner.termsAttrBody')}
           </li>
           <li>
-            <b>Chargebacks and fraud are deducted</b> from affiliate earnings
-            before they become claimable.
+            <b>{t('partner.termsChargebackLead')}</b> {t('partner.termsChargebackBody')}
           </li>
           <li>
-            The <Link href="/rules">house rules</Link> apply to partners exactly
-            as they do to players.
+            {t('partner.termsHouseA')} <Link href="/rules">{t('partner.houseRules')}</Link>{' '}
+            {t('partner.termsHouseB')}
           </li>
         </ul>
       </section>

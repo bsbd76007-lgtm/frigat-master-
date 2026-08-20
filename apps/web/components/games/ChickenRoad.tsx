@@ -878,7 +878,10 @@ const CSS = `
 // Component
 // ─────────────────────────────────────────────
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 export default function ChickenRoad() {
+  const { t } = useLanguage();
   useInjectedStyles(STYLE_ID, CSS);
 
   const [phase, setPhase] = useState<Phase>('IDLE');
@@ -1531,7 +1534,7 @@ export default function ChickenRoad() {
           className="chr__chick"
           onClick={advance}
           disabled={!canStep}
-          aria-label="Tap the chicken to cross to the next lane"
+          aria-label={t('gameUi.chickenAria')}
         />
       </div>
 
@@ -1539,7 +1542,7 @@ export default function ChickenRoad() {
       <div className="chr__panel">
         <div>
           <div className="chr__label">
-            <span>Traffic density</span>
+            <span>{t('gameUi.chickenTraffic')}</span>
             <b>{mode.label}</b>
           </div>
           <div className="chr__modes">
@@ -1560,7 +1563,7 @@ export default function ChickenRoad() {
 
         <div>
           <label className="chr__label" htmlFor="chr-bet">
-            <span>Bet amount</span>
+            <span>{t('gameUi.betAmount')}</span>
             <b>{formatMultiplier(multiplier)}x</b>
           </label>
           <div className="chr__inputs">
@@ -1581,7 +1584,7 @@ export default function ChickenRoad() {
               type="button"
               className="chr__mod"
               disabled={isPlaying}
-              aria-label="Halve bet amount"
+              aria-label={t('gameUi.halveBet')}
               onClick={() =>
                 setBet((b) => Math.max(GAME_CONFIG.minBet, Number((b / 2).toFixed(2))))
               }
@@ -1592,7 +1595,7 @@ export default function ChickenRoad() {
               type="button"
               className="chr__mod"
               disabled={isPlaying}
-              aria-label="Double bet amount"
+              aria-label={t('gameUi.doubleBet')}
               onClick={() => setBet((b) => Math.min(maxBet, Number((b * 2).toFixed(2))))}
             >
               2x
@@ -1601,7 +1604,7 @@ export default function ChickenRoad() {
               type="button"
               className="chr__mod"
               disabled={isPlaying}
-              aria-label="Bet maximum"
+              aria-label={t('gameUi.maxBet')}
               onClick={() => setBet(maxBet)}
             >
               Max
@@ -1638,14 +1641,14 @@ export default function ChickenRoad() {
             onClick={startRound}
             disabled={betError !== null}
           >
-            {isOver ? 'Play Again' : 'Start Round'}
+            {isOver ? t('gameUi.chickenPlayAgain') : t('gameUi.chickenStartRound')}
           </button>
         )}
 
         <p className="chr__hint">
           {isPlaying
-            ? 'Tap the chicken, or press Arrow Right / D — the road never ends'
-            : 'Cross a lane to unlock cash out'}
+            ? t('gameUi.chickenHintPlaying')
+            : t('gameUi.chickenHintIdle')}
         </p>
       </div>
     </div>

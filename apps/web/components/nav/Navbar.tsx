@@ -72,7 +72,7 @@ export function Navbar({ onMenuToggle, menuOpen }: NavbarProps) {
         type="button"
         className="dash__burger"
         onClick={onMenuToggle}
-        aria-label="Toggle navigation"
+        aria-label={t('nav.toggle')}
         aria-expanded={menuOpen}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -81,7 +81,7 @@ export function Navbar({ onMenuToggle, menuOpen }: NavbarProps) {
       </button>
 
       {/* The SVG carries its own <title>, so the link needs no extra label. */}
-      <Link className="dash__brand" href="/" aria-label="Frigat home">
+      <Link className="dash__brand" href="/" aria-label={t('nav.homeAria')}>
         {/* Monogram plus the name in text, matching the rail so the two chrome
             surfaces carry one lockup. The mark is keyed out of
             frigat-model.jpg and ships white with real transparency, so it

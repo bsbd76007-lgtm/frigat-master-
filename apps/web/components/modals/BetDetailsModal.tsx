@@ -9,7 +9,6 @@ import { GAME_ICONS } from '@/components/icons';
 import { apiFetch } from '@/lib/api';
 import { gameHref, gameIdentity } from '@/lib/gameIdentity';
 import {
-
   betProfit,
   formatBetTimestamp,
   formatMultiplier,
@@ -19,6 +18,8 @@ import {
   type BetDetail,
   type LiveBet,
 } from '@/lib/liveBets';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 interface BetDetailsModalProps {
   bet: LiveBet | null;
   onClose: () => void;
@@ -30,6 +31,7 @@ function isPersisted(id: string): boolean {
 
 export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
@@ -143,7 +145,7 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
             type="button"
             className="bdm__close"
             onClick={onClose}
-            aria-label="Закрыть"
+            aria-label={t('betDetail.closeAria')}
           >
             <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
               <path
@@ -158,7 +160,7 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
 
         <dl className="bdm__meta">
           <div className="bdm__meta-row">
-            <dt>Кем поставлена</dt>
+            <dt>{t('betDetail.placedBy')}</dt>
             <dd>
               <span className="bdm__user">
                 <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
@@ -173,18 +175,18 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
             </dd>
           </div>
           <div className="bdm__meta-row">
-            <dt>Дата</dt>
+            <dt>{t('betDetail.date')}</dt>
             <dd>{formatBetTimestamp(bet.timestamp)}</dd>
           </div>
           <div className="bdm__meta-row">
-            <dt>Номер ставки</dt>
+            <dt>{t('betDetail.betId')}</dt>
             <dd className="bdm__id-cell">
               <span className="bdm__id">{bet.id}</span>
               <button
                 type="button"
                 className="bdm__copy"
                 onClick={copyId}
-                aria-label="Скопировать номер ставки"
+                aria-label={t('betDetail.copyId')}
               >
                 {hasCopied ? (
                   <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
@@ -225,17 +227,17 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
 
         <div className="bdm__stats">
           <div className="bdm__stat">
-            <span className="bdm__stat-label">Ставка</span>
+            <span className="bdm__stat-label">{t('betDetail.stake')}</span>
             <span className="bdm__stat-value">
               {formatUsd(bet.betAmount)}
             </span>
           </div>
           <div className="bdm__stat">
-            <span className="bdm__stat-label">Коэффициент</span>
+            <span className="bdm__stat-label">{t('betDetail.multiplier')}</span>
             <span className="bdm__stat-value">{formatMultiplier(bet.multiplier)}</span>
           </div>
           <div className="bdm__stat">
-            <span className="bdm__stat-label">Выплата</span>
+            <span className="bdm__stat-label">{t('betDetail.payout')}</span>
             <span
               className={`bdm__stat-value${won ? ' bdm__stat-value--win' : ' bdm__stat-value--loss'}`}
             >
@@ -243,7 +245,7 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
             </span>
           </div>
           <div className="bdm__stat">
-            <span className="bdm__stat-label">Прибыль</span>
+            <span className="bdm__stat-label">{t('betDetail.profit')}</span>
             <span
               className={`bdm__stat-value${won ? ' bdm__stat-value--win' : ' bdm__stat-value--loss'}`}
             >
@@ -261,7 +263,7 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
               router.push(href);
             }}
           >
-            Играть в {name}
+            {t('betDetail.play', { game: name })}
           </button>
         )}
 
@@ -273,10 +275,10 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
             onClick={() => setIsFairnessOpen((v) => !v)}
           >
             <span>
-              Доказуемая честность
+              {t('betDetail.fairToggle')}
               <span
                 className="bdm__hint tip"
-                title="Каждый раунд рассчитывается из серверного и клиентского сида. Проверьте их, чтобы убедиться, что результат не был изменён."
+                title={t('betDetail.fairHint')}
                 role="note"
               >
                 ?
@@ -308,15 +310,15 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
                   увидеть сиды.
                 </p>
               ) : !fairness ? (
-                <p className="bdm__fair-note">Загрузка…</p>
+                <p className="bdm__fair-note">{t('betDetail.loading')}</p>
               ) : (
                 <>
                   <div className="bdm__seed">
-                    <span className="bdm__seed-label">Hash серверного сида</span>
+                    <span className="bdm__seed-label">{t('fair.hashedServerSeed')}</span>
                     <code className="bdm__seed-value">{fairness.hashedServerSeed}</code>
                   </div>
                   <div className="bdm__seed">
-                    <span className="bdm__seed-label">Серверный сид</span>
+                    <span className="bdm__seed-label">{t('betDetail.serverSeed')}</span>
                     {fairness.serverSeed ? (
                       <code className="bdm__seed-value">{fairness.serverSeed}</code>
                     ) : (
@@ -327,11 +329,11 @@ export function BetDetailsModal({ bet, onClose }: BetDetailsModalProps) {
                     )}
                   </div>
                   <div className="bdm__seed">
-                    <span className="bdm__seed-label">Клиентский сид</span>
+                    <span className="bdm__seed-label">{t('betDetail.clientSeed')}</span>
                     <code className="bdm__seed-value">{fairness.clientSeed}</code>
                   </div>
                   <div className="bdm__seed">
-                    <span className="bdm__seed-label">Nonce</span>
+                    <span className="bdm__seed-label">{t('fair.nonce')}</span>
                     <code className="bdm__seed-value">{fairness.nonce}</code>
                   </div>
                 </>

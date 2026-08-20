@@ -27,6 +27,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 const NAV = [
   { href: '/architecture', label: 'How it works' },
@@ -133,6 +134,7 @@ const CSS = `
 export default function InformationLayout({ children }: { children: ReactNode }) {
   useInjectedStyles(STYLE_ID, CSS);
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   return (
     <>
@@ -141,7 +143,7 @@ export default function InformationLayout({ children }: { children: ReactNode })
           FRIGAT
         </Link>
 
-        <nav className="infobar__nav" aria-label="Information">
+        <nav className="infobar__nav" aria-label={t('nav.infoAria')}>
           {NAV.map((item) => (
             <Link
               key={item.href}

@@ -34,7 +34,10 @@ const REDIRECT_COPY: Record<string, string> = {
     'The server is missing JWT_SECRET, so sessions cannot be verified. Admin access is disabled until it is set.',
 };
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 function LoginForm() {
+  const { t } = useLanguage();
   const params = useSearchParams();
   const redirectReason = params.get('error');
   const next = params.get('next');
@@ -214,10 +217,10 @@ function LoginForm() {
     return (
       <div className="auth__card">
         <span className="auth__brand">FRIGAT</span>
-        <h1 className="auth__title">Check your email</h1>
+        <h1 className="auth__title">{t('auth.checkEmailTitle')}</h1>
         <p className="auth__sub">
-          Your password was accepted. We sent a {OTP_DIGITS}-digit code to{' '}
-          <strong>{challenge.email}</strong> to finish signing in.
+          {t('auth.checkEmailSub', { digits: OTP_DIGITS })}{' '}
+          <strong>{challenge.email}</strong> {t('auth.checkEmailSubTail')}
         </p>
 
         {error && (
@@ -227,7 +230,7 @@ function LoginForm() {
         )}
         {!error && challenge.devCode && (
           <p className="auth__notice" role="status">
-            Development mode — no email was sent. Your code is {challenge.devCode}.
+            {t('auth.devMode', { code: challenge.devCode })}
           </p>
         )}
 
@@ -245,7 +248,7 @@ function LoginForm() {
           disabled={busy || digits.join('').length !== OTP_DIGITS}
           onClick={() => void submitCode(digits.join(''))}
         >
-          {busy ? 'Verifying…' : 'Verify and sign in'}
+          {busy ? t('auth.verifying') : t('auth.verifyAndSignIn')}
         </button>
 
         {/* Mounted for the resend control, which goes back through the guarded
@@ -261,7 +264,7 @@ function LoginForm() {
             }
             onClick={() => void resendCode()}
           >
-            {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+            {cooldown > 0 ? t('auth.resendIn', { seconds: cooldown }) : t('auth.resendCode')}
           </button>
           <button
             type="button"
@@ -269,7 +272,7 @@ function LoginForm() {
             disabled={busy}
             onClick={restart}
           >
-            Back to sign in
+            {t('auth.backToSignIn')}
           </button>
         </div>
       </div>
@@ -279,8 +282,8 @@ function LoginForm() {
   return (
     <div className="auth__card">
       <span className="auth__brand">FRIGAT</span>
-      <h1 className="auth__title">Sign in</h1>
-      <p className="auth__sub">Welcome back. Enter your details to reach the tables.</p>
+      <h1 className="auth__title">{t('auth.signInTitle')}</h1>
+      <p className="auth__sub">{t('auth.signInSub')}</p>
 
       {banner && (
         <p className="auth__error" role="alert">
@@ -291,7 +294,7 @@ function LoginForm() {
       <form onSubmit={submit} noValidate>
         <div className="auth__field">
           <label className="auth__label" htmlFor="login-email">
-            Email
+            {t('auth.email')}
           </label>
           <input
             id="login-email"
@@ -310,10 +313,10 @@ function LoginForm() {
         <div className="auth__field">
           <div className="auth__label-row">
             <label className="auth__label" htmlFor="login-password">
-              Password
+              {t('auth.password')}
             </label>
             <Link className="auth__label-link" href="/forgot-password">
-              Forgot password?
+              {t('auth.forgotPassword')}
             </Link>
           </div>
           <input
@@ -337,15 +340,15 @@ function LoginForm() {
           className="auth__submit"
           disabled={busy || (isTurnstileConfigured() && !turnstileToken)}
         >
-          {busy ? 'Checking…' : 'Continue'}
+          {busy ? t('auth.checking') : t('auth.continue')}
         </button>
         <p className="auth__hint">
-          We will email you a {OTP_DIGITS}-digit code to confirm it is you.
+          {t('auth.codeHint', { digits: OTP_DIGITS })}
         </p>
       </form>
 
       <p className="auth__alt">
-        New to FRIGAT? <Link href="/register">Create an account</Link>
+        {t('auth.newHere')} <Link href="/register">{t('auth.createAnAccount')}</Link>
       </p>
     </div>
   );

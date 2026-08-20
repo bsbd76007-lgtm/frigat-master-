@@ -20,6 +20,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import LiveBetsFeed from '@/components/feed/LiveBetsFeed';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 const JACKPOT_SEED = {
   grand: 184_000,
@@ -63,13 +64,14 @@ function useJackpots() {
 
 export function JackpotDock() {
   const jackpots = useJackpots();
+  const { t } = useLanguage();
 
 
 
   return (
-    <aside className="dock" aria-label="Jackpots and recent winners">
+    <aside className="dock" aria-label={t('feed.jackpotsAria')}>
       <section className="dock__panel">
-        <h2 className="dock__title">Jackpots</h2>
+        <h2 className="dock__title">{t('feed.jackpots')}</h2>
         <div className="dock__jackpots">
           {jackpots.map((tier) => (
             <div key={tier.id} className={`dock__jp dock__jp--${tier.tone}`}>

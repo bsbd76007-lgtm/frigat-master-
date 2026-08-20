@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 /** Presence changes slowly; a tighter poll would be traffic for nothing. */
 const POLL_MS = 30_000;
 
 export function PlayersOnline() {
   const [online, setOnline] = useState<number | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     let active = true;
@@ -41,7 +43,7 @@ export function PlayersOnline() {
   return (
     <span
       className="presence"
-      title="Players with a live connection right now"
+      title={t('feed.playersOnline')}
       aria-live="polite"
     >
       <span

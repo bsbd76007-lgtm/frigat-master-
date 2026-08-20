@@ -550,7 +550,10 @@ export interface SlotMachineProps {
   sounds?: Partial<SlotSounds>;
 }
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 export default function SlotMachine({ sounds }: SlotMachineProps = {}) {
+  const { t } = useLanguage();
   useInjectedStyles(STYLE_ID, CSS);
 
   const { balance: wallet } = useGameSocket();
@@ -943,7 +946,7 @@ export default function SlotMachine({ sounds }: SlotMachineProps = {}) {
       {/* ---------- Cabinet ---------- */}
       <div className="slot__cabinet">
         <div className="slot__marquee">
-          <h2 className="slot__title">Frigat Slots · 5 lines</h2>
+          <h2 className="slot__title">{t('gameUi.slotsTitle')}</h2>
           <div className="slot__meta">
             <span className="slot__chip">Bet {formatDecimalString(bet, 2)}</span>
             <span className={`slot__chip${hasWin ? ' slot__chip--win' : ''}`}>
@@ -968,7 +971,7 @@ export default function SlotMachine({ sounds }: SlotMachineProps = {}) {
       <div className="slot__panel">
         <div>
           <label className="slot__label" htmlFor="slot-bet">
-            <span>Bet amount</span>
+            <span>{t('gameUi.betAmount')}</span>
             <b>
               {wallet.hasSynced ? `${wallet.formatted} ${wallet.currency}` : '—'}
             </b>
@@ -1095,7 +1098,7 @@ export default function SlotMachine({ sounds }: SlotMachineProps = {}) {
 
         <div className="slot__paytable">
           <div className="slot__paytable-grid">
-            <span className="slot__paytable-head">Symbol</span>
+            <span className="slot__paytable-head">{t('gameUi.slotsSymbol')}</span>
             <span className="slot__paytable-head slot__paytable-val">3</span>
             <span className="slot__paytable-head slot__paytable-val">4</span>
             <span className="slot__paytable-head slot__paytable-val">5</span>

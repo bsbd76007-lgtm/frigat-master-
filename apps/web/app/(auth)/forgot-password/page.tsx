@@ -40,7 +40,10 @@ import {
 /** How long the success notice shows before the player lands back on sign-in. */
 const REDIRECT_DELAY_MS = 2200;
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
 function ForgotPasswordForm() {
+  const { t } = useLanguage();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -177,12 +180,12 @@ function ForgotPasswordForm() {
     return (
       <div className="auth__card">
         <span className="auth__brand">FRIGAT</span>
-        <h1 className="auth__title">Password updated</h1>
+        <h1 className="auth__title">{t('auth.pwUpdatedTitle')}</h1>
         <p className="auth__notice" role="status">
           {done}
         </p>
         <p className="auth__alt">
-          Taking you to <Link href="/login">sign in</Link>…
+          {t('auth.takingYouTo')} <Link href="/login">{t('auth.signInWord')}</Link>…
         </p>
       </div>
     );
@@ -193,10 +196,10 @@ function ForgotPasswordForm() {
     return (
       <div className="auth__card">
         <span className="auth__brand">FRIGAT</span>
-        <h1 className="auth__title">Choose a new password</h1>
+        <h1 className="auth__title">{t('auth.choosePwTitle')}</h1>
         <p className="auth__sub">
-          If <strong>{challenge.email}</strong> has an account, a {OTP_DIGITS}-digit code
-          is on its way. Enter it with your new password.
+          {t('auth.choosePwSubHead')} <strong>{challenge.email}</strong>{' '}
+          {t('auth.choosePwSubTail', { digits: OTP_DIGITS })}
         </p>
 
         {error && (
@@ -206,7 +209,7 @@ function ForgotPasswordForm() {
         )}
         {!error && challenge.devCode && (
           <p className="auth__notice" role="status">
-            Development mode — no email was sent. Your code is {challenge.devCode}.
+            {t('auth.devMode', { code: challenge.devCode })}
           </p>
         )}
 
@@ -219,12 +222,12 @@ function ForgotPasswordForm() {
             // on rather than submitting.
             onComplete={() => document.getElementById('reset-password')?.focus()}
             disabled={busy}
-            label="Reset code"
+            label={t('auth.resetCodeLabel')}
           />
 
           <div className="auth__field">
             <label className="auth__label" htmlFor="reset-password">
-              New password
+              {t('auth.newPassword')}
             </label>
             <input
               id="reset-password"
@@ -248,7 +251,7 @@ function ForgotPasswordForm() {
 
           <div className="auth__field">
             <label className="auth__label" htmlFor="reset-confirm">
-              Confirm new password
+              {t('auth.confirmNewPassword')}
             </label>
             <input
               id="reset-confirm"
@@ -268,7 +271,7 @@ function ForgotPasswordForm() {
             className="auth__submit"
             disabled={busy || code.length !== OTP_DIGITS || !passwordReady}
           >
-            {busy ? 'Resetting…' : 'Reset password'}
+            {busy ? t('auth.resetting') : t('auth.resetPasswordAction')}
           </button>
         </form>
 
@@ -289,7 +292,7 @@ function ForgotPasswordForm() {
             }
             onClick={() => void resendCode()}
           >
-            {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+            {cooldown > 0 ? t('auth.resendIn', { seconds: cooldown }) : t('auth.resendCode')}
           </button>
           <button
             type="button"
@@ -304,7 +307,7 @@ function ForgotPasswordForm() {
               setCooldown(0);
             }}
           >
-            Use a different email
+            {t('auth.useDifferentEmail')}
           </button>
         </div>
       </div>
@@ -315,10 +318,9 @@ function ForgotPasswordForm() {
   return (
     <div className="auth__card">
       <span className="auth__brand">FRIGAT</span>
-      <h1 className="auth__title">Reset password</h1>
+      <h1 className="auth__title">{t('auth.resetPasswordTitle')}</h1>
       <p className="auth__sub">
-        Enter your email and we will send you a {OTP_DIGITS}-digit code to set a new
-        password.
+        {t('auth.resetPasswordSub', { digits: OTP_DIGITS })}
       </p>
 
       {error && (
@@ -330,7 +332,7 @@ function ForgotPasswordForm() {
       <form onSubmit={requestCode} noValidate>
         <div className="auth__field">
           <label className="auth__label" htmlFor="reset-email">
-            Email
+            {t('auth.email')}
           </label>
           <input
             id="reset-email"
@@ -359,15 +361,15 @@ function ForgotPasswordForm() {
           }
         >
           {busy
-            ? 'Sending…'
+            ? t('auth.sending')
             : cooldown > 0
-              ? `Resend in ${cooldown}s`
-              : 'Send reset code'}
+              ? t('auth.resendIn', { seconds: cooldown })
+              : t('auth.sendResetCode')}
         </button>
       </form>
 
       <p className="auth__alt">
-        Remembered it? <Link href="/login">Back to sign in</Link>
+        {t('auth.rememberedIt')} <Link href="/login">{t('auth.backToSignIn')}</Link>
       </p>
     </div>
   );

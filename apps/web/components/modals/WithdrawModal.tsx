@@ -8,6 +8,7 @@ import { CurrencyGrid, paymentEndpoint, type CurrencyCode } from '@/components/m
 import { apiJson, ApiError } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import { formatDecimalString } from '@/lib/decimal';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface WithdrawalResult {
   withdrawalId: string;
@@ -55,6 +56,7 @@ export default function WithdrawModal({
   onClose?: () => void;
 }) {
   const { balance } = useGameSocket();
+  const { t } = useLanguage();
 
   const [currency, setCurrency] = useState<CurrencyCode>('USDT');
   const [amount, setAmount] = useState('');
@@ -138,7 +140,7 @@ export default function WithdrawModal({
     return (
       <>
         <div className="wal__banner wal__banner--ok" role="status">
-          <b>Withdrawal request submitted!</b>
+          <b>{t('wallet.wdSubmitted')}</b>
           <span>
             Your funds will be dispatched shortly.
             {result.review
@@ -148,11 +150,11 @@ export default function WithdrawModal({
         </div>
 
         <div className="wal__field">
-          <span className="wal__label">Destination</span>
+          <span className="wal__label">{t('wallet.wdDestination')}</span>
           <code className="wal__addr">{result.address}</code>
         </div>
         <div className="wal__field">
-          <span className="wal__label">Remaining balance</span>
+          <span className="wal__label">{t('wallet.wdRemaining')}</span>
           <code>{formatDecimalString(result.balance, 2)}</code>
         </div>
 
@@ -170,7 +172,7 @@ export default function WithdrawModal({
   return (
     <>
       <div className="wal__balance">
-        <span>Available balance</span>
+        <span>{t('wallet.wdAvailable')}</span>
         <b>
           {balance.hasSynced ? formatDecimalString(available ?? '0', 2) : '—'}{' '}
           {balance.currency}
@@ -214,7 +216,7 @@ export default function WithdrawModal({
           className="wal__input"
           autoComplete="off"
           spellCheck={false}
-          placeholder="Paste your wallet address"
+          placeholder={t('wallet.wdAddressPlaceholder')}
           value={address}
           onChange={(event) => setAddress(event.target.value)}
           onBlur={() => setTouched((prev) => ({ ...prev, address: true }))}
@@ -223,15 +225,15 @@ export default function WithdrawModal({
       </div>
 
       {showAmountError && (
-        <p className="wal__error">Enter a positive amount (max 8 decimals).</p>
+        <p className="wal__error">{t('wallet.wdBadAmount')}</p>
       )}
       {/* Balance is live, so this shows immediately rather than on blur — the
           player needs to see it the moment it becomes true. */}
       {exceedsBalance && (
-        <p className="wal__error">That is more than your available balance.</p>
+        <p className="wal__error">{t('wallet.wdTooMuch')}</p>
       )}
       {showAddressError && (
-        <p className="wal__error">That does not look like a valid address.</p>
+        <p className="wal__error">{t('wallet.wdBadAddress')}</p>
       )}
       {error && <p className="wal__error">{error}</p>}
 

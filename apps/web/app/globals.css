@@ -170,6 +170,29 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Horizontal overflow guard.
+ *
+ * A single over-wide descendant — a long unbroken address, a wide table, a
+ * game board at its minimum size — otherwise widens the whole document and
+ * lets the page slide sideways on a phone, which reads as a broken layout
+ * rather than as one wide element.
+ *
+ * `clip`, NOT `hidden`, and the distinction is load-bearing here: `hidden`
+ * makes the element a scroll container, and a scroll container between a
+ * `position: sticky` element and its scrolling ancestor silently kills the
+ * stickiness. This page has five sticky users, the header among them, so
+ * `overflow-x: hidden` here would unpin the navbar on every route. `clip`
+ * clips without establishing a scroll container, so sticky keeps working.
+ *
+ * This is a backstop, not a licence: anything genuinely wider than the
+ * viewport still needs its own `overflow-x: auto` wrapper so it can be
+ * scrolled rather than truncated. The admin tables (.tbl__wrap) and the
+ * information tables (.info__table-wrap) already have theirs. */
+html, body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 /* The page is one full-height column: header, route content, then the footer.
    Without the min-height a short route (a 404, an empty search) leaves the
    footer floating mid-viewport with the page colour below it; without the
@@ -4712,3 +4735,58 @@ html[data-theme='light'] .rail__mark { filter: invert(1); }
   color: var(--fg-text);
 }
 .rail--mini .rail__word { display: none; }
+
+/* ─────────────────────────────────────────────────────────────
+   Touch targets
+   ─────────────────────────────────────────────────────────────
+
+   The close and icon buttons are sized for a mouse: 20–34px squares, which
+   is comfortable with a cursor and awkward with a thumb. WCAG 2.5.5 asks for
+   44×44 CSS px; the iOS HIG asks the same.
+
+   Gated on `pointer: coarse` rather than a width breakpoint, because the
+   thing that matters is the input device, not the viewport. A 1280px-wide
+   tablet needs the bigger target and a 640px-wide desktop window does not,
+   so a `max-width` query would get both cases the wrong way round — and it
+   would inflate these buttons on a desktop layout that was designed around
+   their current size.
+
+   The visual box stays put. Padding cannot grow the hit area without moving
+   the icon, so the target is enlarged with a centred ::after overlay that
+   spans out to 44px — the button looks identical and simply catches a
+   larger area. `position: relative` is asserted on each so the overlay has
+   something to anchor to. */
+@media (pointer: coarse) {
+  .dash__icon-btn,
+  .bdm__close,
+  .bdm__copy,
+  .wal__close,
+  .wheel__close,
+  .glm__close,
+  .streak__close,
+  .rsm__close,
+  .fg-toast__close {
+    position: relative;
+  }
+
+  .dash__icon-btn::after,
+  .bdm__close::after,
+  .bdm__copy::after,
+  .wal__close::after,
+  .wheel__close::after,
+  .glm__close::after,
+  .streak__close::after,
+  .rsm__close::after,
+  .fg-toast__close::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    /* Purely a hit area — never paints, and must not sit above the icon it
+       is enlarging in a way that changes what the pointer reports. */
+    background: transparent;
+  }
+}

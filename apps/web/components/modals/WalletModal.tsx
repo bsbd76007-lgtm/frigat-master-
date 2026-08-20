@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export type WalletTab = 'deposit' | 'withdraw';
 
@@ -23,6 +24,7 @@ export function WalletModal({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const { t } = useLanguage();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
@@ -81,7 +83,7 @@ export function WalletModal({
             type="button"
             className="wal__close"
             onClick={onClose}
-            aria-label="Close wallet"
+            aria-label={t('wallet.closeAria')}
           >
             <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
               <path
@@ -94,7 +96,7 @@ export function WalletModal({
           </button>
         </div>
 
-        <div className="wal__tabs" role="tablist" aria-label="Wallet actions">
+        <div className="wal__tabs" role="tablist" aria-label={t('wallet.actionsAria')}>
           {TABS.map((entry) => (
             <button
               key={entry.id}

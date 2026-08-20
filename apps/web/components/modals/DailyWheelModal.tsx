@@ -21,6 +21,7 @@ import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { apiJson, ApiError } from '@/lib/api';
 import { API_URL } from '@/lib/token';
 import { formatDecimalString } from '@/lib/decimal';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 const SEGMENTS = [
   { prize: '1', color: '#334155' },
@@ -76,6 +77,7 @@ export default function DailyWheelModal({
   onClose: () => void;
 }) {
   const { balance } = useGameSocket();
+  const { t } = useLanguage();
 
   const [available, setAvailable] = useState(false);
   const [nextAt, setNextAt] = useState<string | null>(null);
@@ -206,13 +208,13 @@ export default function DailyWheelModal({
         aria-labelledby="wheel-title"
       >
         <div className="wheel__head">
-          <h2 id="wheel-title">Daily Bonus Wheel</h2>
+          <h2 id="wheel-title">{t('wheel.title')}</h2>
           <button
             type="button"
             className="wheel__close"
             onClick={onClose}
             disabled={spinning}
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             ×
           </button>
@@ -230,7 +232,7 @@ export default function DailyWheelModal({
                 : 'none',
             }}
             role="img"
-            aria-label="Prize wheel"
+            aria-label={t('wheel.aria')}
           >
             {wedges.map((wedge) => (
               <g key={wedge.prize}>
@@ -259,7 +261,7 @@ export default function DailyWheelModal({
 
         <div className="wheel__foot">
           <div className="wheel__stat">
-            <span>Balance</span>
+            <span>{t('common.balance')}</span>
             <b>
               {balance.hasSynced
                 ? formatDecimalString(balance.balance ?? '0', 2)

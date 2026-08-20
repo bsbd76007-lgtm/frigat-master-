@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { subscribeToToasts, type Toast } from '@/lib/toast';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
 
 const STYLE_ID = 'fg-toaster-styles';
@@ -72,6 +73,7 @@ const GLYPH: Record<Toast['tone'], string> = {
 
 export function Toaster() {
   useInjectedStyles(STYLE_ID, CSS);
+  const { t } = useLanguage();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const dismiss = useCallback((id: string) => {
@@ -108,7 +110,7 @@ export function Toaster() {
           <button
             type="button"
             className="fg-toast__close"
-            aria-label="Dismiss notification"
+            aria-label={t('common.dismissNotification')}
             onClick={() => dismiss(toast.id)}
           >
             ×

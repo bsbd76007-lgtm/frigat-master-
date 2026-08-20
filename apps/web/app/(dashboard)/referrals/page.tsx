@@ -138,7 +138,7 @@ export default function ReferralsPage() {
   };
 
   if (status.kind === 'loading') {
-    return <p className="ref__note">Loading your referral dashboard…</p>;
+    return <p className="ref__note">{t('referrals.loadingDashboard')}</p>;
   }
   if (status.kind === 'error') {
     return (
@@ -154,11 +154,11 @@ export default function ReferralsPage() {
   return (
     <div className="ref">
       <header className="ref__head">
-        <h1 className="ref__title">Refer &amp; Earn</h1>
+        <h1 className="ref__title">{t('referrals.headTitle')}</h1>
         <p className="ref__sub">
-          Share your link and earn {formatDecimalString(data.revSharePercentage, 2)}% of the
-          net losses of every player who signs up through it. Earnings accrue
-          separately and are yours to move across whenever you like.
+          {t('referrals.headSub', {
+            percent: formatDecimalString(data.revSharePercentage, 2),
+          })}
         </p>
       </header>
 
@@ -197,7 +197,7 @@ export default function ReferralsPage() {
         <div className="ref__stat">
           <span>{t('referrals.currentRevShare')}</span>
           <b>{formatDecimalString(data.revSharePercentage, 2)}%</b>
-          <em>Of each invitee&apos;s net losses</em>
+          <em>{t('referrals.ofNetLosses')}</em>
         </div>
         <div className="ref__stat ref__stat--accent">
           <span>{t('referrals.totalClaimable')}</span>
