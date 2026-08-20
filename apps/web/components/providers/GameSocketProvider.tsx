@@ -35,6 +35,7 @@ import type { GameHistoryEntry } from '@/components/games/GameHistoryBar';
 import { useSocket, type ClientActionType, type UseSocketResult } from '@/hooks/useSocket';
 import { useBalance, type UseBalanceResult } from '@/hooks/useBalance';
 import { readStoredToken, subscribeToToken, writeStoredToken } from '@/lib/token';
+import { API_URL, WS_URL } from '@/lib/endpoints';
 
 const MAX_HISTORY = 40;
 
@@ -89,8 +90,8 @@ function readNumber(value: unknown): number | null {
 
 export function GameSocketProvider({
   children,
-  socketUrl = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:4000/ws',
-  apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+  socketUrl = WS_URL,
+  apiUrl = API_URL,
 }: {
   children: ReactNode;
   socketUrl?: string;

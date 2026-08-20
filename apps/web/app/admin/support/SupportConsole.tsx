@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useSocket } from '@/hooks/useSocket';
 import { apiJson, ApiError } from '@/lib/api';
+import { WS_URL } from '@/lib/endpoints';
 
 /**
  * FRIGAT — Support console (client half)
@@ -36,7 +37,6 @@ export interface SupportTicket {
   messages: SupportMessage[];
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:4000/ws';
 /** Backstop for a dropped socket; the socket is the primary path. */
 const POLL_MS = 20_000;
 

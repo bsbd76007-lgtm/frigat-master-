@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { WithdrawalQueue, type WithdrawalRow } from '@/app/admin/withdrawals/WithdrawalQueue';
 
 import { SESSION_COOKIE } from '@/lib/adminAuth';
+import { API_URL } from '@/lib/endpoints';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -15,7 +16,7 @@ interface QueueResponse {
 
 async function loadQueue() {
   const token = cookies().get(SESSION_COOKIE)?.value;
-  const base = process.env.API_URL ?? 'http://localhost:4000';
+  const base = API_URL;
   try {
     const response = await fetch(`${base}/api/admin/withdrawals?status=PENDING&take=50`, {
       headers: { authorization: `Bearer ${token}` },

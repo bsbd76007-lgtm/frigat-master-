@@ -12,6 +12,7 @@
 import { cookies } from 'next/headers';
 
 import { SESSION_COOKIE } from '@/lib/adminAuth';
+import { API_URL } from '@/lib/endpoints';
 import { formatDecimalString } from '@/lib/decimal';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +43,7 @@ async function loadMetrics(): Promise<MetricsResult> {
   const token = cookies().get(SESSION_COOKIE)?.value;
   if (!token) return { ok: false, reason: 'No admin session cookie was present.' };
 
-  const base = process.env.API_URL ?? 'http://localhost:4000';
+  const base = API_URL;
 
   try {
     const response = await fetch(`${base}/api/admin/metrics`, {

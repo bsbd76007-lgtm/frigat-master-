@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { LedgerTable, type LedgerRow } from '@/app/admin/transactions/LedgerTable';
 
 import { SESSION_COOKIE } from '@/lib/adminAuth';
+import { API_URL } from '@/lib/endpoints';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -17,7 +18,7 @@ interface LedgerResponse {
 
 async function loadLedger(params: { q?: string; type?: string; status?: string; skip: number }) {
   const token = cookies().get(SESSION_COOKIE)?.value;
-  const base = process.env.API_URL ?? 'http://localhost:4000';
+  const base = API_URL;
   const search = new URLSearchParams({ take: '25', skip: String(params.skip) });
   if (params.q) search.set('q', params.q);
   if (params.type) search.set('type', params.type);

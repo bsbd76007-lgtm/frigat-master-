@@ -3,13 +3,14 @@ import { cookies } from 'next/headers';
 import { RiskForm, type RiskConfig } from '@/app/admin/risk-control/RiskForm';
 
 import { SESSION_COOKIE } from '@/lib/adminAuth';
+import { API_URL } from '@/lib/endpoints';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 async function loadConfig() {
   const token = cookies().get(SESSION_COOKIE)?.value;
-  const base = process.env.API_URL ?? 'http://localhost:4000';
+  const base = API_URL;
   try {
     const response = await fetch(`${base}/api/admin/risk`, {
       headers: { authorization: `Bearer ${token}` },

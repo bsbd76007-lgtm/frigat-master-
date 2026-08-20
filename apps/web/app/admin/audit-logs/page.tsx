@@ -12,6 +12,7 @@ import { cookies } from 'next/headers';
 import { AuditTable, type AuditEntry } from '@/app/admin/audit-logs/AuditTable';
 
 import { SESSION_COOKIE } from '@/lib/adminAuth';
+import { API_URL } from '@/lib/endpoints';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -26,7 +27,7 @@ interface AuditResponse {
 
 async function loadAudit(params: { action?: string; q?: string; skip: number }) {
   const token = cookies().get(SESSION_COOKIE)?.value;
-  const base = process.env.API_URL ?? 'http://localhost:4000';
+  const base = API_URL;
   const search = new URLSearchParams({ take: '50', skip: String(params.skip) });
   if (params.action) search.set('action', params.action);
   if (params.q) search.set('q', params.q);

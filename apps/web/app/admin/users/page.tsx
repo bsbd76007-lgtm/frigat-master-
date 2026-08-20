@@ -5,6 +5,7 @@ import { UsersTable } from '@/app/admin/users/UsersTable';
 import type { AdminUserRow } from '@/app/admin/users/UserDrawer';
 
 import { SESSION_COOKIE } from '@/lib/adminAuth';
+import { API_URL } from '@/lib/endpoints';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ interface UsersResponse {
 
 async function loadUsers(q: string, skip: number) {
   const token = cookies().get(SESSION_COOKIE)?.value;
-  const base = process.env.API_URL ?? 'http://localhost:4000';
+  const base = API_URL;
   const search = new URLSearchParams({ take: '25', skip: String(skip) });
   if (q) search.set('q', q);
 

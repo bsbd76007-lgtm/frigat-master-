@@ -65,4 +65,9 @@ export function subscribeToToken(onChange: (token: string | null) => void): () =
   };
 }
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+/**
+ * Re-exported so the many modules that already import `API_URL` from here keep
+ * working. `lib/endpoints` is the definition; this is an alias, not a second
+ * opinion about where the API lives.
+ */
+export { API_URL } from '@/lib/endpoints';

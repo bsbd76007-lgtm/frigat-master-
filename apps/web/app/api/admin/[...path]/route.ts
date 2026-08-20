@@ -14,10 +14,11 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 import { SESSION_COOKIE, verifySession } from '@/lib/adminAuth';
+import { API_URL } from '@/lib/endpoints';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const API_BASE = process.env.API_URL ?? 'http://localhost:4000';
+const API_BASE = API_URL;
 
 const ALLOWED = [
   /^users$/,
