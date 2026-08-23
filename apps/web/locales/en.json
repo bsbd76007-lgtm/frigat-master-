@@ -635,7 +635,9 @@
     "chickenHintIdle": "Cross a lane to unlock cash out",
     "slotsTitle": "Frigat Slots · 5 lines",
     "slotsSymbol": "Symbol",
-    "rouletteStraightUp": "Straight up (36×)"
+    "rouletteStraightUp": "Straight up (36×)",
+    "chickenHudMultiplier": "Multiplier",
+    "chickenHudProfit": "Profit"
   },
   "promos": {
     "title": "Promotions",

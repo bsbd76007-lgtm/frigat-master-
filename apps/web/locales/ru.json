@@ -635,7 +635,9 @@
     "chickenHintIdle": "Перейдите полосу, чтобы открыть вывод выигрыша",
     "slotsTitle": "Frigat Слоты · 5 линий",
     "slotsSymbol": "Символ",
-    "rouletteStraightUp": "Прямая ставка (36×)"
+    "rouletteStraightUp": "Прямая ставка (36×)",
+    "chickenHudMultiplier": "Множитель",
+    "chickenHudProfit": "Прибыль"
   },
   "promos": {
     "title": "Акции",

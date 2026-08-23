@@ -663,9 +663,20 @@ const CSS = `
 
 .chr__hud { position: absolute; left: 12px; right: 12px; top: 12px; display: flex;
   justify-content: space-between; gap: 8px; pointer-events: none; }
-.chr__chip { padding: 5px 11px; font-size: 11px; font-weight: 800; letter-spacing: .06em;
-  text-transform: uppercase; color: #0f172a; background: rgba(255,255,255,.82);
-  border-radius: 999px; }
+/* Dark glass rather than the old light pill: the panel below is #121c24, and
+   a white chip was the one light surface in the component. Translucent dark
+   over the grey-blue road keeps contrast well past 4.5:1 for both the label
+   and the value, which a light pill did not manage against the pale verges. */
+.chr__chip { display: flex; flex-direction: column; gap: 1px; min-width: 84px;
+  padding: 7px 12px; background: rgba(11, 20, 27, .72); border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 12px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.chr__chip--profit { text-align: right; }
+/* Label / value pair, matching the panel: slate-300 label, white value. */
+.chr__chip i { font-size: 9.5px; font-weight: 700; font-style: normal;
+  letter-spacing: .1em; text-transform: uppercase; color: #cbd5e1; }
+.chr__chip b { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em; color: #fff; }
+.chr__chip--profit b { color: var(--fg-gold); }
 
 /* ── Overlay: coins and gates, aligned to the canvas geometry ──────────── */
 /* --chr-lane (lane width in px) and --chr-cam (camera position in lanes) are
@@ -843,6 +854,26 @@ const CSS = `
   border: 1px solid #1e293b; border-radius: 10px; cursor: pointer;
   transition: background .2s ease, border-color .2s ease, color .2s ease; }
 .chr__mode:hover:not(:disabled) { color: #fff; background: #1e293b; }
+
+/* Touch targets.
+ *
+ * The ½ / 2x / Max modifiers sit at min-width 42px with their height coming
+ * from the input row, and the four density buttons are 10px of vertical
+ * padding around 13px text — both land under the 44px WCAG 2.5.5 asks for.
+ *
+ * These cannot use the transparent ::after overlay that globals.css applies to
+ * the icon buttons: these are laid out in a flex row and a 4-column grid, so
+ * an overlay wider than the box would spill across the neighbouring control
+ * and steal its taps. Growing the box itself is correct here — the row simply
+ * gets taller, which is what a thumb needs anyway.
+ *
+ * Gated on pointer, not width, for the same reason as the globals.css block:
+ * the input device is what decides, not the viewport. */
+@media (pointer: coarse) {
+  .chr__mod { min-width: 52px; min-height: 44px; }
+  .chr__mode { min-height: 44px; }
+  .chr__input { min-height: 44px; }
+}
 .chr__mode:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(34,197,94,.3); }
 .chr__mode:disabled { opacity: .45; cursor: not-allowed; }
 .chr__mode--on { color: #0b0e14; background: var(--fg-accent); border-color: var(--fg-accent); }
@@ -1522,9 +1553,20 @@ export default function ChickenRoad() {
         {/* Painted after the overlay, so the bird is over the hatches. */}
         <canvas ref={foregroundRef} className="chr__canvas chr__canvas--fg" aria-hidden="true" />
 
+        {/* Live readout over the board. Multiplier and *profit* rather than
+            lane and gross payout: the lane number is already legible from the
+            bird's position, and a player deciding whether to take the next
+            step is weighing what they stand to gain against what they would
+            lose — gross payout buries the stake inside the number. */}
         <div className="chr__hud">
-          <span className="chr__chip">Lane {lane}</span>
-          <span className="chr__chip">{lane === 0 ? money(0) : money(payout)}</span>
+          <span className="chr__chip">
+            <i>{t('gameUi.chickenHudMultiplier')}</i>
+            <b>{formatMultiplier(multiplier)}x</b>
+          </span>
+          <span className="chr__chip chr__chip--profit">
+            <i>{t('gameUi.chickenHudProfit')}</i>
+            <b>{money(lane === 0 ? 0 : payout - bet)}</b>
+          </span>
         </div>
 
         {/* Tap the chicken to send it across. The render loop keeps this pinned
