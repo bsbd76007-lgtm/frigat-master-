@@ -31,8 +31,8 @@ const CSS = `
 .fg-toast { display: flex; align-items: flex-start; gap: 10px; padding: 13px 14px;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 13px; font-weight: 600; line-height: 1.45; color: #e2e8f0;
-  background: #121c24; border: 1px solid #1e293b; border-left-width: 4px;
-  border-radius: 12px; box-shadow: 0 18px 32px -12px rgba(0,0,0,.7);
+  background: var(--fg-panel); border: var(--fg-edge); border-left-width: 3px;
+  border-radius: var(--fg-r);
   pointer-events: auto; animation: fg-toast-in .26s cubic-bezier(.2,.9,.3,1) both; }
 .fg-toast--success { border-left-color: var(--fg-accent); }
 .fg-toast--error { border-left-color: #ef4444; }
@@ -40,7 +40,7 @@ const CSS = `
 .fg-toast--out { animation: fg-toast-out .22s ease forwards; }
 
 .fg-toast__icon { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px;
-  border-radius: 999px; display: grid; place-items: center; font-size: 11px;
+  border-radius: var(--fg-r-pill); display: grid; place-items: center; font-size: 11px;
   font-weight: 900; color: #04120d; }
 .fg-toast--success .fg-toast__icon { background: var(--fg-accent); }
 .fg-toast--error .fg-toast__icon { background: #ef4444; color: #fff; }

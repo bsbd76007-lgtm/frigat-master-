@@ -425,7 +425,7 @@ function drawPickup(
   ctx.translate(x, y);
   ctx.scale(pop, pop);
 
-  const fill = spec.hazard ? '#ef4444' : '#f59e0b';
+  const fill = spec.hazard ? '#ef4444' : '#e0b055';
   const ring = spec.hazard ? '#7f1d1d' : '#14532d';
 
   ctx.fillStyle = 'rgba(0,0,0,.25)';
@@ -523,7 +523,7 @@ function drawPlatform(
 ) {
   const w = halfWidth * 2;
   const thickness = Math.max(7, w * 0.055);
-  const accent = used ? '#64748b' : '#f59e0b';
+  const accent = used ? '#64748b' : '#e0b055';
 
   ctx.save();
 
@@ -585,7 +585,7 @@ const CSS = `
 
 .avia__stage { position: relative; width: 100%; max-width: 820px; min-width: 0;
   aspect-ratio: 16 / 9; background: #0b1622; border: 1px solid #1e293b;
-  border-radius: 16px; overflow: hidden;
+  border-radius: var(--fg-r-lg); overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0,0,0,.65); }
 /* touch-action: none — the canvas is a steering surface, so a drag across it
    must not be interpreted as a page scroll or a pinch. cursor stays a pointer
@@ -598,7 +598,7 @@ const CSS = `
   flex-wrap: wrap; gap: 8px; pointer-events: none; }
 .avia__tile { flex: 1 1 auto; min-width: 84px; padding: 7px 11px;
   background: rgba(8,17,27,.72); border: 1px solid rgba(148,163,184,.22);
-  border-radius: 10px; backdrop-filter: blur(6px); }
+  border-radius: var(--fg-r-lg); backdrop-filter: blur(6px); }
 .avia__tile-label { display: block; font-size: 9.5px; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase; color: #64748b; }
 .avia__tile-value { display: block; margin-top: 2px; font-size: 15px; font-weight: 800;
@@ -609,7 +609,7 @@ const CSS = `
 /* ── Steering, for touch ── */
 .avia__banner { position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%);
   padding: 14px 24px; text-align: center; font-size: 17px; font-weight: 800;
-  border-radius: 14px; pointer-events: none; }
+  border-radius: var(--fg-r-lg); pointer-events: none; }
 .avia__banner--won { color: #0b0e14; background: rgba(74,222,128,.94); }
 .avia__banner--lost { color: #450a0a; background: rgba(248,113,113,.94); }
 .avia__banner small { display: block; margin-top: 3px; font-size: 12px; font-weight: 700;
@@ -621,7 +621,7 @@ const CSS = `
 /* ── Panel ── */
 .avia__panel { display: flex; flex-direction: column; gap: 15px; width: 100%;
   max-width: 820px; min-width: 0; flex: 0 0 auto; padding: 20px; box-sizing: border-box;
-  background: #101a22; border: 1px solid #1e293b; border-radius: 16px; }
+  background: #101a22; border: 1px solid #1e293b; border-radius: var(--fg-r-lg); }
 @media (min-width: 1024px) { .avia__panel { width: 320px; } }
 
 .avia__label { display: flex; justify-content: space-between; align-items: baseline;
@@ -633,12 +633,12 @@ const CSS = `
 .avia__input { flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box;
   padding: 11px 12px; font-family: inherit; font-size: 15px; font-weight: 700;
   font-variant-numeric: tabular-nums; color: #f1f5f9; background: #0b141b;
-  border: 1px solid #1e293b; border-radius: 10px; outline: none; }
+  border: 1px solid #1e293b; border-radius: var(--fg-r-lg); outline: none; }
 .avia__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(34,197,94,.22); }
 .avia__input:disabled { opacity: .5; cursor: not-allowed; }
 .avia__mod { flex: 0 0 auto; min-width: 42px; padding: 0 9px; font-family: inherit;
   font-size: 12px; font-weight: 800; color: #cbd5e1; background: #0b141b;
-  border: 1px solid #1e293b; border-radius: 10px; cursor: pointer;
+  border: 1px solid #1e293b; border-radius: var(--fg-r-lg); cursor: pointer;
   transition: background .15s ease, color .15s ease; }
 .avia__mod:hover:not(:disabled) { color: #fff; background: #1e293b; }
 .avia__mod:disabled { opacity: .45; cursor: not-allowed; }
@@ -647,7 +647,7 @@ const CSS = `
 .avia__action { width: 100%; padding: 15px; font-family: inherit; font-size: 16px;
   font-weight: 900; color: #0b0e14;
   background: linear-gradient(90deg, var(--fg-accent), var(--fg-accent-deep)); border: none;
-  border-radius: 12px; cursor: pointer; box-shadow: 0 10px 20px -6px rgba(34,197,94,.45);
+  border-radius: var(--fg-r-lg); cursor: pointer; box-shadow: 0 10px 20px -6px rgba(34,197,94,.45);
   transition: background .15s ease, transform .1s ease; }
 .avia__action:hover:not(:disabled) { background: linear-gradient(90deg, var(--fg-pos), var(--fg-accent)); }
 .avia__action:active:not(:disabled) { transform: translateY(1px); }
@@ -656,7 +656,7 @@ const CSS = `
 /* In-flight standing. Replaces the old Land button: the deck banks the round,
    so this reports rather than offers. */
 .avia__standing { display: flex; flex-direction: column; gap: 2px; width: 100%;
-  padding: 13px 15px; text-align: center; border-radius: 12px;
+  padding: 13px 15px; text-align: center; border-radius: var(--fg-r-lg);
   background: rgba(250,204,21,.1); border: 1px solid rgba(250,204,21,.35); }
 .avia__standing span { font-size: 10.5px; font-weight: 800; letter-spacing: .1em;
   text-transform: uppercase; color: var(--fg-gold); }
@@ -671,7 +671,7 @@ const CSS = `
 
 .avia__legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .avia__chip { padding: 6px 4px; text-align: center; font-size: 11px; font-weight: 800;
-  border-radius: 8px; background: rgba(34,197,94,.12); color: var(--fg-pos-soft);
+  border-radius: var(--fg-r); background: rgba(34,197,94,.12); color: var(--fg-pos-soft);
   border: 1px solid rgba(34,197,94,.3); }
 .avia__chip--bad { background: rgba(239,68,68,.12); color: #d69199;
   border-color: rgba(239,68,68,.3); }

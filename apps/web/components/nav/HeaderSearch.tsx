@@ -29,9 +29,9 @@ const CSS = `
   flex: 1 1 360px; min-width: 0; max-width: 460px; margin-inline: auto; }
 .hsearch__field { display: flex; align-items: center; gap: 8px; flex: 1 1 auto;
   min-width: 0; padding: 0 10px; background: var(--fg-panel-2); border: 1px solid var(--fg-line);
-  border-radius: 10px; transition: border-color .15s ease, box-shadow .15s ease; }
+  border-radius: var(--fg-r-lg); transition: border-color .15s ease, box-shadow .15s ease; }
 .hsearch__field:focus-within { border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, .16); }
+  box-shadow: 0 0 0 3px rgba(59, 124, 255, .16); }
 .hsearch__icon { display: flex; color: var(--fg-muted); }
 .hsearch__input { flex: 1 1 auto; min-width: 0; padding: 9px 0; font: inherit;
   font-size: 13.5px; color: var(--fg-text); background: transparent; border: 0;
@@ -45,21 +45,21 @@ const CSS = `
   transition: color .15s ease, background .15s ease; }
 .hsearch__clear:hover { color: var(--fg-text); background: var(--fg-hover-2); }
 .hsearch__clear:focus-visible { outline: none;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, .35); }
+  box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
 
 .hsearch__menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0;
   z-index: 60; max-height: 340px; overflow-y: auto; padding: 6px;
-  background: var(--fg-panel); border: 1px solid var(--fg-line);
-  border-radius: 12px; box-shadow: 0 18px 40px rgba(0, 0, 0, .5); }
+  background: var(--fg-panel); border: var(--fg-edge);
+  border-radius: var(--fg-r-lg); }
 .hsearch__option { display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 9px 10px; font: inherit; font-size: 13px; font-weight: 600;
   text-align: start; color: var(--fg-muted); background: transparent; border: 0;
-  border-radius: 8px; cursor: pointer;
+  border-radius: var(--fg-r); cursor: pointer;
   transition: background .12s ease, color .12s ease; }
 .hsearch__option:hover,
 .hsearch__option--active { color: var(--fg-text); background: var(--fg-hover); }
 .hsearch__option-icon { display: grid; place-items: center; flex: 0 0 auto;
-  width: 28px; height: 28px; background: var(--fg-panel-2); border-radius: 7px; }
+  width: 28px; height: 28px; background: var(--fg-panel-2); border-radius: var(--fg-r); }
 .hsearch__option-slug { margin-inline-start: auto; font-size: 11px; font-weight: 500;
   color: var(--fg-dim); }
 .hsearch__empty { padding: 16px 12px; font-size: 13px; text-align: center;
@@ -69,10 +69,10 @@ const CSS = `
    users who would otherwise have to press Enter to act on a query. */
 .hsearch__submit { flex: 0 0 auto; display: grid; place-items: center;
   width: 36px; height: 36px; padding: 0; color: #94a3b8; background: #1e293b;
-  border: 1px solid var(--fg-line); border-radius: 9999px; cursor: pointer;
+  border: 1px solid var(--fg-line); border-radius: var(--fg-r-pill); cursor: pointer;
   transition: color .15s ease, background .15s ease, border-color .15s ease; }
 .hsearch__submit:hover { color: #e2e8f0; background: #263349; border-color: var(--fg-line-2); }
-.hsearch__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .35); }
+.hsearch__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
 
 @media (max-width: 720px) { .hsearch { flex-basis: 180px; } }
 @media (prefers-reduced-motion: reduce) {

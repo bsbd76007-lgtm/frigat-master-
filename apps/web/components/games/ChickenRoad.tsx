@@ -246,8 +246,8 @@ const CHICKEN_UNITS = { w: 8, h: 7 } as const;
 const CAR_COLOURS = [
   { shell: '#e5484d', deep: '#a01f25', roof: '#f2686c' },
   { shell: '#3b82f6', deep: '#1d4ed8', roof: '#60a5fa' },
-  { shell: '#f59e0b', deep: '#b45309', roof: '#fbbf24' },
-  { shell: '#f59e0b', deep: '#15803d', roof: '#4e9e7a' },
+  { shell: '#e0b055', deep: '#b45309', roof: '#fbbf24' },
+  { shell: '#e0b055', deep: '#15803d', roof: '#4e9e7a' },
   { shell: '#e2e8f0', deep: '#94a3b8', roof: '#f8fafc' },
 ] as const;
 
@@ -635,7 +635,7 @@ const CSS = `
    four are written by the render loop and inherited by everything inside. */
 .chr__stage { position: relative; width: 100%; max-width: 700px; min-width: 0;
   aspect-ratio: 3 / 2; background: #7c8b9e; border: 4px solid #e5a059;
-  border-radius: 16px; overflow: hidden;
+  border-radius: var(--fg-r-lg); overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0,0,0,.6);
   --chr-lane: 0px; --chr-cam: 0; --chr-chick-x: 0px; --chr-chick-y: 0px; }
 /* Two layers, because the hatches are DOM and the bird is canvas.
@@ -650,9 +650,9 @@ const CSS = `
 /* The chicken itself is the step control: a hit target pinned to the sprite. */
 .chr__chick { position: absolute; left: var(--chr-chick-x); top: var(--chr-chick-y);
   width: 76px; height: 76px; margin: -38px 0 0 -38px; padding: 0;
-  background: transparent; border: 0; border-radius: 999px; cursor: pointer;
+  background: transparent; border: 0; border-radius: var(--fg-r-pill); cursor: pointer;
   z-index: 2; }
-.chr__chick::after { content: ''; position: absolute; inset: 6px; border-radius: 999px;
+.chr__chick::after { content: ''; position: absolute; inset: 6px; border-radius: var(--fg-r-pill);
   border: 2px dashed rgba(255,255,255,.35); opacity: 0;
   transition: opacity .2s ease; }
 .chr__chick:hover::after { opacity: .9; }
@@ -669,7 +669,7 @@ const CSS = `
    and the value, which a light pill did not manage against the pale verges. */
 .chr__chip { display: flex; flex-direction: column; gap: 1px; min-width: 84px;
   padding: 7px 12px; background: rgba(11, 20, 27, .72); border: 1px solid rgba(148, 163, 184, .18);
-  border-radius: 12px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  border-radius: var(--fg-r-lg); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .chr__chip--profit { text-align: right; }
 /* Label / value pair, matching the panel: slate-300 label, white value. */
 .chr__chip i { font-size: 9.5px; font-weight: 700; font-style: normal;
@@ -697,7 +697,7 @@ const CSS = `
 .chr__coin { position: absolute; left: 0; top: 0; display: flex;
   flex-direction: column; align-items: center; justify-content: center;
   width: 68px; height: 68px; margin-left: -34px; margin-top: -34px;
-  border-radius: 999px; text-align: center;
+  border-radius: var(--fg-r-pill); text-align: center;
   background:
     /* Inner face, painted over the rim and stopping short of the edge. */
     radial-gradient(circle closest-side at 38% 30%,
@@ -737,7 +737,7 @@ const CSS = `
 /* Sewer grating: radial slots cut into the face. Held to an annulus so the
    centre stays plain — a grate running under the type is what would make the
    multiplier hard to read, and real covers leave the middle clear too. */
-.chr__coin-grate { position: absolute; inset: 7px; border-radius: 999px;
+.chr__coin-grate { position: absolute; inset: 7px; border-radius: var(--fg-r-pill);
   pointer-events: none;
   background:
     repeating-conic-gradient(from 11deg,
@@ -750,7 +750,7 @@ const CSS = `
 /* Machined inner ring around the type, plus the specular sweep across the
    whole face that keeps it reading as metal rather than as grey plastic. */
 .chr__coin::after { content: ''; position: absolute; inset: 13px;
-  border-radius: 999px; pointer-events: none;
+  border-radius: var(--fg-r-pill); pointer-events: none;
   border: 1.5px solid rgba(9,13,20,.6);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.26),
@@ -788,14 +788,14 @@ const CSS = `
    the crossing — that is where it has to be to hold the traffic — and swings up
    into place from below the lane rather than dropping in from above. */
 .chr__gate { position: absolute; left: 6%; right: 6%; top: 0; height: 16px;
-  margin-top: -8px; border-radius: 3px; opacity: 0; transform: translateY(42px);
+  margin-top: -8px; border-radius: var(--fg-r-sm); opacity: 0; transform: translateY(42px);
   background:
     repeating-linear-gradient(90deg, rgba(0,0,0,.16) 0 2px, transparent 2px 26px),
     linear-gradient(180deg, #d8dce3 0%, #a9b1bb 55%, #7d848e 100%);
   border: 1px solid rgba(15,23,42,.5);
   box-shadow: 0 4px 10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.55); }
 /* Hazard flashes, so it reads as roadworks at a glance. */
-.chr__gate::after { content: ''; position: absolute; inset: 4px 8px; border-radius: 2px;
+.chr__gate::after { content: ''; position: absolute; inset: 4px 8px; border-radius: var(--fg-r-sm);
   background: repeating-linear-gradient(115deg, #e33a3a 0 9px, #f8fafc 9px 18px);
   opacity: .9; }
 .chr__gate--down { animation: chr-thunk .42s cubic-bezier(.34,1.3,.5,1) forwards; }
@@ -821,7 +821,7 @@ const CSS = `
 /* ── Panel ─────────────────────────────────────────── */
 .chr__panel { display: flex; flex-direction: column; gap: 16px; width: 100%;
   max-width: 700px; min-width: 0; flex: 0 0 auto; padding: 24px; box-sizing: border-box;
-  background: #121c24; border: 1px solid #1e293b; border-radius: 16px;
+  background: #121c24; border: 1px solid #1e293b; border-radius: var(--fg-r-lg);
   box-shadow: 0 20px 25px -5px rgba(0,0,0,.5); }
 @media (min-width: 1024px) { .chr__panel { width: 320px; } }
 
@@ -834,13 +834,13 @@ const CSS = `
 .chr__input { flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box;
   padding: 12px 13px; font-family: inherit; font-size: 15px; font-weight: 700;
   font-variant-numeric: tabular-nums; color: #f1f5f9; background: #0b141b;
-  border: 1px solid #1e293b; border-radius: 10px; outline: none;
+  border: 1px solid #1e293b; border-radius: var(--fg-r-lg); outline: none;
   transition: border-color .2s ease, box-shadow .2s ease; }
 .chr__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(34,197,94,.22); }
 .chr__input:disabled { opacity: .5; cursor: not-allowed; }
 .chr__mod { flex: 0 0 auto; min-width: 42px; padding: 0 9px; font-family: inherit;
   font-size: 12px; font-weight: 800; color: #cbd5e1; background: #0b141b;
-  border: 1px solid #1e293b; border-radius: 10px; cursor: pointer;
+  border: 1px solid #1e293b; border-radius: var(--fg-r-lg); cursor: pointer;
   transition: background .2s ease, color .2s ease, transform .12s ease; }
 .chr__mod:hover:not(:disabled) { color: #fff; background: #1e293b; }
 .chr__mod:active:not(:disabled) { transform: translateY(1px); }
@@ -851,7 +851,7 @@ const CSS = `
 .chr__modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .chr__mode { padding: 10px 4px; font-family: inherit; font-size: 13px; font-weight: 800;
   font-variant-numeric: tabular-nums; color: #cbd5e1; background: #0b141b;
-  border: 1px solid #1e293b; border-radius: 10px; cursor: pointer;
+  border: 1px solid #1e293b; border-radius: var(--fg-r-lg); cursor: pointer;
   transition: background .2s ease, border-color .2s ease, color .2s ease; }
 .chr__mode:hover:not(:disabled) { color: #fff; background: #1e293b; }
 
@@ -880,7 +880,7 @@ const CSS = `
 .chr__mode--on:hover:not(:disabled) { color: #0b0e14; background: var(--fg-pos); }
 
 .chr__banner { padding: 11px; text-align: center; font-size: 13px; font-weight: 700;
-  border-radius: 12px; }
+  border-radius: var(--fg-r-lg); }
 .chr__banner--lost { color: #d69199; background: rgba(239,68,68,.14);
   border: 1px solid rgba(239,68,68,.4); }
 .chr__banner--won { color: var(--fg-pos-soft); background: rgba(34,197,94,.14);
@@ -891,7 +891,7 @@ const CSS = `
 .chr__action { width: 100%; padding: 16px; font-family: inherit; font-size: 17px;
   font-weight: 900; color: #0b0e14;
   background: linear-gradient(90deg, var(--fg-accent), var(--fg-accent-deep)); border: none;
-  border-radius: 12px; cursor: pointer; box-shadow: 0 10px 20px -5px rgba(34,197,94,.4);
+  border-radius: var(--fg-r-lg); cursor: pointer; box-shadow: 0 10px 20px -5px rgba(34,197,94,.4);
   transition: background .2s ease, box-shadow .2s ease, transform .12s ease; }
 .chr__action:hover:not(:disabled) { background: linear-gradient(90deg, var(--fg-pos), var(--fg-accent));
   box-shadow: 0 14px 28px -6px rgba(34,197,94,.6); }

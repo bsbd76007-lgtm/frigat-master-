@@ -75,26 +75,28 @@ const CSS = `
   text-transform: uppercase; color: var(--fg-muted); }
 .fg-bet__row { display: flex; gap: 8px; align-items: stretch; }
 .fg-bet__field { position: relative; flex: 1 1 auto; min-width: 0; }
-.fg-bet__input { width: 100%; box-sizing: border-box; padding: 12px 56px 12px 12px;
-  font-size: 16px; font-variant-numeric: tabular-nums; color: var(--fg-text);
-  background: color-mix(in srgb, var(--fg-sunken) 90%, transparent);
-  border: 1px solid var(--fg-line); border-radius: 8px; outline: none;
-  transition: border-color var(--fg-snap), box-shadow var(--fg-snap); }
+.fg-bet__input { width: 100%; box-sizing: border-box; padding: 8px 56px 8px 10px;
+  font-family: var(--fg-num); font-size: 15px; font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em; color: var(--fg-text); background: var(--fg-sunken);
+  border: 1px solid var(--fg-hairline); border-radius: var(--fg-r); outline: none;
+  box-shadow: var(--fg-input-inset);
+  transition: border-color var(--fg-t), box-shadow var(--fg-t); }
 .fg-bet__input::placeholder { color: var(--fg-placeholder); }
 /* The ring replaces the border rather than sitting outside it, so focus does
    not nudge the field's neighbours by a pixel. */
-.fg-bet__input:focus-visible { border-color: transparent; box-shadow: 0 0 0 2px rgba(245, 158, 11,.5); }
+.fg-bet__input:focus-visible { border-color: transparent;
+  box-shadow: var(--fg-input-inset), 0 0 0 2px rgba(59, 124, 255,.5); }
 .fg-bet__input[aria-invalid="true"] { border-color: var(--fg-red); }
 .fg-bet__input:disabled { opacity: .55; cursor: not-allowed; }
 .fg-bet__currency { position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
   font-size: 12px; font-weight: 600; color: var(--fg-muted); pointer-events: none; }
 .fg-bet__mods { display: flex; gap: 6px; flex: 0 0 auto; }
 .fg-bet__mod { min-width: 46px; padding: 0 10px; font-size: 13px; font-weight: 600;
-  color: var(--fg-text); background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: 8px;
+  color: var(--fg-text); background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: var(--fg-r);
   cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease; }
 .fg-bet__mod:hover:not(:disabled) { background: var(--fg-hover-2); color: #fff; }
 .fg-bet__mod:active:not(:disabled) { transform: scale(.98) translateY(1px); }
-.fg-bet__mod:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(245, 158, 11,.18); }
+.fg-bet__mod:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(59, 124, 255,.18); }
 .fg-bet__mod:disabled { opacity: .45; cursor: not-allowed; }
 .fg-bet__meta { display: flex; justify-content: space-between; gap: 12px;
   font-size: 12px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
@@ -102,24 +104,24 @@ const CSS = `
   gap: 10px; margin: 0; font-size: 12px; font-weight: 500; color: var(--fg-red); }
 .fg-bet__deposit { flex: 0 0 auto; padding: 5px 12px; font-family: inherit; font-size: 11px;
   font-weight: 800; letter-spacing: .04em; color: #0b0e14; background: var(--fg-accent);
-  border: 0; border-radius: 999px; cursor: pointer; }
+  border: 0; border-radius: var(--fg-r-pill); cursor: pointer; }
 .fg-bet__deposit:hover { filter: brightness(1.08); box-shadow: var(--fg-cta-glow); }
 .fg-bet__deposit:active { transform: scale(.98) translateY(1px); }
-.fg-bet__deposit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, .35); }
-.fg-bet__action { width: 100%; padding: 14px 16px; font-size: 15px; font-weight: 700;
+.fg-bet__deposit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
+.fg-bet__action { width: 100%; padding: 9px 10px; font-size: 15px; font-weight: 700;
   letter-spacing: .02em; color: var(--fg-bg); background: var(--fg-accent); border: none;
-  border-radius: 8px; cursor: pointer;
+  border-radius: var(--fg-r); cursor: pointer;
   transition: filter var(--fg-snap), transform var(--fg-snap), box-shadow var(--fg-snap); }
 /* Cash Out and Bet are the primary actions on a game screen, so they carry the
    accent glow. */
 .fg-bet__action:hover:not(:disabled) { filter: brightness(1.08); box-shadow: var(--fg-cta-glow); }
 .fg-bet__action:active:not(:disabled) { transform: scale(.98) translateY(1px); }
-.fg-bet__action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11,.35); }
+.fg-bet__action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255,.35); }
 .fg-bet__action:disabled { opacity: .5; cursor: not-allowed; }
 .fg-bet__action--cashout { color: #1a1204; background: #d9a441; }
 .fg-bet__action--cashout:focus-visible { box-shadow: 0 0 0 3px rgba(217, 164, 65,.35); }
 .fg-bet__action--cashout-accent { color: var(--fg-bg); background: var(--fg-accent); }
-.fg-bet__action--cashout-accent:focus-visible { box-shadow: 0 0 0 3px rgba(245, 158, 11,.35); }
+.fg-bet__action--cashout-accent:focus-visible { box-shadow: 0 0 0 3px rgba(59, 124, 255,.35); }
 .fg-bet__quote { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; opacity: .8; }
 @media (prefers-reduced-motion: reduce) {
   .fg-bet__input, .fg-bet__mod, .fg-bet__action { transition: none; }

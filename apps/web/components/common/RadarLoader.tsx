@@ -36,7 +36,7 @@ interface Contact {
   size: number;
 }
 
-const ACCENT = '245, 158, 11';
+const ACCENT = '59, 124, 255';
 
 export function RadarLoader({ size = 96, speed = 0.55, label }: RadarLoaderProps) {
   const beamRef = useRef(0);

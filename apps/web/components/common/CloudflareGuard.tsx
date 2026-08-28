@@ -57,7 +57,7 @@ const CSS = `
   font-family: var(--fg-font, ui-sans-serif, system-ui, sans-serif); }
 
 .sec__brand { font-size: 24px; font-weight: 900; letter-spacing: .18em;
-  color: var(--fg-accent, #f59e0b); }
+  color: var(--fg-accent, #3b7cff); }
 .sec__title { margin: 14px 0 6px; font-size: 17px; font-weight: 700; }
 .sec__sub { margin: 0; font-size: 13px; line-height: 1.6;
   color: var(--fg-muted, #94a3b8); }
