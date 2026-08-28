@@ -1,4 +1,4 @@
-/* eslint-env node */
+/* eslint-disable no-undef */
 /**
  * FRIGAT — i18n key validator
  *
