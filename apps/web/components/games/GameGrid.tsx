@@ -3,20 +3,35 @@
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useSearch } from '@/components/providers/SearchProvider';
 import { GameCard } from '@/components/games/GameCard';
+import { GameRail } from '@/components/games/GameRail';
 
 import {
-
   SECTIONS,
   gamesIn,
   type CatalogueEntry,
   type GameCategory,
 } from '@/lib/gameCatalogue';
+
 interface GameGridProps {
   category: GameCategory;
   onLaunch?: (entry: CatalogueEntry) => void;
+  onCategoryChange?: (category: GameCategory) => void;
 }
 
-export function GameGrid({ category, onLaunch }: GameGridProps) {
+/**
+ * Two layouts, picked by what the player is doing.
+ *
+ * BROWSING (a category tab, or a live search) gets the wrapping grid: they
+ * have asked to see everything that matches, and a wall is the honest answer.
+ *
+ * The HOME view gets rails instead. Showing eleven games as one flat grid of
+ * identical squares gives the page no shape — nothing is featured, nothing is
+ * secondary, and the eye has no entry point. Rails restore the hierarchy a
+ * catalogue needs: the lead row runs larger than the rest, each row shows the
+ * top of its category and says "more this way" rather than spending the whole
+ * fold on one section.
+ */
+export function GameGrid({ category, onLaunch, onCategoryChange }: GameGridProps) {
   const { t } = useLanguage();
   const { matches, isSearching } = useSearch();
 
@@ -42,16 +57,18 @@ export function GameGrid({ category, onLaunch }: GameGridProps) {
     })).filter((section) => section.games.length > 0);
 
     return (
-      <div className="grid__rows">
-        {rows.map((section) => (
-          <section key={section.id} className="grid__row">
-            <h2 className="grid__row-title">{t(section.titleKey)}</h2>
-            <div className="grid">
-              {section.games.map((entry) => (
-                <GameCard key={entry.slug} entry={entry} onLaunch={onLaunch} />
-              ))}
-            </div>
-          </section>
+      <div className="rails">
+        {rows.map((section, index) => (
+          <GameRail
+            key={section.id}
+            title={t(section.titleKey)}
+            games={section.games}
+            category={section.id}
+            onLaunch={onLaunch}
+            onSeeAll={onCategoryChange}
+            /* Only the first row is promoted. Two lead rows is no lead row. */
+            size={index === 0 ? 'lead' : 'default'}
+          />
         ))}
       </div>
     );

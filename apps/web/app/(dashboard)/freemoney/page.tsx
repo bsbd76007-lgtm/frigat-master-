@@ -176,7 +176,7 @@ const CSS = `
 .fm__grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
 @media (min-width: 900px) { .fm__grid { grid-template-columns: 1.15fr .85fr; } }
 
-.fm__card { display: flex; flex-direction: column; gap: 12px; padding: 16px;
+.fm__card { display: flex; flex-direction: column; gap: 12px; padding: 10px;
   background: var(--fg-panel); border: 0; border-radius: var(--fg-r-lg);
   box-shadow: var(--fg-inset); }
 .fm__card h2 { margin: 0; font-size: 16px; font-weight: 800; color: var(--fg-text); }
@@ -187,21 +187,21 @@ const CSS = `
 .fm__wheel { display: block; width: 100%; height: 100%; }
 .fm__confetti { position: absolute; inset: 0; pointer-events: none; }
 
-.fm__spin { width: 100%; padding: 14px; font: inherit; font-size: 15px; font-weight: 900;
+.fm__spin { width: 100%; padding: 9px; font: inherit; font-size: 15px; font-weight: 900;
   color: var(--fg-bg); background: var(--fg-accent); border: 0; border-radius: var(--fg-r-lg);
   cursor: pointer; box-shadow: var(--fg-glow-accent);
   transition: filter var(--fg-snap), transform var(--fg-snap), box-shadow var(--fg-snap); }
 .fm__spin:hover:not(:disabled) { filter: brightness(1.07); box-shadow: var(--fg-cta-glow); }
 .fm__spin:active:not(:disabled) { transform: scale(.98) translateY(1px); }
 .fm__spin:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
-.fm__spin:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .45); }
+.fm__spin:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 .fm__timer { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
   text-align: center; color: var(--fg-muted); }
 .fm__timer b { color: var(--fg-text); }
 
 .fm__row { display: flex; gap: 8px; }
-.fm__input { flex: 1 1 auto; min-width: 0; padding: 12px 13px; font: inherit; font-size: 14px;
+.fm__input { flex: 1 1 auto; min-width: 0; padding: 8px 8px; font: inherit; font-size: 14px;
   font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-text);
   background: color-mix(in srgb, var(--fg-sunken) 90%, transparent);
   border: 1px solid var(--fg-line); border-radius: var(--fg-r); outline: none;
@@ -209,7 +209,7 @@ const CSS = `
 .fm__input::placeholder { color: var(--fg-placeholder); }
 .fm__input:focus-visible { border-color: transparent;
   box-shadow: 0 0 0 2px rgba(59, 124, 255, .5); }
-.fm__btn { flex: 0 0 auto; padding: 0 18px; font: inherit; font-size: 13px; font-weight: 800;
+.fm__btn { flex: 0 0 auto; padding: 0 12px; font: inherit; font-size: 13px; font-weight: 800;
   color: var(--fg-bg); background: var(--fg-accent); border: 0; border-radius: var(--fg-r-lg);
   cursor: pointer;
   transition: filter var(--fg-snap), transform var(--fg-snap), box-shadow var(--fg-snap); }
@@ -217,9 +217,9 @@ const CSS = `
 .fm__btn:active:not(:disabled) { transform: scale(.98) translateY(1px); }
 .fm__btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 .fm__btn--ghost { color: var(--fg-text); background: var(--fg-hover); }
-.fm__btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .4); }
+.fm__btn:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
-.fm__msg { margin: 0; padding: 10px 12px; font-size: 12.5px; font-weight: 600;
+.fm__msg { margin: 0; padding: 10px 8px; font-size: 12.5px; font-weight: 600;
   border-radius: var(--fg-r); }
 .fm__msg--ok { color: var(--fg-pos-soft); background: rgba(59, 124, 255, .1);
   border: 1px solid rgba(59, 124, 255, .3); }
@@ -240,7 +240,7 @@ const CSS = `
 .fm__raffle { display: grid; gap: 16px; grid-template-columns: 1fr; }
 @media (min-width: 900px) { .fm__raffle { grid-template-columns: 1.1fr .9fr; } }
 
-.fm__prize { display: flex; flex-direction: column; gap: 10px; padding: 20px;
+.fm__prize { display: flex; flex-direction: column; gap: 10px; padding: 13px;
   text-align: center; border-radius: var(--fg-r-lg);
   background:
     radial-gradient(circle at 50% -20%, rgba(59, 124, 255, .22) 0%, transparent 62%),
@@ -263,7 +263,7 @@ const CSS = `
 
 .fm__tickets { display: flex; flex-wrap: wrap; gap: 6px; }
 .fm__ticket { padding: 5px 10px; font-size: 12px; font-weight: 800;
-  font-family: var(--fg-mono); letter-spacing: .04em; border-radius: var(--fg-r-pill);
+  font-family: var(--fg-mono); letter-spacing: .04em; border-radius: var(--fg-r);
   color: var(--fg-accent); background: rgba(59, 124, 255, .1);
   border: 1px solid rgba(59, 124, 255, .35); }
 .fm__ticket--more { color: var(--fg-dim); background: var(--fg-hover);
@@ -280,7 +280,7 @@ const CSS = `
 .fm__ticker { display: flex; flex-direction: column; gap: 0; max-height: 190px;
   overflow-y: auto; border-radius: var(--fg-r); border: 1px solid var(--fg-line); }
 .fm__tick { display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; padding: 8px 11px; font-size: 12px; border-bottom: 1px solid var(--fg-line);
+  gap: 10px; padding: 8px 7px; font-size: 12px; border-bottom: 1px solid var(--fg-line);
   background: var(--fg-panel-2); }
 .fm__tick:last-child { border-bottom: 0; }
 .fm__tick-player { min-width: 0; overflow: hidden; text-overflow: ellipsis;
@@ -297,7 +297,7 @@ const CSS = `
 
 .fm__tasks { display: grid; gap: 10px; grid-template-columns: 1fr; }
 @media (min-width: 720px) { .fm__tasks { grid-template-columns: 1fr 1fr; } }
-.fm__task { display: flex; flex-direction: column; gap: 6px; padding: 14px;
+.fm__task { display: flex; flex-direction: column; gap: 6px; padding: 9px;
   background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: var(--fg-r-lg); }
 .fm__task h3 { margin: 0; font-size: 13.5px; font-weight: 800; color: var(--fg-text); }
 .fm__task p { margin: 0; font-size: 12px; line-height: 1.55; color: var(--fg-muted); }
@@ -305,7 +305,7 @@ const CSS = `
   gap: 10px; margin-top: auto; padding-top: 8px; }
 .fm__reward { font-size: 12.5px; font-weight: 800; color: var(--fg-accent); }
 .fm__reward--none { color: var(--fg-dim); }
-.fm__task-btn { padding: 7px 14px; font: inherit; font-size: 12px; font-weight: 800;
+.fm__task-btn { padding: 7px 9px; font: inherit; font-size: 12px; font-weight: 800;
   color: var(--fg-bg); background: var(--fg-accent); border: 0; border-radius: var(--fg-r);
   cursor: pointer; }
 .fm__task-btn:disabled { opacity: .45; cursor: not-allowed; }

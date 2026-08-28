@@ -57,19 +57,19 @@ const CSS = `
    own button; with that gone it takes the corner directly, so the -136px that
    cleared the other launcher is now just the dock lift. */
 .sup__fab { position: fixed; right: 24px; bottom: 24px; z-index: 998;
-  display: flex; align-items: center; gap: 8px; padding: 11px 16px;
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
   font: inherit; font-size: 13px; font-weight: 700; color: var(--fg-bg);
-  background: var(--fg-accent); border: none; border-radius: var(--fg-r-pill);
+  background: var(--fg-accent); border: none; border-radius: var(--fg-r);
   cursor: pointer; box-shadow: 0 12px 28px rgba(59, 124, 255, .28);
   --sup-lift: 0px; --sup-hide: 0px;
   transform: translateY(calc(var(--sup-lift) + var(--sup-hide)));
-  transition: transform .3s ease-in-out, opacity .3s ease-in-out, filter .15s ease; }
+  transition: transform .3s ease-in-out, opacity .3s ease-in-out, filter var(--fg-t); }
 .sup__fab--raised { --sup-lift: -136px; }
 /* Leaves with the dock on the way down, and goes inert so it cannot be
    tabbed to or clicked while it is off-screen. */
 .sup__fab--hidden { --sup-hide: 140px; opacity: 0; pointer-events: none; }
 .sup__fab:hover { filter: brightness(1.08); }
-.sup__fab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .4); }
+.sup__fab:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .sup__fab[hidden] { display: none; }
 .sup__fab-dot { display: grid; place-items: center; min-width: 18px; height: 18px;
   padding: 0 5px; font-size: 11px; font-weight: 800; color: #fff;
@@ -83,23 +83,23 @@ const CSS = `
   background: var(--fg-panel); border: var(--fg-edge);
   border-radius: var(--fg-r-lg); overflow: hidden; }
 @media (max-width: 560px) { .sup__panel { right: 12px; left: 12px; width: auto; } }
-@media (prefers-reduced-motion: reduce) { .sup__fab { transition: filter .15s ease; } }
+@media (prefers-reduced-motion: reduce) { .sup__fab { transition: filter var(--fg-t); } }
 
 .sup__head { display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--fg-line); }
+  gap: 10px; padding: 9px 10px; border-bottom: 1px solid var(--fg-line); }
 .sup__title { margin: 0; font-size: 14px; font-weight: 800; color: var(--fg-text); }
 .sup__sub { margin: 3px 0 0; font-size: 11.5px; color: var(--fg-muted); }
 .sup__close { width: 28px; height: 28px; display: grid; place-items: center;
   color: var(--fg-muted); background: transparent; border: 1px solid var(--fg-line);
   border-radius: var(--fg-r); cursor: pointer; }
 .sup__close:hover { color: var(--fg-text); background: var(--fg-hover); }
-.sup__close:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
+.sup__close:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
-.sup__body { flex: 1 1 auto; overflow-y: auto; padding: 14px 16px;
+.sup__body { flex: 1 1 auto; overflow-y: auto; padding: 9px 10px;
   display: flex; flex-direction: column; gap: 10px; }
 .sup__empty { margin: auto; max-width: 240px; font-size: 12.5px; line-height: 1.55;
   text-align: center; color: var(--fg-muted); }
-.sup__msg { max-width: 82%; padding: 9px 12px; font-size: 13px; line-height: 1.45;
+.sup__msg { max-width: 82%; padding: 9px 8px; font-size: 13px; line-height: 1.45;
   border-radius: var(--fg-r-lg); word-break: break-word; white-space: pre-wrap; }
 .sup__msg--user { align-self: flex-end; color: var(--fg-bg);
   background: var(--fg-accent); border-bottom-right-radius: var(--fg-r-sm); }
@@ -108,18 +108,20 @@ const CSS = `
   border-bottom-left-radius: var(--fg-r-sm); }
 .sup__meta { display: block; margin-top: 3px; font-size: 10px; opacity: .7; }
 
-.sup__foot { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--fg-line); }
-.sup__input { flex: 1 1 auto; min-width: 0; padding: 10px 12px; font: inherit;
-  font-size: 13px; color: var(--fg-text); background: var(--fg-panel-2);
-  border: 1px solid var(--fg-line); border-radius: var(--fg-r-lg); outline: none; resize: none; }
+.sup__foot { display: flex; gap: 8px; padding: 8px; border-top: 1px solid var(--fg-line); }
+.sup__input { flex: 1 1 auto; min-width: 0; padding: 10px 8px; font: inherit;
+  font-size: 13px; color: var(--fg-text); background: var(--fg-sunken);
+  border: 1px solid var(--fg-hairline); border-radius: var(--fg-r); outline: none; resize: none;
+  box-shadow: var(--fg-input-inset);
+  transition: border-color var(--fg-t), box-shadow var(--fg-t); }
 .sup__input:focus-visible { border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(59, 124, 255, .16); }
-.sup__send { flex: 0 0 auto; padding: 0 16px; font: inherit; font-size: 13px;
+  box-shadow: var(--fg-input-inset), var(--fg-ring); }
+.sup__send { flex: 0 0 auto; padding: 0 10px; font: inherit; font-size: 13px;
   font-weight: 700; color: var(--fg-bg); background: var(--fg-accent);
   border: none; border-radius: var(--fg-r-lg); cursor: pointer; }
 .sup__send:disabled { opacity: .45; cursor: not-allowed; }
-.sup__send:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .4); }
-.sup__error { margin: 0; padding: 0 16px 10px; font-size: 12px; color: var(--fg-red); }
+.sup__send:focus-visible { outline: none; box-shadow: var(--fg-ring); }
+.sup__error { margin: 0; padding: 0 10px 10px; font-size: 12px; color: var(--fg-red); }
 
 @media (prefers-reduced-motion: reduce) { .sup__fab { transition: none; } }
 `;

@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
 import { GAME_ICONS } from '@/components/icons';
+import { GAME_POSTERS } from '@/components/games/GamePoster';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useFavorites } from '@/context/FavoritesContext';
 
@@ -16,15 +16,7 @@ interface GameCardProps {
   onLaunch?: (entry: CatalogueEntry) => void;
 }
 
-/** Degrees of rotation at the very corner of the card. */
-// 7deg read as a card flapping toward the cursor — the tell of a template. At
-// 2.5 the parallax registers as the poster having a surface without ever
-// announcing itself; the hover is carried by the sheen and the plate fade
-// instead.
-const TILT_MAX = 2.5;
-
 export function GameCard({ entry, onLaunch }: GameCardProps) {
-  const tiltRef = useRef<HTMLElement | null>(null);
   const { slug, badge } = entry;
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -33,40 +25,9 @@ export function GameCard({ entry, onLaunch }: GameCardProps) {
   const href = `/games/${slug}`;
   const art = GAME_ART[slug];
   const name = t(`games.${slug}.name`);
-
-  /**
-   * Pointer-follow tilt.
-   *
-   * Written to CSS custom properties rather than React state: this fires on
-   * every mousemove, and a setState per frame would re-render the whole grid
-   * to move one card. The compositor handles the transform from the variable.
-   */
-  const tilt = useCallback((event: React.PointerEvent<HTMLElement>) => {
-    const node = tiltRef.current;
-    if (!node) return;
-    // Fine pointers only. On touch the "hover" is a tap, and tilting under the
-    // finger just makes the target move as it is pressed.
-    if (event.pointerType !== 'mouse') return;
-
-    const rect = node.getBoundingClientRect();
-    const px = (event.clientX - rect.left) / rect.width;
-    const py = (event.clientY - rect.top) / rect.height;
-    // Y rotation follows horizontal travel, X rotation is inverted so the card
-    // leans *away* from the cursor — the direction a physical card would tip.
-    node.style.setProperty('--tilt-y', `${(px - 0.5) * 2 * TILT_MAX}deg`);
-    node.style.setProperty('--tilt-x', `${(0.5 - py) * 2 * TILT_MAX}deg`);
-    node.style.setProperty('--tilt-lift', '-2px');
-    node.style.setProperty('--tilt-px', `${px * 100}%`);
-    node.style.setProperty('--tilt-py', `${py * 100}%`);
-  }, []);
-
-  const resetTilt = useCallback(() => {
-    const node = tiltRef.current;
-    if (!node) return;
-    for (const prop of ['--tilt-x', '--tilt-y', '--tilt-lift']) {
-      node.style.removeProperty(prop);
-    }
-  }, []);
+  // Drawn poster first, raster poster second, icon last. The drawn ones carry
+  // their own lockup, so they take the art box whole exactly like a jpg does.
+  const Poster = GAME_POSTERS[slug];
 
   const intercept = (event: React.MouseEvent) => {
     if (!onLaunch) return;
@@ -77,14 +38,7 @@ export function GameCard({ entry, onLaunch }: GameCardProps) {
   };
 
   return (
-    <article
-      className="tile"
-      ref={tiltRef}
-      onPointerMove={tilt}
-      onPointerLeave={resetTilt}
-    >
-      {/* Specular sheen, tracking the same pointer position as the tilt. */}
-      <span className="tile__sheen" aria-hidden="true" />
+    <article className="tile">
 
       <button
         type="button"
@@ -121,7 +75,9 @@ export function GameCard({ entry, onLaunch }: GameCardProps) {
           announcing the title twice. Falls back to the SVG icon for any game
           without art in /public. */}
       <span className="tile__art">
-        {art ? (
+        {Poster ? (
+          <Poster name={name} />
+        ) : art ? (
           <Image
             src={art}
             alt=""

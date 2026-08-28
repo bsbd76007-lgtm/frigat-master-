@@ -67,32 +67,38 @@
    the accent is darkened to keep contrast against white panels. */
 :root,
 html[data-theme='dark'] {
-  /* ── Navy-black ramp ──
-     The chroma comes back. The previous ramp was stripped fully neutral
-     because a residual blue hue read as a cast against the WARM amber accent
-     — a correct call for that accent, and moot now that the accent is blue.
-     These steps carry ~6% of the wordmark's navy, which is enough to tie the
-     page to the mark and to stop the surfaces reading as generic black.
-     They stay deliberately close together: surfaces are separated by the 1px
-     --fg-hairline edge below, not by a jump in fill or an exterior shadow. */
-  --fg-bg: #070a11;
-  --fg-panel: #101623;
-  --fg-panel-2: #0b0f19;
+  /* ── Near-black ramp ──
+     Fully neutral. The surfaces carry no hue of their own, which leaves the
+     accent as the only chromatic thing on the page — a blue CTA reads louder
+     against neutral graphite than against a navy-tinted ground, where it has
+     to compete with a wash of its own hue. It also keeps gold (jackpot/VIP)
+     and red (loss) unambiguous: on a navy ground both pick up a cast and the
+     three signal colours start to converge.
+
+     The steps sit deliberately close together — separation is the job of the
+     1px --fg-hairline edge below, not of a jump in fill or of an exterior
+     shadow. That is what lets the ramp stay this dark without the interface
+     collapsing into a single flat field. */
+  --fg-bg: #0a0a0c;
+  --fg-panel: #131316;
+  --fg-panel-2: #0e0e11;
   /* One step below the page for recessed things — inputs, wells, insets. */
-  --fg-sunken: #04060b;
-  --fg-line: #1c2334;
-  --fg-line-2: #2a3346;
-  --fg-hover: #151c2b;
-  --fg-hover-2: #1e2637;
-  --fg-header: rgba(7, 10, 17, .94);
-  /* Text ramp: primary / secondary / muted.
-     NOTE on the muted step — #5f6d87 measures ~3.2:1 against --fg-bg, under
-     the 4.5:1 AA needs for small text. It is the intended tone for the design
-     system and is used for de-emphasised labels, placeholders and disabled
-     states only; nothing a player must read to act sits on it. */
-  --fg-text: #eef2f9;
-  --fg-muted: #93a1bb;
-  --fg-dim: #5f6d87;
+  --fg-sunken: #050506;
+  --fg-line: #1e1e23;
+  --fg-line-2: #2c2c33;
+  --fg-hover: #17171b;
+  --fg-hover-2: #202026;
+  --fg-header: rgba(10, 10, 12, .94);
+  /* Text ramp: primary / secondary / muted. Measured against --fg-bg:
+       --fg-text  #f2f2f5 → 17.7:1
+       --fg-muted #9b9ba6 →  7.2:1   (clears AA for body copy)
+       --fg-dim   #6a6a76 →  3.7:1   (does NOT clear AA at small sizes)
+     The dim step is the intended tone for de-emphasised labels, placeholders
+     and disabled states only; nothing a player must read in order to act is
+     allowed to sit on it. */
+  --fg-text: #f2f2f5;
+  --fg-muted: #9b9ba6;
+  --fg-dim: #6a6a76;
 
   /* Signal blue: every CTA and active state. Replaces amber #f59e0b, which is
      the default accent of every generated dark dashboard and, on this page,
@@ -208,20 +214,20 @@ html[data-theme='dark'] {
 /* Dim: the same hues lifted off pure black — easier on the eyes in a lit room
    without the glare of the light theme. */
 html[data-theme='dim'] {
-  --fg-bg: #12151d;
-  --fg-panel: #1a1f2b;
-  --fg-panel-2: #161a24;
-  --fg-sunken: #0d1017;
-  --fg-line: #2a3142;
-  --fg-line-2: #3a4457;
-  --fg-hover: #222838;
-  --fg-hover-2: #2a3142;
-  --fg-header: rgba(18, 21, 29, .92);
+  --fg-bg: #141416;
+  --fg-panel: #1c1c20;
+  --fg-panel-2: #18181b;
+  --fg-sunken: #0e0e10;
+  --fg-line: #2b2b31;
+  --fg-line-2: #3a3a42;
+  --fg-hover: #232328;
+  --fg-hover-2: #2b2b31;
+  --fg-header: rgba(20, 20, 22, .92);
   /* Lighter page than dark, so the edge is lifted to stay visible on it. */
   --fg-hairline: rgba(255, 255, 255, .1);
-  --fg-text: #eef2f9;
-  --fg-muted: #93a1bb;
-  --fg-dim: #6b7891;
+  --fg-text: #f2f2f5;
+  --fg-muted: #9b9ba6;
+  --fg-dim: #767681;
   /* Lighter surfaces than dark, so the plate highlight is eased back to stop
      every panel looking wet. Brass, teal and glows are inherited unchanged. */
   --fg-plate: linear-gradient(180deg, rgba(255, 255, 255, .04) 0%, rgba(0, 0, 0, .14) 100%);
@@ -364,7 +370,7 @@ h1, h2, h3, h4 {
    crisp white titles so the orange accents in them stay the focal point. */
 .wal__title, .adm-page__head h1, .adm-page__head h2,
 .adm-section h2, .vip__card b, .auth__title,
-.grid__row-title, .fg-pf__title, .wheel__head h2 { color: var(--fg-text); }
+.rail__title, .fg-pf__title, .wheel__head h2 { color: var(--fg-text); }
 
 /* ── Dashboard chrome ───────────────────── */
 .dash__header {
@@ -373,9 +379,9 @@ h1, h2, h3, h4 {
   z-index: 40;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 10px 18px;
+  padding: 7px 12px;
   background: var(--fg-grain), var(--fg-plate), var(--fg-header);
   /* Brass hairline: the one warm edge on the chrome, so the header reads as
      trimmed metal rather than a flat bar. */
@@ -417,7 +423,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   font-weight: 600;
   color: var(--fg-muted);
   border-radius: var(--fg-r);
-  transition: background .15s ease, color .15s ease;
+  transition: background var(--fg-t), color var(--fg-t);
 }
 .dash__link:hover { background: var(--fg-hover); color: var(--fg-text); }
 .dash__link[aria-current='page'] { background: var(--fg-hover); color: var(--fg-accent); }
@@ -447,9 +453,9 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   color: var(--fg-text);
   background: var(--fg-panel-2);
   border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
-  transition: border-color .15s ease, background .15s ease;
+  transition: border-color var(--fg-t), background var(--fg-t);
 }
 .dash__balance--action:hover {
   background: var(--fg-hover);
@@ -473,7 +479,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border-radius: var(--fg-r);
   box-shadow: var(--fg-bevel);
   cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  transition: background var(--fg-t), border-color var(--fg-t), box-shadow var(--fg-t);
 }
 
 /* Square icon control in the header — same height as .dash__btn so the row
@@ -490,7 +496,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border-radius: var(--fg-r);
   box-shadow: var(--fg-bevel);
   cursor: pointer;
-  transition: color .15s ease, background .15s ease, border-color .15s ease;
+  transition: color var(--fg-t), background var(--fg-t), border-color var(--fg-t);
 }
 .dash__icon-btn:hover {
   color: var(--fg-text);
@@ -519,7 +525,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-pill);
   cursor: pointer;
-  transition: filter .15s ease, transform .15s ease, box-shadow .15s ease;
+  transition: filter var(--fg-t), transform var(--fg-t), box-shadow var(--fg-t);
 }
 .dash__avatar:hover {
   filter: brightness(1.08);
@@ -542,10 +548,10 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   color: var(--fg-on-accent);
   background: var(--fg-accent-deep);
   border: none;
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
   white-space: nowrap;
-  transition: background .15s ease, filter .15s ease, transform .15s ease;
+  transition: background var(--fg-t), filter var(--fg-t), transform var(--fg-t);
 }
 .dash__cta:hover {
   background: var(--fg-accent-deep);
@@ -561,7 +567,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border-color: var(--fg-gold);
   box-shadow: var(--fg-bevel), var(--fg-glow-gold);
 }
-.dash__btn:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(59, 124, 255, .2); }
+.dash__btn:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
 .dash__status {
   display: inline-block;
   width: 8px;
@@ -625,7 +631,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   color: var(--fg-text);
   background: var(--fg-hover);
   border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
 }
 
@@ -736,7 +742,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   color: var(--fg-text);
   background: var(--fg-hover);
   border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
 }
 
@@ -785,7 +791,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   font-size: 13px;
   text-align: left;
   cursor: pointer;
-  transition: background .15s ease;
+  transition: background var(--fg-t);
 }
 .feed__row:hover { background: var(--fg-hover); }
 .feed__row:focus-visible {
@@ -901,7 +907,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border-radius: var(--fg-r);
   color: #8a8f99;
   cursor: pointer;
-  transition: color .15s ease, background .15s ease;
+  transition: color var(--fg-t), background var(--fg-t);
 }
 .bdm__close:hover { background: #262b35; color: #fff; }
 
@@ -928,7 +934,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   padding: 2px 6px;
   background: #20242d;
   border: 1px solid #2a2f3a;
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   color: #d7dae0;
   font-size: 12px;
   font-weight: 600;
@@ -1007,7 +1013,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
-  transition: background .15s ease;
+  transition: background var(--fg-t);
 }
 .bdm__play:hover { background: #1f57d6; }
 
@@ -1030,7 +1036,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 }
 .bdm__fair-toggle:hover { color: #fff; }
 
-.bdm__chev { transition: transform .18s ease; }
+.bdm__chev { transition: transform var(--fg-t); }
 .bdm__chev--open { transform: rotate(180deg); }
 
 .bdm__fair-body {
@@ -1085,7 +1091,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   padding: 3px;
   background: var(--fg-panel-2);
   border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
 }
 .lang__pill {
   min-width: 34px;
@@ -1097,9 +1103,9 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   color: var(--fg-muted);
   background: transparent;
   border: 0;
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
-  transition: color .15s ease, background .15s ease;
+  transition: color var(--fg-t), background var(--fg-t);
 }
 .lang__pill:hover:not(.lang__pill--on) {
   color: var(--fg-text);
@@ -1129,7 +1135,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   padding: 3px;
   background: var(--fg-hover);
   border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
 }
 .theme__opt {
   position: relative;
@@ -1142,9 +1148,9 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   color: var(--fg-muted);
   background: none;
   border: 0;
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
-  transition: color .15s ease;
+  transition: color var(--fg-t);
 }
 .theme__opt:hover { color: var(--fg-text); }
 .theme__opt--on { color: var(--fg-on-accent); }
@@ -1159,7 +1165,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   position: absolute;
   inset: 0;
   background: var(--fg-line-2);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
 }
 /* Above the pill, which shares the same stacking context. */
 .theme__icon { position: relative; display: flex; }
@@ -1189,7 +1195,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border-radius: var(--fg-r);
   outline: none;
 }
-.dash__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(59, 124, 255, .18); }
+.dash__input:focus-visible { border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
 
 /* ── Auth (sign in / register) ──────────── */
 .auth {
@@ -1259,10 +1265,10 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
   outline: none;
-  transition: border-color .12s ease, box-shadow .12s ease;
+  transition: border-color var(--fg-t), box-shadow var(--fg-t);
 }
 .auth__input::placeholder { color: var(--fg-dim); }
-.auth__input:focus-visible { border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(59, 124, 255, .18); }
+.auth__input:focus-visible { border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
 .auth__input[aria-invalid='true'] { border-color: var(--fg-red); }
 .auth__input:disabled { opacity: .6; cursor: not-allowed; }
 .auth__hint { font-size: 11.5px; color: var(--fg-dim); }
@@ -1282,7 +1288,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   gap: 7px;
   font-size: 11.5px;
   color: var(--fg-muted);
-  transition: color .15s ease;
+  transition: color var(--fg-t);
 }
 .auth__rule--met { color: var(--fg-accent); }
 .auth__rule span { width: 10px; text-align: center; font-weight: 800; }
@@ -1308,11 +1314,11 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border: 0;
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background .18s ease, color .18s ease;
+  transition: background var(--fg-t), color var(--fg-t);
 }
 .auth__tab:hover { color: var(--fg-text); }
 .auth__tab--on { color: #04120d; background: var(--fg-accent-deep); }
-.auth__tab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .28); }
+.auth__tab:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 .auth__notice {
   margin: 0 0 14px;
@@ -1378,7 +1384,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 }
 .auth__link-btn:disabled { color: var(--fg-dim); cursor: not-allowed; }
 .auth__link-btn:hover:not(:disabled) { text-decoration: underline; }
-.auth__link-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .28); }
+.auth__link-btn:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .auth__submit {
   width: 100%;
   margin-top: 6px;
@@ -1389,12 +1395,12 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   color: var(--fg-on-accent);
   background: var(--fg-accent-deep);
   border: 1px solid var(--fg-accent);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
-  transition: filter .12s ease;
+  transition: filter var(--fg-t);
 }
 .auth__submit:hover:not(:disabled) { background: var(--fg-accent-mid); border-color: var(--fg-accent-mid); }
-.auth__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .28); }
+.auth__submit:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .auth__submit:disabled { opacity: .55; cursor: progress; }
 .auth__error {
   margin: 0 0 16px;
@@ -1473,12 +1479,12 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
+  transition: background var(--fg-t), color var(--fg-t), border-color var(--fg-t);
 }
 .opt__chip:hover:not(:disabled) { color: var(--fg-text); border-color: var(--fg-line-2); }
 .opt__chip[aria-pressed='true'] { color: #04120d; background: var(--fg-accent-deep); border-color: var(--fg-accent); }
 .opt__chip:disabled { opacity: .45; cursor: not-allowed; }
-.opt__chip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .25); }
+.opt__chip:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .opt__stat { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
 .opt__stat b { color: var(--fg-text); font-weight: 600; }
 .opt__range { width: 100%; accent-color: var(--fg-accent); }
@@ -1501,11 +1507,11 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
   cursor: pointer;
-  transition: transform .1s ease, background .15s ease, border-color .15s ease;
+  transition: transform var(--fg-t), background var(--fg-t), border-color var(--fg-t);
 }
 .mines__tile:hover:not(:disabled) { transform: translateY(-2px); background: var(--fg-hover); border-color: var(--fg-line-2); }
 .mines__tile:disabled { cursor: default; }
-.mines__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(59, 124, 255, .22); }
+.mines__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
 .mines__tile--safe { background: rgba(59, 124, 255, .14); border-color: rgba(59, 124, 255, .42); color: var(--fg-accent); }
 .mines__tile--mine { background: rgba(240,97,109,.16); border-color: rgba(240,97,109,.45); color: var(--fg-red); }
 .mines__tile--hit { background: rgba(240,97,109,.34); border-color: var(--fg-red); }
@@ -1544,7 +1550,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .limbobar { position: relative; width: 100%; height: 14px; border-radius: var(--fg-r-pill);
   overflow: hidden; background: var(--fg-panel-2); border: 1px solid var(--fg-line); }
 .limbobar__fill { position: absolute; inset: 0 auto 0 0; background: var(--fg-accent-deep);
-  transition: width .1s linear; }
+  transition: width var(--fg-t); }
 .limbobar__fill--lose { background: var(--fg-red); }
 /* The target sits at the bar's own 100% mark — the fill races toward it and
    either reaches the edge (win) or stalls short (loss). */
@@ -1560,10 +1566,10 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
   color: var(--fg-muted); background: var(--fg-panel-2); border: 1px solid var(--fg-line);
   border-radius: var(--fg-r); cursor: pointer;
-  transition: transform .1s ease, background .15s ease, border-color .15s ease, color .15s ease; }
+  transition: transform var(--fg-t), background var(--fg-t), border-color var(--fg-t), color var(--fg-t); }
 .keno__tile:hover:not(:disabled) { transform: translateY(-1px); background: var(--fg-hover); border-color: var(--fg-line-2); }
 .keno__tile:disabled { cursor: default; }
-.keno__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(59, 124, 255, .22); }
+.keno__tile:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
 .keno__tile--picked { background: rgba(59, 124, 255, .14); border-color: rgba(59, 124, 255, .42); color: var(--fg-accent); }
 .keno__tile--drawn { background: rgba(139,151,166,.22); border-color: var(--fg-line-2); color: var(--fg-text); animation: keno-pop .22s ease-out; }
 .keno__tile--hit { background: rgba(217, 164, 65,.22); border-color: var(--fg-gold); color: var(--fg-gold); animation: keno-pop .22s ease-out; }
@@ -1637,7 +1643,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background .15s ease, border-color .15s ease;
+  transition: background var(--fg-t), border-color var(--fg-t);
 }
 .ref__btn:hover:not(:disabled) { background: var(--fg-hover-2); border-color: var(--fg-line-2); }
 .ref__btn:focus-visible {
@@ -1822,7 +1828,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border-radius: var(--fg-r-lg);
   white-space: nowrap;
   cursor: pointer;
-  transition: transform .15s ease, filter .15s ease;
+  transition: transform var(--fg-t), filter var(--fg-t);
 }
 .hero__cta:hover { transform: translateY(-1px); filter: brightness(1.08); }
 .hero__cta:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
@@ -1899,7 +1905,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border: 0;
   border-radius: var(--fg-r-pill);
   cursor: pointer;
-  transition: background .15s ease;
+  transition: background var(--fg-t);
 }
 .hero__chevron:hover { background: rgba(230, 237, 243, .14); }
 .hero__chevron:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 1px; }
@@ -1928,7 +1934,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border: 0;
   border-radius: var(--fg-r-pill);
   cursor: pointer;
-  transition: background .2s ease, width .2s ease;
+  transition: background var(--fg-t), width var(--fg-t);
 }
 .hero__dot--on { width: 34px; background: var(--fg-accent-deep); }
 .hero__dot:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 3px; }
@@ -1999,7 +2005,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   line-height: 1.4;
   color: var(--fg-muted);
   text-decoration: none;
-  transition: color .13s ease;
+  transition: color var(--fg-t);
 }
 .foot__link:hover { color: var(--fg-text); }
 .foot__link:focus-visible {
@@ -2038,7 +2044,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   background: var(--fg-panel);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r);
-  transition: color .13s ease, border-color .13s ease, transform .13s ease;
+  transition: color var(--fg-t), border-color var(--fg-t), transform var(--fg-t);
 }
 .foot__social-link:hover {
   color: var(--fg-accent);
@@ -2131,7 +2137,7 @@ html[data-theme='light'] .wal__panel {
   border: 1px solid transparent;
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background .15s ease, color .15s ease;
+  transition: background var(--fg-t), color var(--fg-t);
 }
 .wal__close:hover { background: var(--fg-hover); color: var(--fg-text); }
 .wal__close:focus-visible {
@@ -2164,7 +2170,7 @@ html[data-theme='light'] .wal__tabs {
   border: 0;
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background .15s ease, color .15s ease;
+  transition: background var(--fg-t), color var(--fg-t);
 }
 .wal__tab:hover { color: var(--fg-text); }
 .wal__tab--on {
@@ -2207,7 +2213,7 @@ html[data-theme='light'] .wal__label { color: var(--fg-dim); }
   background: var(--fg-bg);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
-  transition: border-color .15s ease, box-shadow .15s ease;
+  transition: border-color var(--fg-t), box-shadow var(--fg-t);
 }
 .wal__input:focus-visible,
 .wal__input:focus {
@@ -2254,7 +2260,7 @@ html[data-theme='light'] .wal__input {
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: color .15s ease, border-color .15s ease, background .15s ease;
+  transition: color var(--fg-t), border-color var(--fg-t), background var(--fg-t);
 }
 .wal__chip:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
 .wal__chip--on {
@@ -2277,7 +2283,7 @@ html[data-theme='light'] .wal__input {
   border-radius: var(--fg-r-lg);
   box-shadow: var(--fg-bevel);
   cursor: pointer;
-  transition: color .15s ease, border-color .15s ease, background .15s ease;
+  transition: color var(--fg-t), border-color var(--fg-t), background var(--fg-t);
 }
 .wal__cur b { font-size: 12.5px; font-weight: 700; }
 .wal__cur span { font-size: 9.5px; opacity: .8; }
@@ -2287,7 +2293,7 @@ html[data-theme='light'] .wal__input {
   background: rgba(59, 124, 255, .12);
   border-color: rgba(59, 124, 255, .55);
 }
-.wal__cur:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .25); }
+.wal__cur:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 .wal__balance {
   display: flex;
@@ -2321,7 +2327,7 @@ html[data-theme='light'] .wal__input {
   border-radius: var(--fg-r-lg);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: filter .15s ease, background .15s ease, border-color .15s ease;
+  transition: filter var(--fg-t), background var(--fg-t), border-color var(--fg-t);
 }
 .wal__btn:disabled { opacity: .45; cursor: not-allowed; }
 /* Solid orange pill. --fg-bg ink is 6.71:1 on #3b7cff; white would be 2.86:1
@@ -2329,7 +2335,7 @@ html[data-theme='light'] .wal__input {
 .wal__btn--primary {
   color: var(--fg-on-accent);
   background: var(--fg-accent-deep);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   box-shadow: var(--fg-glow-accent);
 }
 .wal__btn--primary:hover:not(:disabled) { background: var(--fg-accent-mid); }
@@ -2339,7 +2345,7 @@ html[data-theme='light'] .wal__input {
   border-color: var(--fg-line);
 }
 .wal__btn--ghost:hover { color: var(--fg-text); background: var(--fg-hover); }
-.wal__btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .3); }
+.wal__btn:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 /* Status banners. */
 .wal__banner {
@@ -2590,7 +2596,7 @@ html[data-theme='light'] .wal__input {
   border: 0;
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background .15s ease;
+  transition: background var(--fg-t);
 }
 .wheel__close:hover { background: var(--fg-hover-2); }
 .wheel__close:focus-visible {
@@ -2704,7 +2710,7 @@ html[data-theme='light'] .wal__input {
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  transition: filter .15s ease, transform .15s ease;
+  transition: filter var(--fg-t), transform var(--fg-t);
 }
 .pills__search:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .pills__search:focus-visible {
@@ -2740,11 +2746,11 @@ html[data-theme='light'] .wal__input {
   color: var(--fg-muted);
   background: var(--fg-hover);
   border: 1px solid transparent;
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
   white-space: nowrap;
   scroll-snap-align: start;
-  transition: color .15s ease, background .15s ease, box-shadow .15s ease;
+  transition: color var(--fg-t), background var(--fg-t), box-shadow var(--fg-t);
 }
 .pills__pill:hover { color: var(--fg-text); background: var(--fg-hover-2); }
 
@@ -2777,14 +2783,6 @@ html[data-theme='light'] .wal__input {
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   gap: 14px;
 }
-.grid__rows { display: flex; flex-direction: column; gap: 26px; }
-.grid__row-title {
-  margin: 0 0 12px;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: .01em;
-  color: var(--fg-text);
-}
 .grid__empty {
   padding: 28px 16px;
   text-align: center;
@@ -2814,7 +2812,7 @@ html[data-theme='light'] .wal__input {
   border-radius: var(--fg-r-lg);
   box-shadow: var(--fg-bevel);
   overflow: hidden;
-  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+  transition: transform var(--fg-t), border-color var(--fg-t), box-shadow var(--fg-t);
 }
 
 .tile:hover {
@@ -2832,7 +2830,7 @@ html[data-theme='light'] .wal__input {
   place-items: center;
   width: 62px;
   height: 62px;
-  transition: transform .16s ease;
+  transition: transform var(--fg-t);
 }
 .tile:hover .tile__icon { transform: scale(1.06); }
 .tile__name { font-size: 14.5px; font-weight: 700; color: var(--fg-text); }
@@ -2852,7 +2850,7 @@ html[data-theme='light'] .wal__input {
   font-weight: 800;
   letter-spacing: .07em;
   text-transform: uppercase;
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
 }
 .tile__badge--hot { color: #2a1206; background: var(--fg-brass); }
 .tile__badge--new { color: var(--fg-on-accent); background: var(--fg-accent-deep); }
@@ -2905,7 +2903,7 @@ html[data-theme='light'] .wal__input {
   text-decoration: none;
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: filter .15s ease, transform .15s ease, background .15s ease;
+  transition: filter var(--fg-t), transform var(--fg-t), background var(--fg-t);
 }
 .tile__play {
   color: var(--fg-on-accent);
@@ -2944,7 +2942,7 @@ html[data-theme='light'] .wal__input {
   padding: 6px 12px;
   background: #0c0d0e;
   border: 2px solid #0b7a2a;
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   max-width: calc(100vw - 24px);
 }
 /* Scrolled out of the way. 120px clears the capsule plus its 20px offset and
@@ -2957,7 +2955,7 @@ html[data-theme='light'] .wal__input {
 
 /* Honour the OS setting: the dock still leaves, it just does not slide. */
 @media (prefers-reduced-motion: reduce) {
-  .dock2 { transition: opacity .2s ease; }
+  .dock2 { transition: opacity var(--fg-t); }
   .dock2--hidden { --dock-y: 0px; }
 }
 
@@ -2984,8 +2982,8 @@ html[data-theme='light'] .wal__input {
   left: 0;
   height: 100%;
   background: #0b7a2a;
-  border-radius: var(--fg-r-pill);
-  transition: transform .2s ease-in-out, width .2s ease-in-out;
+  border-radius: var(--fg-r);
+  transition: transform var(--fg-t), width var(--fg-t);
   pointer-events: none;
 }
 
@@ -3002,10 +3000,10 @@ html[data-theme='light'] .wal__input {
   color: #8a8f99;
   background: transparent;
   border: none;
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
   white-space: nowrap;
-  transition: color .2s ease-in-out;
+  transition: color var(--fg-t);
 }
 .dock2__item:hover { color: #ffffff; }
 /* White on #0b7a2a is 4.9:1 — passes AA. */
@@ -3068,8 +3066,8 @@ html[data-theme='light'] .wal__input {
   transition:
     transform .3s ease-in-out,
     opacity .3s ease-in-out,
-    border-color .15s ease,
-    background .15s ease;
+    border-color var(--fg-t),
+    background var(--fg-t);
 }
 /* Lifted clear of the dock while the dock is on screen. */
 .chat-fab--raised { --fab-lift: -72px; }
@@ -3082,7 +3080,7 @@ html[data-theme='light'] .wal__input {
   pointer-events: none;
 }
 .chat-fab:hover { background: var(--fg-hover); border-color: var(--fg-accent); }
-.chat-fab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .45); }
+.chat-fab:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 /* Withdrawn while the chat panel is open. */
 .chat-fab--gone {
@@ -3105,13 +3103,13 @@ html[data-theme='light'] .wal__input {
   border-radius: 50%;
   opacity: 0;
   transform: scale(.5);
-  transition: opacity .15s ease, transform .15s ease;
+  transition: opacity var(--fg-t), transform var(--fg-t);
 }
 .chat-fab:hover .chat-fab__badge,
 .chat-fab:focus-visible .chat-fab__badge { opacity: 1; transform: scale(1); }
 
 @media (prefers-reduced-motion: reduce) {
-  .chat-fab { transition: opacity .2s ease, border-color .15s ease, background .15s ease; }
+  .chat-fab { transition: opacity var(--fg-t), border-color var(--fg-t), background var(--fg-t); }
 }
 
 /* Narrow viewports: the dock is taller (icons stack no labels) but sits at the
@@ -3280,7 +3278,7 @@ html[data-theme='light'] .wal__input {
   text-transform: uppercase;
   color: var(--fg-on-accent);
   background: var(--fg-accent-deep);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
 }
 .glm__rtp { font-size: 11.5px; color: var(--fg-muted); }
 .glm__rtp b { color: var(--fg-text); font-variant-numeric: tabular-nums; }
@@ -3297,10 +3295,10 @@ html[data-theme='light'] .wal__input {
   border: 1px solid transparent;
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background .15s ease;
+  transition: background var(--fg-t);
 }
 .glm__close:hover { background: var(--fg-hover-2); }
-.glm__close:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
+.glm__close:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 /* The inner viewport: a preview of the game, not a second host for it. */
 .glm__stage {
@@ -3337,12 +3335,12 @@ html[data-theme='light'] .wal__input {
   color: var(--fg-text);
   background: var(--fg-hover);
   border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
-  transition: border-color .15s ease, background .15s ease;
+  transition: border-color var(--fg-t), background var(--fg-t);
 }
 .glm__topup:hover { background: var(--fg-hover-2); border-color: var(--fg-accent); }
-.glm__topup:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
+.glm__topup:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 .glm__actions { display: flex; gap: 10px; }
 .glm__play, .glm__fair {
@@ -3351,9 +3349,9 @@ html[data-theme='light'] .wal__input {
   font: inherit;
   font-size: 13px;
   font-weight: 700;
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background .15s ease, border-color .15s ease;
+  transition: background var(--fg-t), border-color var(--fg-t);
 }
 .glm__play {
   color: var(--fg-on-accent);
@@ -3362,14 +3360,14 @@ html[data-theme='light'] .wal__input {
   box-shadow: var(--fg-glow-accent);
 }
 .glm__play:hover { background: var(--fg-accent-mid); }
-.glm__play:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .45); }
+.glm__play:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .glm__fair {
   color: var(--fg-muted);
   background: transparent;
   border: 1px solid var(--fg-line);
 }
 .glm__fair:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
-.glm__fair:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
+.glm__fair:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 .glm__foot { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--fg-dim); text-align: center; }
 
@@ -3456,10 +3454,10 @@ html[data-theme='light'] .wal__input {
 .tile__play {
   background-image: linear-gradient(180deg, rgba(255, 255, 255, .13), rgba(255, 255, 255, 0));
   transition:
-    background-color .2s var(--fg-ease),
-    filter .2s var(--fg-ease),
-    transform .12s var(--fg-ease),
-    box-shadow .2s var(--fg-ease);
+    background-color var(--fg-t),
+    filter var(--fg-t),
+    transform var(--fg-t),
+    box-shadow var(--fg-t);
 }
 .dash__cta:hover,
 .bdm__play:hover,
@@ -3469,10 +3467,10 @@ html[data-theme='light'] .wal__input {
 
 .dash__link, .feed__tab, .pills__pill, .bdm__close, .bdm__copy {
   transition:
-    background-color .2s var(--fg-ease),
-    color .2s var(--fg-ease),
-    border-color .2s var(--fg-ease),
-    transform .12s var(--fg-ease);
+    background-color var(--fg-t),
+    color var(--fg-t),
+    border-color var(--fg-t),
+    transform var(--fg-t);
 }
 
 /* ── Game tiles ──────────────────────────────────────────
@@ -3480,15 +3478,15 @@ html[data-theme='light'] .wal__input {
    border-colour and box-shadow animate — all compositor-friendly. */
 .tile {
   transition:
-    transform .2s var(--fg-ease),
-    border-color .2s var(--fg-ease),
-    box-shadow .2s var(--fg-ease);
+    transform var(--fg-t),
+    border-color var(--fg-t),
+    box-shadow var(--fg-t);
 }
 .tile:hover {
   transform: translateY(-4px);
   box-shadow: var(--fg-bevel), var(--fg-glow-soft), 0 0 0 1px rgba(59, 124, 255, .28);
 }
-.tile__icon { transition: transform .22s var(--fg-ease); }
+.tile__icon { transition: transform var(--fg-t); }
 .tile:hover .tile__icon { transform: scale(1.08) translateY(-1px); }
 
 /* The overlay fades AND rises, so the reveal has direction instead of just
@@ -3505,13 +3503,11 @@ html[data-theme='light'] .wal__input {
    The grid keeps auto-fill: the column count follows the container, so it
    needs no breakpoints. Only the gap and padding scale. */
 .grid { gap: var(--fg-gap); }
-.grid__rows { gap: clamp(22px, 2.6vw, 34px); }
 .feed { padding: clamp(9px, 1.6vw, 13px) var(--fg-pad); }
 .bdm__panel { padding: clamp(10px, 2vw, 14px); }
 
 /* ── Typography ──────────────────────────────────────────
    Headings tighten and track slightly wide; body copy gets room to breathe. */
-.grid__row-title,
 .feed__header h3,
 .bdm__title {
   letter-spacing: .015em;
@@ -3561,7 +3557,7 @@ html[data-theme='light'] .wal__input {
   color: var(--fg-muted);
   background: var(--fg-depth-2);
   border: 1px solid rgba(255, 255, 255, .05);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
   white-space: nowrap;
 }
 .presence__count { font-weight: 700; color: var(--fg-text); }
@@ -3685,9 +3681,9 @@ html[data-theme='light'] .wal__input {
   visibility: hidden;
   pointer-events: none;
   transition:
-    opacity .18s var(--fg-ease),
-    transform .18s var(--fg-ease),
-    visibility 0s linear .18s;
+    opacity var(--fg-t),
+    transform var(--fg-t),
+    visibility 0s linear var(--fg-t);
 }
 .tip:hover::after,
 .tip:focus-visible::after {
@@ -3695,8 +3691,8 @@ html[data-theme='light'] .wal__input {
   visibility: visible;
   transform: translateX(-50%) translateY(0);
   transition:
-    opacity .18s var(--fg-ease),
-    transform .18s var(--fg-ease),
+    opacity var(--fg-t),
+    transform var(--fg-t),
     visibility 0s;
 }
 
@@ -4050,7 +4046,7 @@ html[data-theme='light'] .wal__input {
   padding: 14px 10px;
   overscroll-behavior: contain;
   background: var(--fg-panel);
-  transition: width .18s var(--fg-ease), flex-basis .18s var(--fg-ease);
+  transition: width var(--fg-t), flex-basis var(--fg-t);
 }
 .rail__scroll {
   flex: 1 1 auto;
@@ -4081,7 +4077,7 @@ html[data-theme='light'] .wal__input {
   border: 0;
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background-color .2s var(--fg-ease), color .2s var(--fg-ease);
+  transition: background-color var(--fg-t), color var(--fg-t);
 }
 .rail__link:hover { background: var(--fg-hover); color: var(--fg-text); }
 .rail__link--on { background: var(--fg-hover); color: var(--fg-text); }
@@ -4133,7 +4129,7 @@ html[data-theme='light'] .wal__input {
   border: 0;
   border-radius: var(--fg-r);
   cursor: pointer;
-  transition: background-color .2s var(--fg-ease), color .2s var(--fg-ease);
+  transition: background-color var(--fg-t), color var(--fg-t);
 }
 .rail__collapse:hover { background: var(--fg-hover); color: var(--fg-text); }
 .rail__collapse:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--fg-accent); }
@@ -4238,7 +4234,7 @@ html[data-theme='light'] .wal__input {
   height: 36px;
   color: var(--fg-dim);
   background: var(--fg-bg);
-  border-radius: var(--fg-r-pill);
+  border-radius: var(--fg-r);
 }
 .dash__search input {
   flex: 1 1 auto;
@@ -4272,7 +4268,7 @@ html[data-theme='light'] .wal__input {
 /* The header is a solid bar over the rail, not a translucent plate. */
 .dash__header {
   background: var(--fg-panel);
-  border-bottom: 1px solid var(--fg-line);
+  border-bottom: 1px solid var(--fg-hairline);
   box-shadow: none;
 }
 
@@ -4324,10 +4320,10 @@ html[data-theme='light'] .wal__input {
   /* Above .tile__overlay (10) and .tile__link (1): the overlay covers the art
      box on hover, so anything lower is unclickable precisely when shown. */
   z-index: 20;
-  transition: color .15s ease, background .15s ease, transform .12s ease;
+  transition: color var(--fg-t), background var(--fg-t), transform var(--fg-t);
 }
 .tile__fav:hover { color: #fff; background: rgba(8, 12, 16, .82); transform: scale(1.08); }
-.tile__fav:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .4); }
+.tile__fav:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .tile__fav--on { color: #ff4d6d; border-color: rgba(255, 77, 109, .55); }
 .tile__fav--on:hover { color: #ff6b85; }
 
@@ -4371,7 +4367,7 @@ html[data-theme='light'] .wal__input {
 @media (prefers-reduced-motion: reduce) {
   /* The button still leaves and returns — that is the behaviour, not decoration
      — but it snaps rather than sliding. */
-  .chat-fab { transition: opacity .01s, border-color .15s ease, background .15s ease; }
+  .chat-fab { transition: opacity .01s, border-color var(--fg-t), background var(--fg-t); }
 }
 
 
@@ -4453,11 +4449,11 @@ html[data-theme='light'] .brandmark {
   overflow: hidden;
   border: 1px solid rgba(59, 124, 255, .3);
   transition:
-    background .15s var(--fg-ease),
-    border-color .15s var(--fg-ease),
-    box-shadow .2s var(--fg-ease),
-    transform .1s var(--fg-ease),
-    filter .15s var(--fg-ease);
+    background var(--fg-t),
+    border-color var(--fg-t),
+    box-shadow var(--fg-t),
+    transform var(--fg-t),
+    filter var(--fg-t);
 }
 .dash__cta::after,
 .auth__submit::after {
@@ -4502,9 +4498,9 @@ html[data-theme='light'] .brandmark {
   background: color-mix(in srgb, var(--fg-panel-2) 80%, transparent);
   backdrop-filter: blur(10px);
   transition:
-    border-color .14s var(--fg-ease),
-    box-shadow .14s var(--fg-ease),
-    background-color .14s var(--fg-ease);
+    border-color var(--fg-t),
+    box-shadow var(--fg-t),
+    background-color var(--fg-t);
 }
 .auth__input:hover:not(:disabled),
 .wal__input:hover:not(:disabled) { border-color: var(--fg-line-2); }
@@ -4538,41 +4534,14 @@ html[data-theme='light'] .brandmark {
 }
 .fg-field > input { padding-left: 42px; }
 
-/* ── Tile tilt ─────────────────────────────────
-   The rotation comes from --tilt-x / --tilt-y, written by GameCard's pointer
-   handler; with no pointer they stay 0 and this is the old lift. Separate
-   translate and rotate in one transform, and `will-change` so the compositor
-   keeps the card on its own layer through the move. */
-.tile {
-  transform:
-    perspective(760px)
-    rotateX(var(--tilt-x, 0deg))
-    rotateY(var(--tilt-y, 0deg))
-    translateY(var(--tilt-lift, 0px));
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-.tile:hover { transform:
-    perspective(760px)
-    rotateX(var(--tilt-x, 0deg))
-    rotateY(var(--tilt-y, 0deg))
-    translateY(var(--tilt-lift, -2px)); }
+/* ── Tile hover ────────────────────────────────
+   One gesture: the poster zooms inside its frame (see .tile__img below) and
+   the play overlay fades up. The 3D tilt that used to live here is gone with
+   the pointer handler that fed it — it was already being cancelled by a later
+   `transform: none`, so every card was running a per-mousemove handler and
+   holding its own compositor layer via `will-change` to produce nothing. In a
+   horizontally scrolling rail that cost is paid per card, per row. */
 
-/* Specular sheen that follows the pointer across the art. */
-.tile__sheen {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(
-    240px circle at var(--tilt-px, 50%) var(--tilt-py, 50%),
-    rgba(255, 255, 255, .16),
-    transparent 62%
-  );
-  transition: opacity .22s var(--fg-ease);
-}
-.tile:hover .tile__sheen { opacity: 1; }
 
 /* ── Originals badge ───────────────────────────
    Glass pill over the art: blurred plate, hairline edge, and a live green dot
@@ -4611,7 +4580,9 @@ html[data-theme='light'] .brandmark {
 
   /* One duration for every interactive response. 150ms ease-out reads as
      immediate; anything longer feels like lag on a control you just pressed. */
-  --fg-snap: 150ms cubic-bezier(0, 0, .2, 1);
+  /* Retained as an alias so existing call sites keep working; the duration
+     and curve now come from the single --fg-t interaction token. */
+  --fg-snap: var(--fg-t);
   /* Thumbnails get their own, slower curve — a zoom wants to glide. */
   --fg-glide: 300ms cubic-bezier(0, 0, .2, 1);
 
@@ -4623,7 +4594,7 @@ html[data-theme='light'] .brandmark {
   --fg-cta-glow: 0 0 20px rgba(59, 124, 255, .3);
   --fg-placeholder: #64748b;
   /* Header band height. Shared by .dash__header and .rail's sticky offset. */
-  --fg-header-h: 57px;
+  --fg-header-h: 44px;
 }
 
 /* ── 2. Typography ─────────────────────────────
@@ -4812,8 +4783,8 @@ input[type='password'].fg-field {
 }
 /* The copy plate rides the same curve so the two read as one gesture. */
 .tile__overlay { transition: opacity var(--fg-glide); }
-/* The card no longer tilts or lifts — the poster's zoom is the hover now, and
-   stacking a 3D tilt on top of it was the "aggressive" half. */
+/* The card does not lift, glow or flip its border. The poster's zoom inside
+   the fixed frame IS the hover; the play overlay fading up is the reveal. */
 .tile:hover { transform: none; }
 .tile__fav:hover { transform: none; }
 
@@ -4946,7 +4917,7 @@ html[data-theme='light'] .rail__mark { filter: invert(1); }
 
    Specificity is deliberately low — a single element or attribute selector —
    so every class-based rule earlier in the file still wins. Where a control
-   already has its own press (the CTAs scale, the tiles tilt), that press is
+   already has its own press (the CTAs scale, the tiles zoom), that press is
    what you get; this only fills the gaps. */
 
 button,
@@ -5080,7 +5051,6 @@ input[type='number'],
 .auth__brand,
 .foot__brand,
 .hero__title,
-.grid__row-title,
 .glm__title,
 .rsm__title,
 .bdm__title,
@@ -5092,7 +5062,6 @@ input[type='number'],
 
 /* Section headings above each row of games. 17px/800 in Inter became a shout
    in Unbounded; 15px/600 holds the same weight on the page. */
-.grid__row-title { font-size: 15px; font-weight: 600; }
 .glm__title      { font-size: 17px; font-weight: 600; }
 .rsm__title      { font-size: 15px; font-weight: 600; }
 .favs__head h1   { font-size: 18px; font-weight: 600; }
@@ -5123,4 +5092,136 @@ input[type='number'],
 .bdm__seed-label,
 .presence__label {
   letter-spacing: .05em;
+}
+
+/* ── Game rails ──────────────────────────────────────────
+   The home view's replacement for the wrapping grid. A rail is a native
+   horizontal scroller: `overflow-x: auto` plus scroll-snap, with buttons that
+   drive scrollBy. Nothing here reimplements scrolling, so trackpad, touch,
+   keyboard and the arrows all move the same element. */
+.rails {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(26px, 3vw, 40px);
+}
+
+.rail__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 12px;
+}
+.rail__title {
+  margin: 0;
+  font-family: var(--fg-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.015em;
+  color: var(--fg-text);
+}
+/* The lead row announces itself with SIZE, not with an accent colour or a
+   badge. It is the one row the eye should land on first. */
+.rail--lead .rail__title { font-size: 19px; }
+
+.rail__tools { display: flex; align-items: center; gap: 10px; flex: none; }
+.rail__all {
+  padding: 0;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: color var(--fg-t);
+}
+.rail__all:hover { color: var(--fg-accent); }
+.rail__all:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 3px; border-radius: var(--fg-r-sm); }
+
+.rail__arrows { display: flex; gap: 4px; }
+.rail__arrow {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--fg-muted);
+  background: var(--fg-panel);
+  border: var(--fg-edge);
+  border-radius: var(--fg-r);
+  cursor: pointer;
+  transition: color var(--fg-t), background-color var(--fg-t), opacity var(--fg-t);
+}
+.rail__arrow:hover:not(:disabled) { color: var(--fg-text); background: var(--fg-hover); }
+/* Disabled rather than hidden: a row's controls should not reflow or vanish
+   as it is scrolled, or the buttons move out from under the cursor mid-use. */
+.rail__arrow:disabled { opacity: .3; cursor: default; }
+/* Touch has no cursor to reach an arrow with, and the row is already swipeable
+   there — so the buttons are desktop-only rather than dead weight on a phone. */
+@media (hover: none) { .rail__arrows { display: none; } }
+
+.rail__track {
+  display: grid;
+  grid-auto-flow: column;
+  /* Fixed column width is what produces the peek: the row is cut mid-tile at
+     the container edge, which reads as "there is more" without needing a
+     gradient, a shadow or a hint of any kind. */
+  grid-auto-columns: 156px;
+  gap: var(--fg-gap, 14px);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  /* Contain the horizontal overscroll or a fast swipe on the row triggers the
+     browser's back-navigation gesture instead of scrolling the row. */
+  overscroll-behavior-x: contain;
+  /* Room for the tile's focus ring, which would otherwise be clipped by the
+     scroll container on the first and last cards. */
+  padding: 4px;
+  margin: -4px;
+  scrollbar-width: none;
+}
+.rail__track::-webkit-scrollbar { display: none; }
+.rail__track > * { scroll-snap-align: start; }
+.rail--lead .rail__track { grid-auto-columns: 196px; }
+
+.rail__track:focus-visible {
+  outline: 2px solid var(--fg-accent);
+  outline-offset: 2px;
+  border-radius: var(--fg-r-lg);
+}
+
+/* Fade the trailing edge only while there is more row to reach. Applied to the
+   track rather than to an overlay element so it cannot intercept a click. */
+.rail__track--more {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent 100%);
+}
+
+.rail__cell { min-width: 0; }
+.rail__cell .tile { height: 100%; }
+
+@media (max-width: 720px) {
+  .rail__track { grid-auto-columns: 132px; }
+  .rail--lead .rail__track { grid-auto-columns: 158px; }
+  /* The mask costs more than it says on a narrow screen, where the cut tile is
+     already unmistakable. */
+  .rail__track--more { mask-image: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail__track { scroll-behavior: auto; }
+}
+
+/* Drawn posters (components/games/GamePoster.tsx) sit in the same art box as
+   a jpg and behave the same on hover. `slice` in the SVG plus these two rules
+   means the drawing crops rather than letterboxes when the box is not exactly
+   2:3 — the same contract the raster posters have with object-fit: cover. */
+.tile__poster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: transform var(--fg-glide);
+}
+.tile:hover .tile__poster { transform: scale(1.05); }
+@media (prefers-reduced-motion: reduce) {
+  .tile:hover .tile__poster { transform: none; }
 }

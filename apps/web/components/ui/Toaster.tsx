@@ -28,9 +28,9 @@ const CSS = `
   .fg-toaster { right: 12px; left: 12px; bottom: 84px; width: auto; }
 }
 
-.fg-toast { display: flex; align-items: flex-start; gap: 10px; padding: 13px 14px;
+.fg-toast { display: flex; align-items: flex-start; gap: 10px; padding: 8px 9px;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 13px; font-weight: 600; line-height: 1.45; color: #e2e8f0;
+  font-size: 13px; font-weight: 600; line-height: 1.45; color: var(--fg-text);
   background: var(--fg-panel); border: var(--fg-edge); border-left-width: 3px;
   border-radius: var(--fg-r);
   pointer-events: auto; animation: fg-toast-in .26s cubic-bezier(.2,.9,.3,1) both; }
@@ -48,9 +48,9 @@ const CSS = `
 
 .fg-toast__text { flex: 1 1 auto; min-width: 0; }
 .fg-toast__close { flex: 0 0 auto; padding: 0 2px; font-size: 15px; line-height: 1;
-  color: #64748b; background: none; border: 0; cursor: pointer; }
-.fg-toast__close:hover { color: #e2e8f0; }
-.fg-toast__close:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(34,197,94,.35); }
+  color: var(--fg-dim); background: none; border: 0; cursor: pointer; }
+.fg-toast__close:hover { color: var(--fg-text); }
+.fg-toast__close:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 @keyframes fg-toast-in {
   from { opacity: 0; transform: translateY(10px) scale(.98); }

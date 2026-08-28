@@ -20,7 +20,11 @@ export default function DashboardHome() {
     <>
       <div className="home__layout">
         <div className="home__main">
-          <GameGrid category={category} onLaunch={setLaunching} />
+          <GameGrid
+            category={category}
+            onLaunch={setLaunching}
+            onCategoryChange={setCategory}
+          />
         </div>
 
         <JackpotDock />

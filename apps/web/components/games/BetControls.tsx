@@ -93,21 +93,21 @@ const CSS = `
 .fg-bet__mods { display: flex; gap: 6px; flex: 0 0 auto; }
 .fg-bet__mod { min-width: 46px; padding: 0 10px; font-size: 13px; font-weight: 600;
   color: var(--fg-text); background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: var(--fg-r);
-  cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease; }
+  cursor: pointer; transition: background var(--fg-t), color var(--fg-t), border-color var(--fg-t); }
 .fg-bet__mod:hover:not(:disabled) { background: var(--fg-hover-2); color: #fff; }
 .fg-bet__mod:active:not(:disabled) { transform: scale(.98) translateY(1px); }
-.fg-bet__mod:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: 0 0 0 3px rgba(59, 124, 255,.18); }
+.fg-bet__mod:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
 .fg-bet__mod:disabled { opacity: .45; cursor: not-allowed; }
 .fg-bet__meta { display: flex; justify-content: space-between; gap: 12px;
   font-size: 12px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
 .fg-bet__error { display: flex; align-items: center; justify-content: space-between;
   gap: 10px; margin: 0; font-size: 12px; font-weight: 500; color: var(--fg-red); }
-.fg-bet__deposit { flex: 0 0 auto; padding: 5px 12px; font-family: inherit; font-size: 11px;
-  font-weight: 800; letter-spacing: .04em; color: #0b0e14; background: var(--fg-accent);
-  border: 0; border-radius: var(--fg-r-pill); cursor: pointer; }
+.fg-bet__deposit { flex: 0 0 auto; padding: 5px 8px; font-family: inherit; font-size: 11px;
+  font-weight: 800; letter-spacing: .04em; color: var(--fg-bg); background: var(--fg-accent);
+  border: 0; border-radius: var(--fg-r); cursor: pointer; }
 .fg-bet__deposit:hover { filter: brightness(1.08); box-shadow: var(--fg-cta-glow); }
 .fg-bet__deposit:active { transform: scale(.98) translateY(1px); }
-.fg-bet__deposit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
+.fg-bet__deposit:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .fg-bet__action { width: 100%; padding: 9px 10px; font-size: 15px; font-weight: 700;
   letter-spacing: .02em; color: var(--fg-bg); background: var(--fg-accent); border: none;
   border-radius: var(--fg-r); cursor: pointer;
@@ -116,12 +116,12 @@ const CSS = `
    accent glow. */
 .fg-bet__action:hover:not(:disabled) { filter: brightness(1.08); box-shadow: var(--fg-cta-glow); }
 .fg-bet__action:active:not(:disabled) { transform: scale(.98) translateY(1px); }
-.fg-bet__action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255,.35); }
+.fg-bet__action:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .fg-bet__action:disabled { opacity: .5; cursor: not-allowed; }
 .fg-bet__action--cashout { color: #1a1204; background: #d9a441; }
 .fg-bet__action--cashout:focus-visible { box-shadow: 0 0 0 3px rgba(217, 164, 65,.35); }
 .fg-bet__action--cashout-accent { color: var(--fg-bg); background: var(--fg-accent); }
-.fg-bet__action--cashout-accent:focus-visible { box-shadow: 0 0 0 3px rgba(59, 124, 255,.35); }
+.fg-bet__action--cashout-accent:focus-visible { box-shadow: var(--fg-ring); }
 .fg-bet__quote { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; opacity: .8; }
 @media (prefers-reduced-motion: reduce) {
   .fg-bet__input, .fg-bet__mod, .fg-bet__action { transition: none; }

@@ -28,13 +28,14 @@ const CSS = `
 .hsearch { position: relative; display: flex; align-items: center; gap: 8px;
   flex: 1 1 360px; min-width: 0; max-width: 460px; margin-inline: auto; }
 .hsearch__field { display: flex; align-items: center; gap: 8px; flex: 1 1 auto;
-  min-width: 0; padding: 0 10px; background: var(--fg-panel-2); border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r-lg); transition: border-color .15s ease, box-shadow .15s ease; }
+  min-width: 0; padding: 0 10px; background: var(--fg-sunken); border: 1px solid var(--fg-hairline);
+  border-radius: var(--fg-r); box-shadow: var(--fg-input-inset);
+  transition: border-color var(--fg-t), box-shadow var(--fg-t); }
 .hsearch__field:focus-within { border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px rgba(59, 124, 255, .16); }
+  box-shadow: var(--fg-input-inset), var(--fg-ring); }
 .hsearch__icon { display: flex; color: var(--fg-muted); }
 .hsearch__input { flex: 1 1 auto; min-width: 0; padding: 9px 0; font: inherit;
-  font-size: 13.5px; color: var(--fg-text); background: transparent; border: 0;
+  font-size: 13px; color: var(--fg-text); background: transparent; border: 0;
   outline: none; }
 .hsearch__input::placeholder { color: var(--fg-muted); }
 /* The native search affordance duplicates our own clear button. */
@@ -42,7 +43,7 @@ const CSS = `
 .hsearch__clear { display: flex; align-items: center; justify-content: center;
   width: 20px; height: 20px; padding: 0; color: var(--fg-muted);
   background: var(--fg-hover); border: 0; border-radius: 50%; cursor: pointer;
-  transition: color .15s ease, background .15s ease; }
+  transition: color var(--fg-t), background var(--fg-t); }
 .hsearch__clear:hover { color: var(--fg-text); background: var(--fg-hover-2); }
 .hsearch__clear:focus-visible { outline: none;
   box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
@@ -55,24 +56,24 @@ const CSS = `
   padding: 9px 10px; font: inherit; font-size: 13px; font-weight: 600;
   text-align: start; color: var(--fg-muted); background: transparent; border: 0;
   border-radius: var(--fg-r); cursor: pointer;
-  transition: background .12s ease, color .12s ease; }
+  transition: background var(--fg-t), color var(--fg-t); }
 .hsearch__option:hover,
 .hsearch__option--active { color: var(--fg-text); background: var(--fg-hover); }
 .hsearch__option-icon { display: grid; place-items: center; flex: 0 0 auto;
   width: 28px; height: 28px; background: var(--fg-panel-2); border-radius: var(--fg-r); }
 .hsearch__option-slug { margin-inline-start: auto; font-size: 11px; font-weight: 500;
   color: var(--fg-dim); }
-.hsearch__empty { padding: 16px 12px; font-size: 13px; text-align: center;
+.hsearch__empty { padding: 10px 8px; font-size: 13px; text-align: center;
   color: var(--fg-muted); }
 
 /* Round trigger beside the field — the click affordance for touch/pointer
    users who would otherwise have to press Enter to act on a query. */
 .hsearch__submit { flex: 0 0 auto; display: grid; place-items: center;
-  width: 36px; height: 36px; padding: 0; color: #94a3b8; background: #1e293b;
+  width: 36px; height: 36px; padding: 0; color: var(--fg-muted); background: var(--fg-line);
   border: 1px solid var(--fg-line); border-radius: var(--fg-r-pill); cursor: pointer;
-  transition: color .15s ease, background .15s ease, border-color .15s ease; }
-.hsearch__submit:hover { color: #e2e8f0; background: #263349; border-color: var(--fg-line-2); }
-.hsearch__submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255, .35); }
+  transition: color var(--fg-t), background var(--fg-t), border-color var(--fg-t); }
+.hsearch__submit:hover { color: var(--fg-text); background: var(--fg-line); border-color: var(--fg-line-2); }
+.hsearch__submit:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 @media (max-width: 720px) { .hsearch { flex-basis: 180px; } }
 @media (prefers-reduced-motion: reduce) {

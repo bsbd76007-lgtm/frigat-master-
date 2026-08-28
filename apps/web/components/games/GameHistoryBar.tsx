@@ -49,11 +49,11 @@ const CSS = `
 .fg-hist__scroll::-webkit-scrollbar { display: none; }
 .fg-hist__badge { flex: 0 0 auto; padding: 5px 10px; font-size: 12.5px; font-weight: 700;
   font-variant-numeric: tabular-nums; line-height: 1.25; white-space: nowrap;
-  border: 1px solid transparent; border-radius: var(--fg-r-pill); background: var(--fg-panel-2); color: var(--fg-muted);
+  border: 1px solid transparent; border-radius: var(--fg-r); background: var(--fg-panel-2); color: var(--fg-muted);
   animation: fg-hist-in .18s ease-out; }
-.fg-hist__badge--button { cursor: pointer; transition: transform .12s ease, filter .12s ease; }
+.fg-hist__badge--button { cursor: pointer; transition: transform var(--fg-t), filter var(--fg-t); }
 .fg-hist__badge--button:hover { transform: translateY(-1px); filter: brightness(1.15); }
-.fg-hist__badge--button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 124, 255,.35); }
+.fg-hist__badge--button:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .fg-hist__badge--bust { background: rgba(240,97,109,.14); border-color: rgba(240,97,109,.32); color: var(--fg-red); }
 .fg-hist__badge--partial { background: rgba(240,146,97,.13); border-color: rgba(240,146,97,.3); color: #f09261; }
 .fg-hist__badge--low { background: rgba(139,151,166,.14); border-color: rgba(139,151,166,.3); color: var(--fg-text); }

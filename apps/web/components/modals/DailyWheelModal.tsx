@@ -24,7 +24,7 @@ import { formatDecimalString } from '@/lib/decimal';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
 const SEGMENTS = [
-  { prize: '1', color: '#334155' },
+  { prize: '1', color: 'var(--fg-line-2)' },
   { prize: '5', color: '#1e3a5f' },
   { prize: '10', color: '#0f766e' },
   { prize: '50', color: '#a16207' },
