@@ -1,3 +1,4 @@
+/* eslint-env node */
 /**
  * FRIGAT — i18n key validator
  *
