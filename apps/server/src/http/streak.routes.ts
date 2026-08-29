@@ -80,6 +80,33 @@ export function registerStreakRoutes(app: FastifyInstance) {
         .send({ error: 'nothing_to_restore', message: 'No restore price set.' });
     }
 
+    // Claim the offer BEFORE charging for it. This conditional update is the
+    // serialisation point: `restorableStreak: { gt: 0 }` means exactly one of N
+    // concurrent requests can win, because the loser's update matches no row.
+    // Previously the offer was cleared unconditionally AFTER the debit, so two
+    // requests 5ms apart both read restoreAvailable, both charged, and the
+    // player paid twice for one restore.
+    const restored = state.restorableStreak + 1;
+    const claim = await prisma.user.updateMany({
+      where: { id: identity.userId, restorableStreak: { gt: 0 } },
+      data: {
+        currentStreak: restored,
+        longestStreak: Math.max(state.longestStreak, restored),
+        lastPlayedDate: utcDayStart(new Date()),
+        restorableStreak: 0,
+        streakRestoreCost: new D(0),
+        // streakBrokenAt is deliberately NOT cleared here. It is what
+        // getStreak uses to decide the offer is still inside its window, so
+        // clearing it before the charge succeeds would make the rollback below
+        // unable to put the offer back. It is cleared after the debit lands.
+      },
+    });
+    if (claim.count === 0) {
+      return reply
+        .status(409)
+        .send({ error: 'already_restored', message: 'Streak already restored.' });
+    }
+
     // Charged through the ledger like any other debit, so it lands in the
     // transaction history and respects the frozen-account gate. A direct
     // wallet decrement would bypass both.
@@ -92,6 +119,23 @@ export function registerStreakRoutes(app: FastifyInstance) {
         gameType: 'STREAK_RESTORE',
       });
     } catch (err) {
+      // The offer was already claimed above, so a failed debit has to give it
+      // back — otherwise a player who was briefly short, or frozen mid-request,
+      // silently loses a restore they never paid for.
+      // streakBrokenAt is not exposed on StreakState, so it is read back from
+      // the row rather than reconstructed — restoring the offer must not
+      // invent a break date.
+      await prisma.user
+        .update({
+          where: { id: identity.userId },
+          data: {
+            currentStreak: state.currentStreak,
+            restorableStreak: state.restorableStreak,
+            streakRestoreCost: cost,
+          },
+        })
+        .catch(() => undefined);
+
       const name = (err as Error)?.name;
       if (name === 'InsufficientFundsError') {
         return reply
@@ -104,21 +148,16 @@ export function registerStreakRoutes(app: FastifyInstance) {
       throw err;
     }
 
-    // Restored, then cleared: the offer is single-use, and leaving the price
-    // set would let a second call charge again for a streak already back.
-    const restored = state.restorableStreak + 1;
-    const updated = await prisma.user.update({
+    // Paid for: the break is now fully healed and the offer cannot be re-quoted.
+    await prisma.user.update({
       where: { id: identity.userId },
-      data: {
-        currentStreak: restored,
-        longestStreak: Math.max(state.longestStreak, restored),
-        lastPlayedDate: utcDayStart(new Date()),
-        restorableStreak: 0,
-        streakRestoreCost: new D(0),
-        streakBrokenAt: null,
-      },
-      select: { currentStreak: true, longestStreak: true },
+      data: { streakBrokenAt: null },
     });
+
+    const updated = {
+      currentStreak: restored,
+      longestStreak: Math.max(state.longestStreak, restored),
+    };
 
     pushBalanceToUser(identity.userId, debited.balance);
     return {

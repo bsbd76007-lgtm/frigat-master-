@@ -7,7 +7,7 @@ import { useLanguage } from '@/components/providers/LanguageProvider';
 
 import type { CatalogueEntry, GameCategory } from '@/lib/gameCatalogue';
 
-interface GameRailProps {
+interface GameShelfProps {
   /** Section heading, already translated by the caller's `t`. */
   title: string;
   games: readonly CatalogueEntry[];
@@ -16,7 +16,7 @@ interface GameRailProps {
   onLaunch?: (entry: CatalogueEntry) => void;
   onSeeAll?: (category: GameCategory) => void;
   /**
-   * The first rail on the page runs at a larger tile size. One row being
+   * The first shelf on the page runs at a larger tile size. One row being
    * bigger than the others is the whole point — it is what makes the page
    * read as edited rather than as a dump of everything at one size.
    */
@@ -25,6 +25,10 @@ interface GameRailProps {
 
 /**
  * A horizontally scrolling row of games.
+ *
+ * The BEM block is `shelf`, NOT `rail` — `.rail` is already taken by the
+ * sidebar navigation column (sticky, 240px, full viewport height). Naming this
+ * `rail` made every game row inherit that geometry.
  *
  * Replaces the wrapping `auto-fill` grid for the curated home view. The grid
  * is still right for a *filtered* view, where the player has asked to see
@@ -36,14 +40,14 @@ interface GameRailProps {
  * `scrollBy`, so keyboard, trackpad, touch and the buttons all move the same
  * element and there is no scroll position held in React to fall out of sync.
  */
-export function GameRail({
+export function GameShelf({
   title,
   games,
   category,
   onLaunch,
   onSeeAll,
   size = 'default',
-}: GameRailProps) {
+}: GameShelfProps) {
   const { t } = useLanguage();
   const trackRef = useRef<HTMLDivElement | null>(null);
   // Which arrows are live. Both start false: on a track that does not overflow
@@ -91,18 +95,18 @@ export function GameRail({
 
   if (games.length === 0) return null;
 
-  const railClass = size === 'lead' ? 'rail rail--lead' : 'rail';
+  const shelfClass = size === 'lead' ? 'shelf shelf--lead' : 'shelf';
 
   return (
-    <section className={railClass}>
-      <header className="rail__head">
-        <h2 className="rail__title">{title}</h2>
+    <section className={shelfClass}>
+      <header className="shelf__head">
+        <h2 className="shelf__title">{title}</h2>
 
-        <div className="rail__tools">
+        <div className="shelf__tools">
           {onSeeAll && (
             <button
               type="button"
-              className="rail__all"
+              className="shelf__all"
               onClick={() => onSeeAll(category)}
             >
               {t('home.seeAll')}
@@ -112,10 +116,10 @@ export function GameRail({
           {/* Arrows are a convenience on top of native scrolling, never the
               only way through the row — so they are hidden from assistive
               tech, which gets the scroll container itself. */}
-          <div className="rail__arrows" aria-hidden="true">
+          <div className="shelf__arrows" aria-hidden="true">
             <button
               type="button"
-              className="rail__arrow"
+              className="shelf__arrow"
               disabled={!canScroll.back}
               tabIndex={-1}
               onClick={() => page(-1)}
@@ -133,7 +137,7 @@ export function GameRail({
             </button>
             <button
               type="button"
-              className="rail__arrow"
+              className="shelf__arrow"
               disabled={!canScroll.forward}
               tabIndex={-1}
               onClick={() => page(1)}
@@ -159,14 +163,14 @@ export function GameRail({
       <div
         ref={trackRef}
         className={
-          canScroll.forward ? 'rail__track rail__track--more' : 'rail__track'
+          canScroll.forward ? 'shelf__track shelf__track--more' : 'shelf__track'
         }
         tabIndex={0}
         role="group"
         aria-label={title}
       >
         {games.map((entry) => (
-          <div className="rail__cell" key={entry.slug}>
+          <div className="shelf__cell" key={entry.slug}>
             <GameCard entry={entry} onLaunch={onLaunch} />
           </div>
         ))}
@@ -175,4 +179,4 @@ export function GameRail({
   );
 }
 
-export default GameRail;
+export default GameShelf;

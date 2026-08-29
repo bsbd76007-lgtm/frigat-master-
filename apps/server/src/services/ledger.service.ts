@@ -214,6 +214,13 @@ export interface AwardBonusInput {
   userId: string;
   amount: string;
   currency?: string;
+  /**
+   * Optional idempotency key for the ledger row. Transaction.txHash is unique,
+   * so supplying a key derived from whatever entitles the bonus (a claim id, a
+   * period) makes the credit safe to retry. Omit it for one-off awards that
+   * have no natural key.
+   */
+  txHash?: string;
 }
 
 export interface AwardBonusResult {
@@ -247,9 +254,15 @@ export async function awardBonus(
         type: TransactionType.DEPOSIT,
         amount,
         status: 'COMPLETED',
-        txHash: `bonus:${input.userId}:${Date.now()}:${Math.random()
-          .toString(36)
-          .slice(2, 10)}`,
+        // A caller with a natural key (a claim row id, say) supplies one, and
+        // the unique index on txHash then makes the credit idempotent: a retry
+        // after a mid-flight failure cannot pay twice. Callers without one keep
+        // the random key, which is unique but not idempotent.
+        txHash:
+          input.txHash ??
+          `bonus:${input.userId}:${Date.now()}:${Math.random()
+            .toString(36)
+            .slice(2, 10)}`,
       },
       select: { id: true },
     });
@@ -296,7 +309,13 @@ export async function creditCashback(
         type: TransactionType.BONUS_CASHBACK,
         amount,
         status: 'COMPLETED',
-        txHash: `cashback:${input.userId}:${Date.now()}`,
+        // Day-scoped, NOT Date.now(). Transaction.txHash is @unique, so this
+        // key is what makes one cashback per UTC day a database invariant
+        // rather than a check-then-act. With a millisecond key, ten concurrent
+        // claims each read "not claimed yet" and each credited in full — a
+        // $500 entitlement paid $5,000. The unique violation now makes the
+        // second writer lose, whatever the interleaving.
+        txHash: `cashback:${input.userId}:${new Date().toISOString().slice(0, 10)}`,
       },
       select: { id: true },
     });
@@ -312,6 +331,17 @@ export async function transferBetweenUsers(
   const amount = toAmount(input.amount, 'transfer amount');
 
   return prisma.$transaction(async (tx) => {
+    // A transfer is a money-OUT path and takes the same freeze gate as a wager
+    // or a withdrawal. Without it, a frozen account could still empty itself
+    // through the chat /tip command into a clean account, which is exactly the
+    // move a freeze exists to stop. Checked inside the transaction so it cannot
+    // be raced by a freeze landing mid-transfer.
+    const sender = await tx.user.findUnique({
+      where: { id: input.fromUserId },
+      select: { frozen: true },
+    });
+    if (sender?.frozen) throw new AccountFrozenError();
+
     const fromWallet = await tx.wallet.findUnique({
       where: { userId_currency: { userId: input.fromUserId, currency } },
       select: { id: true, balance: true },

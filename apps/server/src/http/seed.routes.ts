@@ -18,6 +18,7 @@ import {
   setClientSeed,
   rotateSeed,
   InvalidClientSeedError,
+  SeedInUseError,
 } from '../services/provableFair.service';
 
 export function registerSeedRoutes(app: FastifyInstance) {
@@ -60,6 +61,12 @@ export function registerSeedRoutes(app: FastifyInstance) {
       } catch (err) {
         if (err instanceof InvalidClientSeedError) {
           return reply.code(400).send({ error: 'invalid_client_seed', message: err.message });
+        }
+        // 409, not 400: the request is well-formed, it is the account state that
+        // forbids it. Rotating now would hand out a seed that can still decide
+        // the outcome of a round the player has money on.
+        if (err instanceof SeedInUseError) {
+          return reply.code(409).send({ error: 'seed_in_use', message: err.message });
         }
         throw err;
       }

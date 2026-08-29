@@ -3,14 +3,10 @@ import type { ComponentType } from 'react';
 import type { GameSlug } from '@/components/icons';
 import {
   CardsIcon,
-  CoinsIcon,
   DicesIcon,
   FlameIcon,
   GemIcon,
-  GiftIcon,
-  RadioTowerIcon,
   SlotMachineIcon,
-  SparklesIcon,
   TimerIcon,
   TrendingDownIcon,
   ZapIcon,
@@ -20,13 +16,9 @@ export type GameCategory =
   | 'all'
   | 'top'
   | 'slots'
-  | 'megaways'
-  | 'bonusbuy'
-  | 'holdandwin'
   | 'jackpots'
   | 'new'
   | 'gravity'
-  | 'live'
   | 'table'
   | 'instant';
 
@@ -135,6 +127,16 @@ export const GAME_ART: Partial<Record<GameSlug, string>> = {
   chicken: '/chicken.jpg',
 };
 
+/**
+ * The filter pills.
+ *
+ * Every id here MUST be attached to at least one CATALOGUE entry. Megaways,
+ * Bonus Buy, Hold and Win and Live Casino were offered and matched nothing, so
+ * a third of the filter bar led to the empty state — and all four are
+ * slot-provider vocabulary for a catalogue of eleven in-house originals that
+ * are none of those things. A filter that can never return a result is a dead
+ * end, not a category.
+ */
 export const CATEGORIES: ReadonlyArray<{
   id: GameCategory;
   labelKey: string;
@@ -143,13 +145,9 @@ export const CATEGORIES: ReadonlyArray<{
   { id: 'all', labelKey: 'home.filters.all', icon: DicesIcon },
   { id: 'top', labelKey: 'home.filters.top', icon: FlameIcon },
   { id: 'slots', labelKey: 'home.filters.slots', icon: SlotMachineIcon },
-  { id: 'megaways', labelKey: 'home.filters.megaways', icon: SparklesIcon },
-  { id: 'bonusbuy', labelKey: 'home.filters.bonusbuy', icon: GiftIcon },
-  { id: 'holdandwin', labelKey: 'home.filters.holdandwin', icon: CoinsIcon },
   { id: 'jackpots', labelKey: 'home.filters.jackpots', icon: GemIcon },
   { id: 'new', labelKey: 'home.filters.new', icon: ZapIcon },
   { id: 'gravity', labelKey: 'home.filters.gravity', icon: TrendingDownIcon },
-  { id: 'live', labelKey: 'home.filters.live', icon: RadioTowerIcon },
   { id: 'table', labelKey: 'home.filters.table', icon: CardsIcon },
   { id: 'instant', labelKey: 'home.filters.instant', icon: TimerIcon },
 ];

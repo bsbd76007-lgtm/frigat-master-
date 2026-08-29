@@ -237,26 +237,51 @@ export async function claimRakeback(input: {
   currency?: string;
 }): Promise<{ claimed: string; balance: string; currency: string }> {
   const currency = input.currency ?? 'USD';
-  const status = await getVipStatus({ userId: input.userId, currency });
-  const amount = new D(status.claimable);
 
-  if (amount.lessThanOrEqualTo(0)) throw new NothingToClaimError();
+  /**
+   * The entitlement is derived (lifetime rakeback earned minus what has already
+   * been claimed), so unlike the daily bonuses there is no period or flag to
+   * hang a conditional write on, and RakebackClaim carries no unique key that
+   * would reject a duplicate.
+   *
+   * That left a plain check-then-act: read `claimable`, then insert. Five
+   * concurrent requests all read the same 1000.00 before any insert committed,
+   * all five inserted, and all five credited — 5000.00 paid against a 1000.00
+   * entitlement, repeatable on every subsequent accrual.
+   *
+   * A row lock on the user is the serialisation point. The second caller blocks
+   * at SELECT ... FOR UPDATE until the first transaction commits, and by then
+   * its own getVipStatus sees the committed claim and reads a claimable of
+   * zero. Locking the user row rather than a rakeback row is deliberate: the
+   * very first claim has no prior row to lock.
+   */
+  const claim = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${input.userId} FOR UPDATE`;
 
-  const result = await prisma.$transaction(async (tx) => {
-    await tx.rakebackClaim.create({
+    const status = await getVipStatus({ userId: input.userId, currency });
+    const amount = new D(status.claimable);
+    if (amount.lessThanOrEqualTo(0)) throw new NothingToClaimError();
+
+    const row = await tx.rakebackClaim.create({
       data: { userId: input.userId, amount, currency },
+      select: { id: true },
     });
-    return { amount };
+    return { id: row.id, amount };
   });
 
+  // Keyed on the claim row, so the credit is idempotent. Previously the claim
+  // committed and then the award ran unguarded: if awardBonus threw, the claim
+  // row survived, permanently reducing the entitlement with nothing credited.
+  // With a stable key this call can simply be retried.
   const bonus = await awardBonus({
     userId: input.userId,
-    amount: result.amount.toFixed(8),
+    amount: claim.amount.toFixed(8),
     currency,
+    txHash: `rakeback:${claim.id}`,
   });
 
   return {
-    claimed: result.amount.toFixed(8),
+    claimed: claim.amount.toFixed(8),
     balance: bonus.balance,
     currency,
   };

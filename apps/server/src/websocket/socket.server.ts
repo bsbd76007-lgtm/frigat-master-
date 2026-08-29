@@ -37,7 +37,12 @@ import {
 } from '../services/ledger.service';
 import { nextSeedContext } from '../services/provableFair.service';
 import { capPayout, MaintenanceModeError, BetLimitError } from '../services/riskConfig.service';
-import { authenticateConnection, AuthError } from './auth.middleware';
+import {
+  authenticateConnection,
+  verifyConnection,
+  AuthError,
+  type AuthedIdentity,
+} from './auth.middleware';
 import { gameState } from './gameState.store';
 import { publicHandle } from '../routes/games/bets.routes';
 import { CrashRoundManager, type CrashRound } from './crashRound.manager';
@@ -54,6 +59,11 @@ const connectionMeta = new Map<WebSocket, {
   rooms: Set<string>;
   /** Cleared before each ping, set again by the client's pong. */
   alive: boolean;
+  /**
+   * True once the database has confirmed tokenVersion, role and frozen for this
+   * connection. Until then the socket may receive but must not act.
+   */
+  verified: boolean;
 }>();
 
 /**
@@ -381,7 +391,14 @@ async function handleInstantBet(
   // 3) Credit winnings (if any) atomically.
   let balance = bet.balance;
   let payout = '0';
-  if (result.win && result.multiplier > 0) {
+  // Gate on the MULTIPLIER, never on `result.win`. `win` is a display flag and
+  // each engine defines it differently — plinko sets `multiplier > 1`, roulette
+  // `totalReturn > totalStake`. Using it here settled every multiplier of 1.0 or
+  // below as a total loss: a plinko centre bucket paying 0.5x credited nothing
+  // (LOW/16 paid 54% RTP against an intended 99%), and a roulette bet covering
+  // all three dozens lost the whole stake on 36 of 37 pockets instead of
+  // breaking even. Anything with a positive multiplier is owed a payout.
+  if (result.multiplier > 0) {
     payout = await payoutOf(gameType, amount, result.multiplier);
     const credited = await processWin({
       userId,
@@ -452,6 +469,17 @@ async function handleMinesStart(
   const amount = String(payload.amount ?? '');
   const currency = String(payload.currency ?? 'USD');
   const minesCount = Number((payload.params as any)?.minesCount ?? payload.minesCount);
+
+  // Validate BEFORE the debit. generateLayout throws on a minesCount outside
+  // [5,24], and it used to throw after processBet had already taken the stake
+  // and after nextSeedContext had burned a nonce — leaving the player short with
+  // no game recorded, no GameSession row and no refund path. A bad param must
+  // cost nothing.
+  try {
+    mines.assertValidMinesCount(minesCount);
+  } catch (err) {
+    return fail(ws, err instanceof Error ? err.message : 'Invalid mines count', 'BAD_PARAMS');
+  }
 
   const bet = await processBet({ userId, amount, gameType: 'MINES', currency });
   const seed = await nextSeedContext(userId);
@@ -977,7 +1005,7 @@ export function registerSocketServer(app: FastifyInstance) {
   app.get('/ws', { websocket: true }, (socket, req) => {
     const ws = socket as unknown as WebSocket;
 
-    let identity: { userId: string; role: string };
+    let identity: AuthedIdentity;
     try {
       identity = authenticateConnection(req.raw);
     } catch (err) {
@@ -991,9 +1019,14 @@ export function registerSocketServer(app: FastifyInstance) {
     connectionMeta.set(ws, {
       userId: identity.userId,
       username: publicHandle(identity.userId),
-      role: identity.role === 'ADMIN' ? 'ADMIN' : 'USER',
+      // Provisional. verifyConnection replaces this with the role from the
+      // database before the connection is allowed to act; until then the
+      // connection is USER, so a stale ADMIN claim buys nothing even in the
+      // window before verification resolves.
+      role: 'USER',
       rooms: new Set(),
       alive: true,
+      verified: false,
     });
 
     // The client's reply to our ping is the only proof it is still there.
@@ -1006,33 +1039,26 @@ export function registerSocketServer(app: FastifyInstance) {
     // broken connection from being counted as a player forever.
     ws.on('error', () => releaseSocket(ws));
 
-    prisma.user
-      .findUnique({
-        where: { id: identity.userId },
-        select: { email: true },
-      })
-      .then((user) => {
-        if (user) {
-          const meta = connectionMeta.get(ws);
-          if (meta) meta.username = userLabel(user.email);
-        }
-      })
-      .catch(() => undefined);
-
-    // A freeze applied while the player was offline must bite on reconnect.
-    // processBet re-checks on every wager; this is the fast, visible signal.
-    prisma.user
-      .findUnique({ where: { id: identity.userId }, select: { frozen: true } })
+    // One authoritative lookup replaces the two fire-and-forget ones that used
+    // to sit here. It settles tokenVersion, role and frozen together, and only
+    // once it resolves is the connection allowed to act — the message handler
+    // refuses anything that arrives before `verified` flips. Previously the
+    // freeze check raced the first message, so a frozen account could get a
+    // /tip away in the gap.
+    verifyConnection(identity)
       .then((account) => {
-        if (account?.frozen) {
-          send(ws, {
-            type: 'ERROR',
-            data: { code: 'ACCOUNT_FROZEN', message: 'Account is frozen' },
-          });
-          ws.close(1008, 'Account is frozen');
-        }
+        const meta = connectionMeta.get(ws);
+        if (!meta) return;
+        meta.role = account.role;
+        meta.username = account.email ? userLabel(account.email) : meta.username;
+        meta.verified = true;
       })
-      .catch(() => void 0);
+      .catch((err) => {
+        const message = err instanceof AuthError ? err.message : 'Unauthorized';
+        const code = message === 'Account is frozen' ? 'ACCOUNT_FROZEN' : 'UNAUTHORIZED';
+        send(ws, { type: 'ERROR', data: { code, message } });
+        ws.close(1008, message);
+      });
 
     getBalance(identity.userId)
       .then((balance) => send(ws, { type: 'BALANCE', data: { balance } }))
@@ -1048,7 +1074,13 @@ export function registerSocketServer(app: FastifyInstance) {
 
       try {
         const meta = connectionMeta.get(ws);
-        const username = meta?.username ?? 'player';
+        // Anything arriving before the database has confirmed the session is
+        // refused rather than queued: the client can retry, and a token that
+        // turns out to be superseded never gets to act on the gap.
+        if (!meta?.verified) {
+          return fail(ws, 'Connection is still authenticating', 'NOT_READY');
+        }
+        const username = meta.username ?? 'player';
         await route(ws, identity.userId, msg, username);
       } catch (err) {
         if (err instanceof InsufficientFundsError) {

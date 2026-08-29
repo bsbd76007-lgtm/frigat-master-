@@ -26,6 +26,7 @@ import {
   NOWPAYMENTS_PROVIDER,
   createNowPayment,
   createPayout,
+  NowPaymentsError,
   isPayoutConfigured,
   mapNowPaymentsStatus,
   networkLabelFor,
@@ -73,7 +74,16 @@ export class PaymentConfigError extends Error {
 export class PaymentProviderError extends Error {
   constructor(
     message: string,
-    readonly status?: number
+    readonly status?: number,
+    /**
+     * True when we do not know whether the provider accepted the request — a
+     * timeout or a dropped connection, as opposed to the provider answering
+     * with a refusal. The two must be handled differently on the payout path:
+     * a refusal means the money never left and the hold can be released; an
+     * ambiguous failure means it may already be on its way, and refunding
+     * would pay the player twice.
+     */
+    readonly ambiguous = false
   ) {
     super(message);
     this.name = 'PaymentProviderError';
@@ -142,11 +152,15 @@ async function cryptomusRequest<T>(
       signal: abort.signal,
     });
   } catch (err) {
+    // Transport failures only. We sent the request and never learned its fate,
+    // so the outcome is unknown — not a refusal.
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new PaymentProviderError('payment provider timed out');
+      throw new PaymentProviderError('payment provider timed out', undefined, true);
     }
     throw new PaymentProviderError(
-      err instanceof Error ? err.message : 'payment provider unreachable'
+      err instanceof Error ? err.message : 'payment provider unreachable',
+      undefined,
+      true
     );
   } finally {
     clearTimeout(timeout);
@@ -480,30 +494,30 @@ async function handleDepositWebhook(
   txHash: string | null,
   body: Record<string, unknown>
 ): Promise<WebhookResult> {
-  // Cryptomus prices the invoice in the asset itself and reports what actually
-  // landed, so the received figure — not the invoiced one — is what gets
-  // credited. NOWPayments works the other way round; see handleNowPaymentsIpn.
-  const receivedRaw =
-    (typeof body.merchant_amount === 'string' && body.merchant_amount) ||
-    (typeof body.payment_amount === 'string' && body.payment_amount) ||
-    null;
-
-  let received: Prisma.Decimal | null = null;
-  if (receivedRaw) {
-    try {
-      const parsed = new D(receivedRaw);
-      if (parsed.isFinite() && parsed.greaterThan(0)) received = parsed;
-    } catch {
-      received = null;
-    }
-  }
-
+  // The invoice is priced in USD and PAYABLE in the asset — createDeposit sends
+  // `currency: 'USD', to_currency: <asset>` and its comment says settlement
+  // credits the fiat value and "must not be overwritten with the asset amount
+  // shown to the payer". This function used to do exactly that: it passed
+  // `merchant_amount` / `payment_amount` — both denominated in the PAYER's
+  // asset — straight through as the credit.
+  //
+  // A $500 deposit paid in BTC therefore credited a wallet balance of 0.00485
+  // USD, and the invoice was stamped PAID so no retry or later callback could
+  // ever correct it. In USDT the same bug quietly credited ~99 for a 100
+  // invoice, pocketing the provider's commission from the player.
+  //
+  // The credit is now always the stored USD invoice amount. That is safe
+  // against underpayment because only PAID / PAID_OVER / CONFIRMED settle
+  // (isSettled) — a short payment never reaches here. On PAID_OVER the player
+  // is credited what they were invoiced rather than the surplus, which errs in
+  // the house's favour and is the conservative side to err on; refunding an
+  // overpayment is an operator decision, not something to guess in a webhook.
   return settleDeposit({
     provider: 'CRYPTOMUS',
     paymentId: uuid,
     status,
     txHash,
-    creditOverride: received,
+    creditOverride: null,
   });
 }
 
@@ -696,36 +710,40 @@ async function dispatchNowPaymentsPayout(
   withdrawalId: string,
   reserved: { transactionId: string; balance: string }
 ): Promise<CreateWithdrawalResult> {
+  // The try covers ONLY the provider call. It used to wrap the withdrawal
+  // update as well, so a database error AFTER the batch had been accepted took
+  // the refund path and paid the player on top of a payout NOWPayments was
+  // already holding for 2FA.
+  let batch: Awaited<ReturnType<typeof createPayout>>;
   try {
-    const batch = await createPayout([
+    batch = await createPayout([
       {
         address: input.address,
         currency: payCurrencyFor(input.currency),
         amount: amount.toFixed(8),
       },
     ]);
-
-    const leg = batch.withdrawals?.[0];
-    const updated = await prisma.withdrawal.update({
-      where: { id: withdrawalId },
-      data: {
-        provider: NOWPAYMENTS_PROVIDER,
-        paymentId: leg?.id ?? batch.id,
-        status: mapNowPaymentsStatus(leg?.status),
-        ...(leg?.hash ? { txHash: leg.hash } : {}),
-      },
-      select: { id: true, status: true },
-    });
-
-    return {
-      withdrawalId: updated.id,
-      status: updated.status,
-      amount: amount.toFixed(8),
-      currency: input.currency,
-      address: input.address,
-      balance: reserved.balance,
-    };
   } catch (err) {
+    // A NowPaymentsError carries an HTTP status only when the gateway answered.
+    // No status means a timeout or a dropped connection: we do not know whether
+    // the batch was accepted, so the hold stays and a human reconciles. Anything
+    // that is not a NowPaymentsError at all is also treated as unknown — on a
+    // money-out path, assuming the safe-for-us outcome is how players get paid
+    // twice.
+    const refused = err instanceof NowPaymentsError && typeof err.status === 'number';
+
+    if (!refused) {
+      await prisma.withdrawal.update({
+        where: { id: withdrawalId },
+        data: { status: 'PENDING_ADMIN_REVIEW' },
+      });
+      throw new PaymentProviderError(
+        'Payout could not be confirmed and is being reviewed. Your balance stays reserved.',
+        undefined,
+        true
+      );
+    }
+
     await prisma.withdrawal.update({
       where: { id: withdrawalId },
       data: { status: 'FAILED' },
@@ -736,6 +754,28 @@ async function dispatchNowPaymentsPayout(
     }).catch(() => undefined);
     throw err;
   }
+
+  // Past this point the batch is ACCEPTED. Nothing below may release the hold.
+  const leg = batch.withdrawals?.[0];
+  const updated = await prisma.withdrawal.update({
+    where: { id: withdrawalId },
+    data: {
+      provider: NOWPAYMENTS_PROVIDER,
+      paymentId: leg?.id ?? batch.id,
+      status: mapNowPaymentsStatus(leg?.status),
+      ...(leg?.hash ? { txHash: leg.hash } : {}),
+    },
+    select: { id: true, status: true },
+  });
+
+  return {
+    withdrawalId: updated.id,
+    status: updated.status,
+    amount: amount.toFixed(8),
+    currency: input.currency,
+    address: input.address,
+    balance: reserved.balance,
+  };
 }
 
 export async function createWithdrawal(
@@ -820,8 +860,37 @@ export async function createWithdrawal(
       'payout'
     );
   } catch (err) {
-    // The provider never accepted this payout, so the hold has no purpose.
-    // Release it and mark the request failed.
+    // Two very different failures used to land here together.
+    //
+    // A REFUSAL (the provider answered with an error status) means the payout
+    // was never accepted: the hold has no purpose and is released.
+    //
+    // An AMBIGUOUS failure — our 15s abort fires, or the connection drops —
+    // means we never learned the outcome. The provider may have accepted the
+    // payout at 14.8s and be sending the coins right now. Refunding here paid
+    // the player twice: they kept the balance AND received the transfer, and
+    // because `paymentId` was never written the later payout webhook could not
+    // match the row, so the discrepancy was invisible.
+    //
+    // Ambiguous now keeps the funds reserved and parks the request in the
+    // admin queue, which is what PENDING_ADMIN_REVIEW exists for. An operator
+    // reconciles against the provider dashboard and either releases the hold
+    // or completes the payout. Slower for the player, and the only answer that
+    // cannot pay twice.
+    const ambiguous = err instanceof PaymentProviderError && err.ambiguous;
+
+    if (ambiguous) {
+      await prisma.withdrawal.update({
+        where: { id: record.id },
+        data: { status: 'PENDING_ADMIN_REVIEW' },
+      });
+      throw new PaymentProviderError(
+        'Payout could not be confirmed and is being reviewed. Your balance stays reserved.',
+        err instanceof PaymentProviderError ? err.status : undefined,
+        true
+      );
+    }
+
     await prisma.withdrawal.update({
       where: { id: record.id },
       data: { status: 'FAILED' },

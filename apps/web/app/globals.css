@@ -79,16 +79,16 @@ html[data-theme='dark'] {
      1px --fg-hairline edge below, not of a jump in fill or of an exterior
      shadow. That is what lets the ramp stay this dark without the interface
      collapsing into a single flat field. */
-  --fg-bg: #0a0a0c;
-  --fg-panel: #131316;
-  --fg-panel-2: #0e0e11;
+  --fg-bg: #070a11;
+  --fg-panel: #101623;
+  --fg-panel-2: #0b0f19;
   /* One step below the page for recessed things — inputs, wells, insets. */
-  --fg-sunken: #050506;
-  --fg-line: #1e1e23;
-  --fg-line-2: #2c2c33;
-  --fg-hover: #17171b;
-  --fg-hover-2: #202026;
-  --fg-header: rgba(10, 10, 12, .94);
+  --fg-sunken: #04060b;
+  --fg-line: #1c2334;
+  --fg-line-2: #2a3346;
+  --fg-hover: #151c2b;
+  --fg-hover-2: #1e2637;
+  --fg-header: rgba(7, 10, 17, .94);
   /* Text ramp: primary / secondary / muted. Measured against --fg-bg:
        --fg-text  #f2f2f5 → 17.7:1
        --fg-muted #9b9ba6 →  7.2:1   (clears AA for body copy)
@@ -183,6 +183,15 @@ html[data-theme='dark'] {
   --fg-r: 4px;
   --fg-r-lg: 6px;
   --fg-r-pill: 999px;
+
+  /* ── Cut corners ──
+     The mark is built from cut planes, not curves — the F is a set of facets.
+     Nothing in the interface said so: every surface was a rounded rectangle,
+     which is the one shape every other dark casino also uses. These are the
+     chamfer depths for the corner cut that replaces the radius on the surfaces
+     that carry the brand. */
+  --fg-cut: 10px;
+  --fg-cut-sm: 6px;
 
   /* One hover/press duration for the whole app. */
   --fg-t: 150ms ease-in-out;
@@ -370,7 +379,7 @@ h1, h2, h3, h4 {
    crisp white titles so the orange accents in them stay the focal point. */
 .wal__title, .adm-page__head h1, .adm-page__head h2,
 .adm-section h2, .vip__card b, .auth__title,
-.rail__title, .fg-pf__title, .wheel__head h2 { color: var(--fg-text); }
+.shelf__title, .fg-pf__title, .wheel__head h2 { color: var(--fg-text); }
 
 /* ── Dashboard chrome ───────────────────── */
 .dash__header {
@@ -5094,25 +5103,25 @@ input[type='number'],
   letter-spacing: .05em;
 }
 
-/* ── Game rails ──────────────────────────────────────────
-   The home view's replacement for the wrapping grid. A rail is a native
+/* ── Game shelves ──────────────────────────────────────────
+   The home view's replacement for the wrapping grid. A shelf is a native
    horizontal scroller: `overflow-x: auto` plus scroll-snap, with buttons that
    drive scrollBy. Nothing here reimplements scrolling, so trackpad, touch,
    keyboard and the arrows all move the same element. */
-.rails {
+.shelves {
   display: flex;
   flex-direction: column;
   gap: clamp(26px, 3vw, 40px);
 }
 
-.rail__head {
+.shelf__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
   margin: 0 0 12px;
 }
-.rail__title {
+.shelf__title {
   margin: 0;
   font-family: var(--fg-display);
   font-size: 15px;
@@ -5122,10 +5131,10 @@ input[type='number'],
 }
 /* The lead row announces itself with SIZE, not with an accent colour or a
    badge. It is the one row the eye should land on first. */
-.rail--lead .rail__title { font-size: 19px; }
+.shelf--lead .shelf__title { font-size: 19px; }
 
-.rail__tools { display: flex; align-items: center; gap: 10px; flex: none; }
-.rail__all {
+.shelf__tools { display: flex; align-items: center; gap: 10px; flex: none; }
+.shelf__all {
   padding: 0;
   font: inherit;
   font-size: 12.5px;
@@ -5136,11 +5145,11 @@ input[type='number'],
   cursor: pointer;
   transition: color var(--fg-t);
 }
-.rail__all:hover { color: var(--fg-accent); }
-.rail__all:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 3px; border-radius: var(--fg-r-sm); }
+.shelf__all:hover { color: var(--fg-accent); }
+.shelf__all:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 3px; border-radius: var(--fg-r-sm); }
 
-.rail__arrows { display: flex; gap: 4px; }
-.rail__arrow {
+.shelf__arrows { display: flex; gap: 4px; }
+.shelf__arrow {
   display: grid;
   place-items: center;
   width: 26px;
@@ -5153,15 +5162,15 @@ input[type='number'],
   cursor: pointer;
   transition: color var(--fg-t), background-color var(--fg-t), opacity var(--fg-t);
 }
-.rail__arrow:hover:not(:disabled) { color: var(--fg-text); background: var(--fg-hover); }
+.shelf__arrow:hover:not(:disabled) { color: var(--fg-text); background: var(--fg-hover); }
 /* Disabled rather than hidden: a row's controls should not reflow or vanish
    as it is scrolled, or the buttons move out from under the cursor mid-use. */
-.rail__arrow:disabled { opacity: .3; cursor: default; }
+.shelf__arrow:disabled { opacity: .3; cursor: default; }
 /* Touch has no cursor to reach an arrow with, and the row is already swipeable
    there — so the buttons are desktop-only rather than dead weight on a phone. */
-@media (hover: none) { .rail__arrows { display: none; } }
+@media (hover: none) { .shelf__arrows { display: none; } }
 
-.rail__track {
+.shelf__track {
   display: grid;
   grid-auto-flow: column;
   /* Fixed column width is what produces the peek: the row is cut mid-tile at
@@ -5180,11 +5189,11 @@ input[type='number'],
   margin: -4px;
   scrollbar-width: none;
 }
-.rail__track::-webkit-scrollbar { display: none; }
-.rail__track > * { scroll-snap-align: start; }
-.rail--lead .rail__track { grid-auto-columns: 196px; }
+.shelf__track::-webkit-scrollbar { display: none; }
+.shelf__track > * { scroll-snap-align: start; }
+.shelf--lead .shelf__track { grid-auto-columns: 196px; }
 
-.rail__track:focus-visible {
+.shelf__track:focus-visible {
   outline: 2px solid var(--fg-accent);
   outline-offset: 2px;
   border-radius: var(--fg-r-lg);
@@ -5192,23 +5201,23 @@ input[type='number'],
 
 /* Fade the trailing edge only while there is more row to reach. Applied to the
    track rather than to an overlay element so it cannot intercept a click. */
-.rail__track--more {
+.shelf__track--more {
   mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent 100%);
 }
 
-.rail__cell { min-width: 0; }
-.rail__cell .tile { height: 100%; }
+.shelf__cell { min-width: 0; }
+.shelf__cell .tile { height: 100%; }
 
 @media (max-width: 720px) {
-  .rail__track { grid-auto-columns: 132px; }
-  .rail--lead .rail__track { grid-auto-columns: 158px; }
+  .shelf__track { grid-auto-columns: 132px; }
+  .shelf--lead .shelf__track { grid-auto-columns: 158px; }
   /* The mask costs more than it says on a narrow screen, where the cut tile is
      already unmistakable. */
-  .rail__track--more { mask-image: none; }
+  .shelf__track--more { mask-image: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rail__track { scroll-behavior: auto; }
+  .shelf__track { scroll-behavior: auto; }
 }
 
 /* Drawn posters (components/games/GamePoster.tsx) sit in the same art box as
@@ -5225,3 +5234,89 @@ input[type='number'],
 @media (prefers-reduced-motion: reduce) {
   .tile:hover .tile__poster { transform: none; }
 }
+
+/* ── Shape language: cut corners ─────────────────────────
+   The one thing the interface was missing was a shape of its own. Palette and
+   type were changed twice and it still read as generic, because every surface
+   was the same rounded rectangle every competitor uses.
+
+   The FRIGAT mark is faceted — planes cut at an angle, no curves anywhere. So
+   the surfaces that carry the brand take a chamfer instead of a radius: the
+   cut runs top-left and bottom-right, diagonally opposed, which is the axis
+   the mark's own cut follows. Small surfaces take the smaller depth so the two
+   read as one family rather than as two decisions.
+
+   Deliberately NOT applied to: pills that must stay pill-shaped, avatars,
+   dots, toggles and progress tracks (--fg-r-pill is a SHAPE, not a softness),
+   and inputs, where a cut corner reads as damage rather than as design. */
+.tile,
+.feed,
+.wal__panel,
+.bdm__panel,
+.glm__panel {
+  border-radius: 0;
+  clip-path: polygon(
+    var(--fg-cut) 0,
+    100% 0,
+    100% calc(100% - var(--fg-cut)),
+    calc(100% - var(--fg-cut)) 100%,
+    0 100%,
+    0 var(--fg-cut)
+  );
+}
+.tile__art { border-radius: 0; }
+
+.tile__play,
+.tile__demo,
+.dash__cta,
+.wal__btn,
+.pills__pill,
+.shelf__all {
+  border-radius: 0;
+  clip-path: polygon(
+    var(--fg-cut-sm) 0,
+    100% 0,
+    100% calc(100% - var(--fg-cut-sm)),
+    calc(100% - var(--fg-cut-sm)) 100%,
+    0 100%,
+    0 var(--fg-cut-sm)
+  );
+}
+
+/* A clip-path clips the element's own focus ring along with everything else,
+   so the ring moves OUT to the cell wrapper, which is not clipped. Without
+   this the keyboard focus state on a tile is invisible. */
+.tile:focus-within { box-shadow: var(--fg-bevel); }
+.shelf__cell:focus-within {
+  outline: 2px solid var(--fg-accent);
+  outline-offset: 2px;
+}
+
+/* Bearing tick. One small instrument motif on section heads — the only place
+   the brand's own world (a frigate, a radar sweep, a heading) shows up in the
+   chrome rather than in the artwork. */
+.shelf__title { position: relative; padding-left: 16px; }
+.shelf__title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 7px;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--fg-accent);
+}
+
+/* One accent per decision. A gold outlined button sat directly beside the blue
+   primary, so two accent colours competed for the same click and gold — which
+   is supposed to mean "reward" — was spent on a help link. */
+.tile__demo {
+  color: var(--fg-text);
+  border-color: var(--fg-line-2);
+  background: rgba(255, 255, 255, .04);
+}
+.tile__demo:hover { background: rgba(255, 255, 255, .08); }
+
+/* Dark navy text on the blue fill measured 1.9:1. The accent-fill contract is
+   white text (--fg-on-accent); this rule predated it and kept its own literal. */
+.dash__cta { color: var(--fg-on-accent); }

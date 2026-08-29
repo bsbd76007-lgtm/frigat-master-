@@ -31,7 +31,14 @@ export interface MinesLayout {
   minesCount: number;
 }
 
-export function generateLayout(minesCount: number, seed: SeedContext): MinesLayout {
+/**
+ * Throws unless `minesCount` is a legal board.
+ *
+ * Exported separately so a caller can validate BEFORE taking the player's
+ * stake. generateLayout still calls it, so the engine cannot be driven into an
+ * illegal state by a caller that forgets.
+ */
+export function assertValidMinesCount(minesCount: number): void {
   if (
     !Number.isInteger(minesCount) ||
     minesCount < MINES.minMines ||
@@ -41,6 +48,10 @@ export function generateLayout(minesCount: number, seed: SeedContext): MinesLayo
       `mines: minesCount must be an integer in [${MINES.minMines}, ${MINES.maxMines}]`
     );
   }
+}
+
+export function generateLayout(minesCount: number, seed: SeedContext): MinesLayout {
+  assertValidMinesCount(minesCount);
 
   const shuffled = provableShuffle(T, seed.serverSeed, seed.clientSeed, seed.nonce);
   const minePositions = shuffled.slice(0, minesCount).sort((a, b) => a - b);

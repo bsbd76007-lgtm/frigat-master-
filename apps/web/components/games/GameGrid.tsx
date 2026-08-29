@@ -3,7 +3,7 @@
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useSearch } from '@/components/providers/SearchProvider';
 import { GameCard } from '@/components/games/GameCard';
-import { GameRail } from '@/components/games/GameRail';
+import { GameShelf } from '@/components/games/GameShelf';
 
 import {
   SECTIONS,
@@ -24,9 +24,9 @@ interface GameGridProps {
  * BROWSING (a category tab, or a live search) gets the wrapping grid: they
  * have asked to see everything that matches, and a wall is the honest answer.
  *
- * The HOME view gets rails instead. Showing eleven games as one flat grid of
+ * The HOME view gets shelves instead. Showing eleven games as one flat grid of
  * identical squares gives the page no shape — nothing is featured, nothing is
- * secondary, and the eye has no entry point. Rails restore the hierarchy a
+ * secondary, and the eye has no entry point. Shelves restore the hierarchy a
  * catalogue needs: the lead row runs larger than the rest, each row shows the
  * top of its category and says "more this way" rather than spending the whole
  * fold on one section.
@@ -57,9 +57,9 @@ export function GameGrid({ category, onLaunch, onCategoryChange }: GameGridProps
     })).filter((section) => section.games.length > 0);
 
     return (
-      <div className="rails">
+      <div className="shelves">
         {rows.map((section, index) => (
-          <GameRail
+          <GameShelf
             key={section.id}
             title={t(section.titleKey)}
             games={section.games}
