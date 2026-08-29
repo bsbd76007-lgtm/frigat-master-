@@ -25,8 +25,10 @@ export function GameCard({ entry, onLaunch }: GameCardProps) {
   const href = `/games/${slug}`;
   const art = GAME_ART[slug];
   const name = t(`games.${slug}.name`);
-  // Drawn poster first, raster poster second, icon last. The drawn ones carry
-  // their own lockup, so they take the art box whole exactly like a jpg does.
+  // Drawn poster first, raster second, icon last. GAME_POSTERS now covers every
+  // slug in the catalogue, so in practice the drawn branch always wins; the
+  // other two are the path for a game added before its poster is drawn, and for
+  // any jpg someone puts back in GAME_ART.
   const Poster = GAME_POSTERS[slug];
 
   const intercept = (event: React.MouseEvent) => {
