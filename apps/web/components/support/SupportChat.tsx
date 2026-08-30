@@ -56,7 +56,12 @@ const CSS = `
 /* Bottom-right launcher. It used to sit stacked above the community chat's
    own button; with that gone it takes the corner directly, so the -136px that
    cleared the other launcher is now just the dock lift. */
-.sup__fab { position: fixed; right: 24px; bottom: 24px; z-index: 998;
+/* 1001, not 998. The launcher is deliberately lifted 136px so it clears the
+   bottom dock — but the dock sits at z-index 1000, so wherever the two overlap
+   the dock was on top and swallowed the click. A floating button cannot sit
+   underneath the element it is positioned to clear. The panel is already above
+   the dock for the same reason (see .sup__panel below). */
+.sup__fab { position: fixed; right: 24px; bottom: 24px; z-index: 1001;
   display: flex; align-items: center; gap: 8px; padding: 7px 10px;
   font: inherit; font-size: 13px; font-weight: 700; color: var(--fg-bg);
   background: var(--fg-accent); border: none; border-radius: var(--fg-r);
