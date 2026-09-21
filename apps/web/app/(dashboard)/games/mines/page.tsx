@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { MINES } from '@frigat/shared/constants';
 
@@ -8,13 +8,13 @@ import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { useGameRound } from '@/hooks/useGameRound';
 
 const MINE_OPTIONS = [5, 10, 15, 20, 24];
 
 export default function MinesPage() {
-  const { socket, balance, send } = useGameSocket();
+  const { balance, send } = useGameSocket();
   const { t } = useLanguage();
-  const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
   const [minesCount, setMinesCount] = useState<number>(MINES.minMines);
@@ -25,12 +25,13 @@ export default function MinesPage() {
   const [minePositions, setMinePositions] = useState<number[]>([]);
   const [hitTile, setHitTile] = useState<number | null>(null);
   const [outcome, setOutcome] = useState<'bust' | 'cashout' | null>(null);
-  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    const off = [
-      subscribe('BET_ACCEPTED', (data) => {
-        if (data.gameType !== 'MINES') return;
+  // A mines round spans several frames, so `busy` means "a message is in
+  // flight", not "a round is running" — `active` is the round. Each frame that
+  // answers one of our messages releases the controls.
+  const { busy, begin, settle, bet } = useGameRound('MINES', {
+    on: {
+      BET_ACCEPTED: () => {
         setActive(true);
         setRevealed([]);
         setMultiplier(1);
@@ -38,10 +39,9 @@ export default function MinesPage() {
         setMinePositions([]);
         setHitTile(null);
         setOutcome(null);
-        setBusy(false);
-      }),
-      subscribe('STATE_UPDATE', (data) => {
-        if (data.gameType !== 'MINES') return;
+        settle();
+      },
+      STATE_UPDATE: (data) => {
         if (typeof data.revealedTile === 'number') {
           setRevealed((prev) =>
             prev.includes(data.revealedTile as number)
@@ -53,32 +53,28 @@ export default function MinesPage() {
         if (typeof data.potentialPayout === 'string') {
           setPotentialPayout(data.potentialPayout);
         }
-        setBusy(false);
-      }),
-      subscribe('GAME_RESULT', (data) => {
-        if (data.gameType !== 'MINES') return;
-        setActive(false);
-        setBusy(false);
-        if (Array.isArray(data.minePositions)) {
-          setMinePositions(data.minePositions as number[]);
-        }
-        if (data.bust) {
-          setOutcome('bust');
-          if (typeof data.hitTile === 'number') setHitTile(data.hitTile);
-        } else {
-          setOutcome('cashout');
-          if (typeof data.multiplier === 'number') setMultiplier(data.multiplier);
-          if (Array.isArray(data.revealed)) setRevealed(data.revealed as number[]);
-        }
-      }),
-      subscribe('ERROR', () => setBusy(false)),
-    ];
-    return () => off.forEach((fn) => fn());
-  }, [subscribe]);
+        settle();
+      },
+    },
+    onResult: ({ raw }) => {
+      setActive(false);
+      if (Array.isArray(raw.minePositions)) {
+        setMinePositions(raw.minePositions as number[]);
+      }
+      if (raw.bust) {
+        setOutcome('bust');
+        if (typeof raw.hitTile === 'number') setHitTile(raw.hitTile);
+      } else {
+        setOutcome('cashout');
+        if (typeof raw.multiplier === 'number') setMultiplier(raw.multiplier);
+        if (Array.isArray(raw.revealed)) setRevealed(raw.revealed as number[]);
+      }
+    },
+  });
 
   const reveal = (tile: number) => {
     if (!active || revealed.includes(tile) || busy) return;
-    setBusy(true);
+    begin();
     send('REVEAL_TILE', 'MINES', { tile });
   };
 
@@ -171,16 +167,15 @@ export default function MinesPage() {
             canCashout={active && revealed.length > 0}
             cashoutAmount={potentialPayout}
             cashoutMultiplier={multiplier}
-            onBet={() => {
-              setBusy(true);
-              send('BET', 'MINES', {
+            onBet={() =>
+              bet('BET', {
                 amount,
                 currency: balance.currency,
                 params: { minesCount },
-              });
-            }}
+              })
+            }
             onCashout={() => {
-              setBusy(true);
+              begin();
               send('CASHOUT', 'MINES');
             }}
             disabled={active && revealed.length === 0}

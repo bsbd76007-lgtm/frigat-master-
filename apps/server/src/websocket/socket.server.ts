@@ -25,6 +25,7 @@ import {
   INSTANT_ENGINES,
   isInstantGame,
   mines,
+  chicken,
 } from '../engines';
 import {
   processBet,
@@ -43,7 +44,7 @@ import {
   AuthError,
   type AuthedIdentity,
 } from './auth.middleware';
-import { gameState } from './gameState.store';
+import { gameState, type ChickenState } from './gameState.store';
 import { publicHandle } from '../routes/games/bets.routes';
 import { CrashRoundManager, type CrashRound } from './crashRound.manager';
 import { computeCrashPoint } from '../engines/crash.engine';
@@ -670,6 +671,262 @@ async function handleMinesCashout(
   });
 }
 
+// ── Chicken Road ──
+//
+// Same shape as mines: the stake is taken at BET, the seed's bust lane is fixed
+// at the same moment, and each STEP only reads it. Every state change a second
+// frame could race is made synchronously, before the first await — a double
+// STEP cannot skip a lane and a double CASHOUT cannot pay twice.
+
+/**
+ * Starts in flight, before their state exists. `processBet` and the seed lookup
+ * both await, so two BET frames sent back to back would each pass the "no
+ * active round" check and debit twice for one round.
+ */
+const chickenStartsInFlight = new Set<string>();
+
+async function handleChickenStart(
+  ws: WebSocket,
+  userId: string,
+  payload: Record<string, unknown>
+) {
+  if (gameState.getChicken(userId)?.active || chickenStartsInFlight.has(userId)) {
+    return fail(ws, 'You already have a chicken round running', 'GAME_IN_PROGRESS');
+  }
+
+  const amount = String(payload.amount ?? '');
+  const currency = String(payload.currency ?? 'USD');
+  const params = (payload.params ?? {}) as Record<string, unknown>;
+  const mode = params.mode;
+
+  // Validate before the debit, so a bad param costs nothing.
+  if (!chicken.isChickenMode(mode)) {
+    return fail(ws, 'Unknown traffic mode', 'BAD_PARAMS');
+  }
+
+  chickenStartsInFlight.add(userId);
+  try {
+    const bet = await processBet({ userId, amount, gameType: 'CHICKEN', currency });
+    const seed = await nextSeedContext(userId);
+    const maxLanes = chicken.maxLanes(mode);
+
+    gameState.setChicken({
+      userId,
+      betTransactionId: bet.transactionId,
+      betAmount: amount,
+      currency,
+      mode,
+      seed,
+      lane: 0,
+      maxLanes,
+      bustLane: chicken.bustLane(mode, seed),
+      active: true,
+    });
+
+    send(ws, {
+      type: 'BET_ACCEPTED',
+      data: {
+        gameType: 'CHICKEN',
+        mode,
+        maxLanes,
+        hashedServerSeed: seed.hashedServerSeed,
+        clientSeed: seed.clientSeed,
+        nonce: seed.nonce,
+        balance: bet.balance,
+      },
+    });
+    send(ws, { type: 'BALANCE', data: { balance: bet.balance } });
+  } finally {
+    chickenStartsInFlight.delete(userId);
+  }
+}
+
+async function handleChickenStep(ws: WebSocket, userId: string) {
+  const state = gameState.getChicken(userId);
+  if (!state || !state.active) {
+    return fail(ws, 'No active chicken round', 'NO_ACTIVE_GAME');
+  }
+
+  const lane = state.lane + 1;
+
+  if (state.bustLane === lane) {
+    state.active = false;
+    gameState.clearChicken(userId);
+
+    accrueAffiliate({
+      userId,
+      betId: state.betTransactionId,
+      stake: state.betAmount,
+      currency: state.currency,
+    });
+
+    await prisma.gameSession.create({
+      data: {
+        userId,
+        gameType: 'CHICKEN',
+        betAmount: new D(state.betAmount),
+        payout: new D(0),
+        multiplier: 0,
+        serverSeed: state.seed.serverSeed,
+        clientSeed: state.seed.clientSeed,
+        nonce: state.seed.nonce,
+        resultData: {
+          bust: true,
+          mode: state.mode,
+          bustLane: lane,
+          lanesCleared: state.lane,
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    const balance = await getBalance(userId, state.currency);
+    return send(ws, {
+      type: 'GAME_RESULT',
+      data: {
+        gameType: 'CHICKEN',
+        win: false,
+        bust: true,
+        lane,
+        bustLane: lane,
+        payout: '0',
+        multiplier: 0,
+        balance,
+      },
+    });
+  }
+
+  state.lane = lane;
+
+  // The end of the road is a cashout, not a choice.
+  if (lane >= state.maxLanes) {
+    return settleChickenCashout(ws, state, true);
+  }
+
+  const multiplier = chicken.multiplierAt(state.mode, lane);
+  const potentialPayout = await payoutOf('CHICKEN', state.betAmount, multiplier);
+
+  send(ws, {
+    type: 'STATE_UPDATE',
+    data: { gameType: 'CHICKEN', lane, multiplier, potentialPayout },
+  });
+}
+
+/**
+ * Re-attaches a page to a round the server is still holding — after a reload,
+ * a second tab or a reconnect. Without it the stake is stranded: the server
+ * refuses a new BET while the round is active, and a fresh page has no round
+ * to cash out of.
+ */
+function handleChickenResume(ws: WebSocket, userId: string) {
+  const state = gameState.getChicken(userId);
+  if (!state || !state.active) {
+    return send(ws, { type: 'RESUME_NONE', data: { gameType: 'CHICKEN' } });
+  }
+  send(ws, {
+    type: 'BET_ACCEPTED',
+    data: {
+      gameType: 'CHICKEN',
+      resumed: true,
+      amount: state.betAmount,
+      mode: state.mode,
+      lane: state.lane,
+      maxLanes: state.maxLanes,
+      multiplier: chicken.multiplierAt(state.mode, state.lane),
+      hashedServerSeed: state.seed.hashedServerSeed,
+      clientSeed: state.seed.clientSeed,
+      nonce: state.seed.nonce,
+    },
+  });
+}
+
+async function handleChickenCashout(ws: WebSocket, userId: string) {
+  const state = gameState.getChicken(userId);
+  if (!state || !state.active) {
+    return fail(ws, 'No active chicken round', 'NO_ACTIVE_GAME');
+  }
+  if (state.lane === 0) {
+    return fail(ws, 'Cross at least one lane before cashing out', 'NOTHING_REVEALED');
+  }
+  return settleChickenCashout(ws, state, false);
+}
+
+async function settleChickenCashout(ws: WebSocket, state: ChickenState, auto: boolean) {
+  // Closed before the first await: a second CASHOUT arriving mid-settlement
+  // finds no active round rather than a second payout.
+  state.active = false;
+
+  const multiplier = chicken.multiplierAt(state.mode, state.lane);
+  let payout: string;
+  let credited: { balance: string };
+  try {
+    payout = await payoutOf('CHICKEN', state.betAmount, multiplier);
+    credited = await processWin({
+      userId: state.userId,
+      betId: state.betTransactionId,
+      payoutAmount: payout,
+      currency: state.currency,
+    });
+  } catch (err) {
+    // Nothing was credited, so the round is still the player's to cash out.
+    state.active = true;
+    throw err;
+  }
+  gameState.clearChicken(state.userId);
+
+  accrueAffiliate({
+    userId: state.userId,
+    betId: state.betTransactionId,
+    stake: state.betAmount,
+    payout,
+    currency: state.currency,
+  });
+
+  await prisma.gameSession.create({
+    data: {
+      userId: state.userId,
+      gameType: 'CHICKEN',
+      betAmount: new D(state.betAmount),
+      payout: new D(payout),
+      multiplier,
+      serverSeed: state.seed.serverSeed,
+      clientSeed: state.seed.clientSeed,
+      nonce: state.seed.nonce,
+      resultData: {
+        cashout: true,
+        auto,
+        mode: state.mode,
+        lanesCleared: state.lane,
+        bustLane: state.bustLane,
+      } as Prisma.InputJsonValue,
+    },
+  });
+
+  send(ws, {
+    type: 'GAME_RESULT',
+    data: {
+      gameType: 'CHICKEN',
+      win: true,
+      auto,
+      lane: state.lane,
+      bustLane: state.bustLane,
+      multiplier,
+      payout,
+      balance: credited.balance,
+    },
+  });
+  send(ws, { type: 'BALANCE', data: { balance: credited.balance } });
+
+  const meta = connectionMeta.get(ws);
+  await broadcastLiveBet({
+    userId: state.userId,
+    username: meta?.username ?? 'player',
+    gameType: 'CHICKEN',
+    betAmount: state.betAmount,
+    multiplier,
+    payout,
+  });
+}
+
 /**
  * Bets being placed right now, before their round exists in the manager.
  * `processBet` and the seed lookup both await, and two BET frames sent back to
@@ -974,6 +1231,7 @@ async function route(ws: WebSocket, userId: string, msg: ClientMessage, username
     case 'SPIN':
       if (!actualGameType) return fail(ws, `${type} requires a gameType`, 'BAD_REQUEST');
       if (actualGameType === 'MINES') return handleMinesStart(ws, userId, payload);
+      if (actualGameType === 'CHICKEN') return handleChickenStart(ws, userId, payload);
       if (actualGameType === 'CRASH') return handleCrashBet(ws, userId, payload);
       if (isInstantGame(actualGameType)) return handleInstantBet(ws, userId, actualGameType, payload);
       return fail(ws, `Unsupported game for ${type}: ${actualGameType}`);
@@ -982,8 +1240,13 @@ async function route(ws: WebSocket, userId: string, msg: ClientMessage, username
       if (gameType !== 'MINES') return fail(ws, 'REVEAL_TILE is only valid for MINES');
       return handleMinesReveal(ws, userId, payload);
 
+    case 'STEP':
+      if (gameType !== 'CHICKEN') return fail(ws, 'STEP is only valid for CHICKEN');
+      return handleChickenStep(ws, userId);
+
     case 'RESUME':
       if (gameType === 'CRASH') return handleCrashResume(ws, userId);
+      if (gameType === 'CHICKEN') return handleChickenResume(ws, userId);
       return fail(ws, `RESUME is not supported for ${gameType}`);
 
     case 'CHAT':
@@ -992,6 +1255,7 @@ async function route(ws: WebSocket, userId: string, msg: ClientMessage, username
     case 'CASHOUT':
       if (gameType === 'MINES') return handleMinesCashout(ws, userId, payload);
       if (gameType === 'CRASH') return handleCrashCashout(ws, userId);
+      if (gameType === 'CHICKEN') return handleChickenCashout(ws, userId);
       return fail(ws, `CASHOUT not supported for ${gameType}`);
 
     default:

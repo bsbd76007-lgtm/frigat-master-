@@ -1,15 +1,15 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma, GameType, TransactionType } from '@prisma/client';
-import { prisma } from '../config/prisma';
-import { requireAdmin } from './auth';
-import { pushBalanceToUser } from '../websocket/socket.server';
-import { auditWithin, isUnknownAdminError } from '../services/audit.service';
+import { prisma } from '../../config/prisma';
+import { requireAdmin } from '../../middleware/auth';
+import { pushBalanceToUser } from '../../websocket/socket.server';
+import { auditWithin, isUnknownAdminError } from '../../services/audit.service';
 import {
   approveWithdrawal,
   rejectWithdrawal,
   WithdrawalStateError,
-} from '../services/ledger.service';
-import { readRiskConfig, writeRiskConfig } from '../services/riskConfig.service';
+} from '../../services/ledger.service';
+import { readRiskConfig, writeRiskConfig } from '../../services/riskConfig.service';
 
 const DECIMAL = /^\d+(\.\d{1,8})?$/;
 const GAME_TYPES = Object.values(GameType);

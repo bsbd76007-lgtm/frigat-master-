@@ -485,14 +485,17 @@ export async function handleWebhook(
     return handlePayoutWebhook(uuid, status, txHash);
   }
 
-  return handleDepositWebhook(uuid, status, txHash, body);
+  return handleDepositWebhook(uuid, status, txHash);
 }
 
+// No `body` parameter: the credit is taken from the stored USD invoice, never
+// from the amounts the gateway reports. It used to take one, and that is the
+// whole substance of the bug described below — so the argument is gone rather
+// than underscore-prefixed, to make passing it back in a deliberate act.
 async function handleDepositWebhook(
   uuid: string,
   status: CryptoPaymentStatus,
-  txHash: string | null,
-  body: Record<string, unknown>
+  txHash: string | null
 ): Promise<WebhookResult> {
   // The invoice is priced in USD and PAYABLE in the asset — createDeposit sends
   // `currency: 'USD', to_currency: <asset>` and its comment says settlement

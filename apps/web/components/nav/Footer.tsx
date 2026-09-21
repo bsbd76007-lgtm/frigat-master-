@@ -22,10 +22,15 @@ const COLUMNS: readonly FooterColumn[] = [
   {
     key: 'footer.brand',
     links: [
-      { key: 'footer.aboutUs', href: '/about' },
-      { key: 'footer.faq', href: '/faq' },
-      { key: 'footer.support', href: '/support' },
-      { key: 'footer.affiliates', href: '/affiliates' },
+      // These four used to point at /about, /faq, /support and /affiliates,
+      // none of which were ever built — four 404s in the first column of every
+      // page. Each now goes to the page that actually carries that material.
+      // "Contact Support" was dropped rather than redirected: support is the
+      // in-app chat launcher, not a route, so no destination would have been
+      // honest.
+      { key: 'footer.aboutUs', href: '/architecture' },
+      { key: 'footer.faq', href: '/rules' },
+      { key: 'footer.affiliates', href: '/partner-program' },
     ],
   },
   {
@@ -42,10 +47,12 @@ const COLUMNS: readonly FooterColumn[] = [
   {
     key: 'footer.fair',
     links: [
-      { key: 'footer.verifier', href: '/provably-fair/verify' },
-      { key: 'footer.calcRules', href: '/provably-fair/calculation' },
-      { key: 'footer.serverSeedHash', href: '/provably-fair/server-seed' },
-      { key: 'footer.clientSeedGuide', href: '/provably-fair/client-seed' },
+      // The /provably-fair/* routes never existed. "Verification Tool",
+      // "Server Seed Hash" and "Client Seed Guide" are also gone rather than
+      // redirected — this build ships no verifier tool and no seed guides, and
+      // a footer link promising one is a claim the product does not meet.
+      { key: 'footer.calcRules', href: '/architecture' },
+      { key: 'footer.gameRules', href: '/rules#game-rules' },
     ],
   },
   {
@@ -55,18 +62,19 @@ const COLUMNS: readonly FooterColumn[] = [
       { key: 'footer.rules', href: '/rules' },
       { key: 'footer.promotions', href: '/promotions' },
       { key: 'footer.partnerProgram', href: '/partner-program' },
-      // The /legal/* routes these three used to point at were never built, so
-      // every one of them 404'd. /rules carries the same material in anchored
-      // sections, which is a real destination rather than a dead link.
-      { key: 'footer.terms', href: '/rules#terms' },
+      // Now real pages rather than anchors into /rules.
+      { key: 'footer.terms', href: '/terms' },
+      { key: 'footer.privacy', href: '/privacy' },
+      { key: 'footer.refunds', href: '/refunds' },
       { key: 'footer.responsible', href: '/rules#age' },
-      { key: 'footer.gameRules', href: '/rules#game-rules' },
     ],
   },
   {
     key: 'footer.community',
     links: [
-      { key: 'footer.revshare', href: '/affiliates/revshare' },
+      // /affiliates/revshare was never built; the partner program page is the
+      // real description of the revenue share.
+      { key: 'footer.revshare', href: '/partner-program' },
       { key: 'footer.referralDashboard', href: '/referrals' },
       { key: 'footer.telegram', href: TELEGRAM_URL, external: true },
     ],

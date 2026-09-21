@@ -76,7 +76,7 @@
   "bet": {
     "amount": "Bet amount",
     "balance": "Balance",
-    "insufficient": "Not enough balance — deposit to keep playing",
+    "insufficient": "Not enough balance. Deposit to keep playing",
     "invalidAmount": "Enter a valid amount",
     "minBet": "Minimum bet is {amount}",
     "maxBet": "Maximum bet is {amount}",
@@ -166,11 +166,12 @@
     "telegram": "Telegram Channel",
     "followUs": "Follow us",
     "copyright": "© {year} FRIGAT. All rights reserved.",
-    "disclaimer": "18+. Gambling can be addictive — play responsibly.",
+    "disclaimer": "18+. Gambling can be addictive. Play responsibly.",
     "rules": "Rules",
     "promotions": "Promotions",
     "partnerProgram": "Partner program",
-    "architecture": "How it works"
+    "architecture": "How it works",
+    "refunds": "Refund Policy"
   },
   "dock": {
     "live": "Live",
@@ -186,7 +187,7 @@
     "title": "Live Support",
     "subtitle": "We usually reply within a few minutes.",
     "close": "Close support",
-    "empty": "No messages yet — tell us what you need and an agent will pick it up.",
+    "empty": "No messages yet. Tell us what you need and an agent will pick it up.",
     "agent": "Agent",
     "you": "You",
     "placeholder": "Type your message…",
@@ -195,7 +196,7 @@
     "starting": "Opening ticket…",
     "sendError": "Could not send your message. Please try again.",
     "errorEmpty": "Type a message before sending.",
-    "errorTooLong": "That message is too long — please shorten it.",
+    "errorTooLong": "That message is too long. Please shorten it.",
     "errorEmail": "Add an email address to your account first.",
     "errorTicket": "This conversation is no longer available.",
     "errorAuth": "Your session expired. Sign in again to continue."
@@ -254,7 +255,7 @@
     "pwCodeRequired": "Enter the 6-digit code from your email.",
     "pwSendError": "Could not send a reset code. Try again.",
     "pwResetError": "Could not change your password.",
-    "pwDevCode": "Development mode — no email was sent. Your code is {code}."
+    "pwDevCode": "Development mode: no email was sent. Your code is {code}."
   },
   "launch": {
     "rtp": "RTP",
@@ -420,7 +421,7 @@
     "dpQrTooLong": "Address is too long to show as a QR code.",
     "dpReceived": "Deposit received",
     "dpBalanceUpdated": "Your balance has been updated.",
-    "dpWaiting": "Waiting for payment — this updates itself."
+    "dpWaiting": "Waiting for payment. This updates itself."
   },
   "wheel": {
     "title": "Daily Bonus Wheel",
@@ -483,8 +484,6 @@
     "gamesTableBody": "Standard rules with the paytable shown on each board.",
     "gamesSlotsLead": "Slots.",
     "gamesSlotsBody": "Five reels, five fixed paylines. Wins pay left to right from reel one; the paytable is on the board.",
-    "gamesPracticeLead": "Practice boards.",
-    "gamesPracticeBody": "Chicken Road and Avia Masters currently roll their outcomes in the browser and settle no money. They are marked as practice on the board itself and cannot be played for stakes.",
     "malfunction": "Malfunction voids all pays and plays. Where a defect causes a payout the paytable does not support, the round is corrected and the ledger adjusted, with the adjustment recorded against your account.",
     "questions": "Questions about any of this?",
     "seePromotions": "See current promotions",
@@ -530,10 +529,6 @@
     "s4li2": "Re-derive any round from the revealed seed, your client seed and that round's nonce, and confirm it produces the result you were paid on.",
     "s4p2": "Both checks are arithmetic anyone can run — they do not depend on trusting this page.",
     "s4Link": "The full policy is in the rules",
-    "gapTitle": "Where this does not apply yet",
-    "gapBodyA": "Two boards —",
-    "gapBodyB": "and",
-    "gapBodyC": "currently roll their outcomes in the browser and settle no money. They are labelled as practice on the board itself and cannot be played for stakes. They will join the scheme above when their engines move server-side; until then they are not covered by any of it, and we would rather say so here than let the claim quietly cover them.",
     "ctaCasino": "Go to the casino",
     "ctaRules": "Read the rules"
   },
@@ -560,7 +555,7 @@
     "confirmPassword": "Confirm password",
     "newPassword": "New password",
     "confirmNewPassword": "Confirm new password",
-    "devMode": "Development mode — no email was sent. Your code is {code}.",
+    "devMode": "Development mode: no email was sent. Your code is {code}.",
     "resendIn": "Resend in {seconds}s",
     "resendCode": "Resend code",
     "backToSignIn": "Back to sign in",
@@ -579,13 +574,13 @@
     "createAnAccount": "Create an account",
     "verifyEmailTitle": "Verify your email",
     "verifyEmailSub": "We sent a {digits}-digit code to",
-    "verifyEmailSubTail": "Enter it to finish creating your account — nothing is saved until you do.",
+    "verifyEmailSubTail": "Enter it to finish creating your account. Nothing is saved until you do.",
     "creatingAccount": "Creating account…",
     "verifyAndCreate": "Verify and create account",
     "changeDetails": "Change details",
     "createAccountTitle": "Create account",
     "createAccountSub": "Your wallet is created with your account. Provably fair from the first bet.",
-    "invited": "You were invited — your account will be linked to your referrer.",
+    "invited": "You were invited. Your account will be linked to your referrer.",
     "emailCodeHint": "We will email a {digits}-digit code here to confirm the address.",
     "sendingCode": "Sending code…",
     "verifyEmailAction": "Verify email",
@@ -612,29 +607,37 @@
     "halveBet": "Halve bet amount",
     "doubleBet": "Double bet amount",
     "maxBet": "Bet maximum",
-    "aviaFlightAria": "Flight area — tap anywhere to jump",
+    "aviaFlightAria": "Flight area: tap to launch when the plane is on deck",
     "aviaAltitude": "Altitude",
     "aviaDistance": "Distance",
     "aviaMultiplier": "Multiplier",
     "aviaPayout": "Payout",
-    "aviaStakeLost": "Stake lost — practice round",
-    "aviaHintFlying": "Tap anywhere (or Space) to jump · land on a deck to cash out",
-    "aviaHintIdle": "Tap the board or press Space to launch",
-    "aviaTouchdown": "Touchdown — banking",
+    "aviaStakeLost": "Stake lost",
+    "aviaHintFlying": "The flight was decided at take-off — watch where it comes down",
+    "aviaHintIdle": "Press Fly, tap the board or press Space to launch",
+    "aviaTouchdown": "Touchdown: banking",
     "aviaInFlight": "In flight",
-    "aviaAutoCashout": "Cashing out automatically",
-    "aviaLandToBank": "Land on a deck to bank it",
+    "aviaAutoCashout": "Paid out on touchdown",
+    "aviaLandToBank": "Lands on the carrier, or ditches short of it",
+    "aviaWaiting": "Clearing for take-off…",
+    "aviaFly": "Fly",
+    "aviaFlyAgain": "Fly again",
+    "aviaLanded": "Landed at {multiplier}",
+    "aviaDitched": "Ditched short of the deck",
+    "aviaNote": "One bet is one flight. The server decides every pickup, rocket and the landing from your committed seed before take-off; the animation only replays it, and the round can be checked in the fairness verifier.",
     "chickenAria": "Tap the chicken to cross to the next lane",
     "chickenTraffic": "Traffic density",
     "chickenPlayAgain": "Play Again",
     "chickenStartRound": "Start Round",
-    "chickenHintPlaying": "Tap the chicken, or press Arrow Right / D — the road never ends",
+    "chickenHintPlaying": "Tap the chicken, or press Arrow Right / D. Cash out before the traffic gets you",
     "chickenHintIdle": "Cross a lane to unlock cash out",
     "slotsTitle": "Frigat Slots · 5 lines",
     "slotsSymbol": "Symbol",
     "rouletteStraightUp": "Straight up (36×)",
     "chickenHudMultiplier": "Multiplier",
-    "chickenHudProfit": "Profit"
+    "chickenHudProfit": "Profit",
+    "chickenInsufficient": "Not enough balance for this bet",
+    "chickenCashedOut": "Cashed out {amount}"
   },
   "promos": {
     "title": "Promotions",
@@ -723,7 +726,7 @@
   },
   "freemoney": {
     "title": "Free money",
-    "lede": "Daily rewards, promo codes and tasks. Everything here credits your real balance — currently {balance} {currency}.",
+    "lede": "Daily rewards, promo codes and tasks. Everything here credits your real balance, currently {balance} {currency}.",
     "wheelTitle": "Daily wheel",
     "wheelBody": "One free spin every 24 hours. The segment is drawn server-side before the wheel moves.",
     "spinning": "Spinning…",
@@ -744,7 +747,7 @@
     "unitHrs": "Hrs",
     "unitMin": "Min",
     "unitSec": "Sec",
-    "drawingNow": "Drawing now — winners announced shortly.",
+    "drawingNow": "Drawing now. Winners announced shortly.",
     "yourTickets": "Your tickets",
     "inTheDraw": "In the draw",
     "yourOdds": "Your odds",
@@ -754,5 +757,26 @@
     "undrawn": "Undrawn",
     "tasksTitle": "Tasks & bonuses",
     "tasksBody": "Rewards the server can verify are claimable here."
+  },
+  "legal": {
+    "updatedLabel": "Last updated",
+    "draftLabel": "Pre-launch draft",
+    "draftBody": "The operator details in this document are placeholders and the text has not been reviewed by a lawyer. It describes how the platform actually behaves, but it is not yet a binding legal instrument. Complete apps/web/lib/legal.ts and have the documents reviewed for your licensing jurisdiction before taking money from the public."
+  },
+  "notFound": {
+    "code": "404",
+    "title": "This page does not exist",
+    "body": "The link may be out of date, or the address may have a typo in it. Nothing has gone wrong with your account.",
+    "home": "Back to games",
+    "rules": "Read the rules",
+    "support": "Terms & policies"
+  },
+  "consent": {
+    "title": "Cookies",
+    "body": "We use the storage the site needs to keep you signed in and to remember your language and theme. We would also like to measure which pages are used, but only if you agree.",
+    "learnMore": "Privacy policy",
+    "accept": "Accept analytics",
+    "reject": "Necessary only",
+    "aria": "Cookie consent"
   }
 }

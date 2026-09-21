@@ -11,5 +11,7 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "//exclude": "fairness-parity.test.ts imports apps/web/lib/verify.ts to prove the browser verifier and the server engines agree. That file is outside rootDir and needs the DOM lib for SubtleCrypto; admitting it here would mean loading DOM types for all server source, so `document` would typecheck in production code. It is excluded from typechecking only — vitest still runs it, and it is the only such exception.",
+  "exclude": ["src/__tests__/fairness-parity.test.ts"]
 }

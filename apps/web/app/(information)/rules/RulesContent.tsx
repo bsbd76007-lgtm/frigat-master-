@@ -123,9 +123,6 @@ export function RulesContent() {
           <li>
             <b>{t('rules.gamesSlotsLead')}</b> {t('rules.gamesSlotsBody')}
           </li>
-          <li>
-            <b>{t('rules.gamesPracticeLead')}</b> {t('rules.gamesPracticeBody')}
-          </li>
         </ul>
         <p>{t('rules.malfunction')}</p>
       </section>

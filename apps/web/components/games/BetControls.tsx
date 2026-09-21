@@ -102,13 +102,13 @@ const CSS = `
   font-size: 12px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
 .fg-bet__error { display: flex; align-items: center; justify-content: space-between;
   gap: 10px; margin: 0; font-size: 12px; font-weight: 500; color: var(--fg-red); }
-.fg-bet__deposit { flex: 0 0 auto; padding: 5px 8px; font-family: inherit; font-size: 11px;
+.fg-bet__deposit { flex: 0 0 auto; padding: 4px 8px; font-family: inherit; font-size: 11px;
   font-weight: 800; letter-spacing: .04em; color: var(--fg-bg); background: var(--fg-accent);
   border: 0; border-radius: var(--fg-r); cursor: pointer; }
 .fg-bet__deposit:hover { filter: brightness(1.08); box-shadow: var(--fg-cta-glow); }
 .fg-bet__deposit:active { transform: scale(.98) translateY(1px); }
 .fg-bet__deposit:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-.fg-bet__action { width: 100%; padding: 9px 10px; font-size: 15px; font-weight: 700;
+.fg-bet__action { width: 100%; padding: 8px 10px; font-size: 15px; font-weight: 700;
   letter-spacing: .02em; color: var(--fg-bg); background: var(--fg-accent); border: none;
   border-radius: var(--fg-r); cursor: pointer;
   transition: filter var(--fg-snap), transform var(--fg-snap), box-shadow var(--fg-snap); }

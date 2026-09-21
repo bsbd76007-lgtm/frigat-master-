@@ -1,47 +1,38 @@
 'use client';
 
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { useGameRound } from '@/hooks/useGameRound';
 
 type CoinSide = 'HEADS' | 'TAILS';
 
 export default function CoinflipPage() {
-  const { socket, balance, send } = useGameSocket();
+  const { balance } = useGameSocket();
   const { t } = useLanguage();
-  const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
   const [side, setSide] = useState<CoinSide>('HEADS');
   const [landed, setLanded] = useState<CoinSide | null>(null);
   const [won, setWon] = useState<boolean | null>(null);
   const [payout, setPayout] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    const off = [
-      subscribe('GAME_RESULT', (data) => {
-        if (data.gameType !== 'COINFLIP') return;
-        const result = data.resultData as { landed?: CoinSide } | undefined;
-        if (result?.landed) setLanded(result.landed);
-        setWon(Boolean(data.win));
-        setPayout(typeof data.payout === 'string' ? data.payout : null);
-        setBusy(false);
-      }),
-      subscribe('ERROR', () => setBusy(false)),
-    ];
-    return () => off.forEach((fn) => fn());
-  }, [subscribe]);
+  const { busy, bet } = useGameRound<{ landed?: CoinSide }>('COINFLIP', {
+    onResult: ({ result, win, payout: paid }) => {
+      if (result?.landed) setLanded(result.landed);
+      setWon(win);
+      setPayout(paid);
+    },
+  });
 
   const flip = () => {
-    setBusy(true);
     setLanded(null);
     setWon(null);
-    send('SPIN', 'COINFLIP', {
+    bet('SPIN', {
       amount,
       currency: balance.currency,
       params: { side },

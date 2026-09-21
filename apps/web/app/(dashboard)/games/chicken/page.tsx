@@ -11,9 +11,8 @@ import ChickenRoad from '@/components/games/ChickenRoad';
  * of the path.
  *
  * Nothing else is needed here: ChickenRoad carries its own board, betting panel
- * and state, and reads the wallet only to display it. The crossing roll still
- * happens in the browser, so this page must not be treated as a real-stakes game
- * until hazard generation moves server-side — nothing here debits the ledger.
+ * and state. Every hop is decided and settled server-side (chicken.engine.ts,
+ * via the game socket); the board only animates what the server reports.
  */
 export default function ChickenPage() {
   return <ChickenRoad />;

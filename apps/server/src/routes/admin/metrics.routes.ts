@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@prisma/client';
-import { prisma } from '../config/prisma';
-import { requireAdmin } from './auth';
-import { activeSocketCount } from '../websocket/socket.server';
+import { prisma } from '../../config/prisma';
+import { requireAdmin } from '../../middleware/auth';
+import { activeSocketCount } from '../../websocket/socket.server';
 
 const D = Prisma.Decimal;
 
@@ -23,7 +23,7 @@ export interface AdminMetrics {
   generatedAt: string;
 }
 
-export function registerAdminRoutes(app: FastifyInstance) {
+export function registerAdminMetricsRoutes(app: FastifyInstance) {
   app.get(
     '/api/admin/metrics',
     { preHandler: requireAdmin },

@@ -11,10 +11,10 @@
 
 import type { FastifyInstance } from 'fastify';
 import { Prisma, Role, TransactionType, TransactionStatus } from '@prisma/client';
-import { prisma } from '../config/prisma';
-import { requireAdmin } from './auth';
-import { adjustBalance, InsufficientFundsError } from '../services/ledger.service';
-import { auditWithin, isUnknownAdminError } from '../services/audit.service';
+import { prisma } from '../../config/prisma';
+import { requireAdmin } from '../../middleware/auth';
+import { adjustBalance, InsufficientFundsError } from '../../services/ledger.service';
+import { auditWithin, isUnknownAdminError } from '../../services/audit.service';
 
 const PAGE_SIZE = 25;
 const MAX_REASON = 500;

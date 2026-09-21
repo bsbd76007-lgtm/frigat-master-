@@ -158,3 +158,94 @@ export function GlobeIcon(props: UiIconProps) {
     </Glyph>
   );
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Rail glyphs
+   ──────────────────────────────────────────────────────────────────────────
+   The sidebar's category icons. They were lucide-react's outline set, which
+   was one dependency and one drawing style that was not ours — and lucide
+   carried no glyph for half the catalogue anyway, so the rail was already
+   mixing families.
+
+   Every one of these goes through Glyph, so the stroke is 2 units on a 24
+   viewBox with round caps and joins, exactly like the rest of this file.
+   Rendered at a single size in the rail, that resolves to one identical
+   device-pixel weight down the column — which is what lucide's
+   `absoluteStrokeWidth` was compensating for before.
+
+   `rewards` has no entry here on purpose: it uses GiftIcon above. ────────── */
+
+/** Casino / all games. Four tiles, evenly gapped so it reads as a catalogue. */
+export function GridIcon(props: UiIconProps) {
+  return (
+    <Glyph {...props}>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+    </Glyph>
+  );
+}
+
+/** VIP. Three peaks over a detached rim — the rim keeps it legible at 18px,
+    where a crown drawn as one closed outline silts up along the bottom. The
+    valleys are cut deep (11.8 against a 4.6 centre) because a shallower V
+    stops reading as a crown once the glyph is under about 20px. */
+export function CrownIcon(props: UiIconProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M3.5 7.2 7.4 11.8 12 4.6 16.6 11.8 20.5 7.2 18.9 17.4H5.1z" />
+      <path d="M5.6 20.4h12.8" />
+    </Glyph>
+  );
+}
+
+/** Referrals. The plus sits clear of the head's right edge rather than
+    overlapping it, so the two shapes stay separable when greyed out. */
+export function UserPlusIcon(props: UiIconProps) {
+  return (
+    <Glyph {...props}>
+      <circle cx="9.5" cy="8.2" r="3.7" />
+      <path d="M2.6 20.4a6.9 6.9 0 0 1 13.8 0" />
+      <path d="M19 6.6v5.2M21.6 9.2h-5.2" />
+    </Glyph>
+  );
+}
+
+/** Architecture / provable fairness. */
+export function ShieldCheckIcon(props: UiIconProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M12 2.6 20.2 5.7v5.9c0 4.9-3.4 8.5-8.2 9.8-4.8-1.3-8.2-4.9-8.2-9.8V5.7z" />
+      <path d="M8.9 12.1 11.2 14.4 15.4 10" />
+    </Glyph>
+  );
+}
+
+/** Support. The band tucks behind the cups instead of meeting their corners,
+    which is what stops the join reading as a blob at small sizes. */
+export function HeadphonesIcon(props: UiIconProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M5 14v-2a7 7 0 0 1 14 0v2" />
+      <rect x="2.6" y="13.6" width="5" height="7" rx="2.2" />
+      <rect x="16.4" y="13.6" width="5" height="7" rx="2.2" />
+    </Glyph>
+  );
+}
+
+export function ChevronLeftIcon(props: UiIconProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M15 5.5 8.5 12 15 18.5" />
+    </Glyph>
+  );
+}
+
+export function ChevronRightIcon(props: UiIconProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M9 5.5 15.5 12 9 18.5" />
+    </Glyph>
+  );
+}

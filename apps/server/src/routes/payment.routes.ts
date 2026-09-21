@@ -23,7 +23,7 @@ import {
   NowPaymentsError,
   verifyIpnSignature,
 } from '../services/nowpayments.service';
-import { identityFromRequest } from '../http/auth';
+import { identityFromRequest } from '../middleware/auth';
 import { pushBalanceToUser } from '../websocket/socket.server';
 import {
   createDeposit,

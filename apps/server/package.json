@@ -27,7 +27,6 @@
     "argon2": "^0.40.3",
     "dotenv": "^17.4.2",
     "fastify": "^4.28.1",
-    "fastify-plugin": "^4.5.1",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^9.0.5",
     "pino-pretty": "^13.1.3",

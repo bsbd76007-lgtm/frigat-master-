@@ -28,7 +28,7 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@prisma/client';
 
-import { identityFromRequest } from '../../http/auth';
+import { identityFromRequest } from '../../middleware/auth';
 import { prisma } from '../../config/prisma';
 import {
   processBet,

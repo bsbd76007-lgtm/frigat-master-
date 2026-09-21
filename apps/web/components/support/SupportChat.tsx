@@ -5,13 +5,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { apiJson, ApiError } from '@/lib/api';
-import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
 
 /**
  * FRIGAT — Live support widget
  *
- * A launcher and a panel. Opening it restores the player's open ticket from
+ * A panel only — the sidebar's Support control is the one way in (the floating
+ * launcher was removed). Opening it restores the player's open ticket from
  * `GET /api/support/me`, sending posts to `POST /api/support/message`, and
  * `SUPPORT_MESSAGE` frames on the existing game socket stream replies in.
  *
@@ -53,34 +53,7 @@ const ERROR_KEYS: Record<string, string> = {
 const STYLE_ID = 'fg-support-chat-styles';
 
 const CSS = `
-/* Bottom-right launcher. It used to sit stacked above the community chat's
-   own button; with that gone it takes the corner directly, so the -136px that
-   cleared the other launcher is now just the dock lift. */
-/* 1001, not 998. The launcher is deliberately lifted 136px so it clears the
-   bottom dock — but the dock sits at z-index 1000, so wherever the two overlap
-   the dock was on top and swallowed the click. A floating button cannot sit
-   underneath the element it is positioned to clear. The panel is already above
-   the dock for the same reason (see .sup__panel below). */
-.sup__fab { position: fixed; right: 24px; bottom: 24px; z-index: 1001;
-  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
-  font: inherit; font-size: 13px; font-weight: 700; color: var(--fg-bg);
-  background: var(--fg-accent); border: none; border-radius: var(--fg-r);
-  cursor: pointer; box-shadow: 0 12px 28px rgba(59, 124, 255, .28);
-  --sup-lift: 0px; --sup-hide: 0px;
-  transform: translateY(calc(var(--sup-lift) + var(--sup-hide)));
-  transition: transform .3s ease-in-out, opacity .3s ease-in-out, filter var(--fg-t); }
-.sup__fab--raised { --sup-lift: -136px; }
-/* Leaves with the dock on the way down, and goes inert so it cannot be
-   tabbed to or clicked while it is off-screen. */
-.sup__fab--hidden { --sup-hide: 140px; opacity: 0; pointer-events: none; }
-.sup__fab:hover { filter: brightness(1.08); }
-.sup__fab:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-.sup__fab[hidden] { display: none; }
-.sup__fab-dot { display: grid; place-items: center; min-width: 18px; height: 18px;
-  padding: 0 5px; font-size: 11px; font-weight: 800; color: #fff;
-  background: var(--fg-red); border-radius: var(--fg-r-pill); }
-
-/* Above the dock's z-index, not below it: at 950 the launcher punched a hole
+/* Above the dock's z-index, not below it, so the dock cannot punch a hole
    through the open panel. */
 .sup__panel { position: fixed; right: 24px; bottom: 24px; z-index: 1000;
   display: flex; flex-direction: column; width: min(360px, calc(100vw - 32px));
@@ -88,30 +61,29 @@ const CSS = `
   background: var(--fg-panel); border: var(--fg-edge);
   border-radius: var(--fg-r-lg); overflow: hidden; }
 @media (max-width: 560px) { .sup__panel { right: 12px; left: 12px; width: auto; } }
-@media (prefers-reduced-motion: reduce) { .sup__fab { transition: filter var(--fg-t); } }
 
 .sup__head { display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 10px; padding: 9px 10px; border-bottom: 1px solid var(--fg-line); }
+  gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--fg-line); }
 .sup__title { margin: 0; font-size: 14px; font-weight: 800; color: var(--fg-text); }
-.sup__sub { margin: 3px 0 0; font-size: 11.5px; color: var(--fg-muted); }
+.sup__sub { margin: 2px 0 0; font-size: 11.5px; color: var(--fg-muted); }
 .sup__close { width: 28px; height: 28px; display: grid; place-items: center;
   color: var(--fg-muted); background: transparent; border: 1px solid var(--fg-line);
   border-radius: var(--fg-r); cursor: pointer; }
 .sup__close:hover { color: var(--fg-text); background: var(--fg-hover); }
 .sup__close:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
-.sup__body { flex: 1 1 auto; overflow-y: auto; padding: 9px 10px;
+.sup__body { flex: 1 1 auto; overflow-y: auto; padding: 8px 10px;
   display: flex; flex-direction: column; gap: 10px; }
 .sup__empty { margin: auto; max-width: 240px; font-size: 12.5px; line-height: 1.55;
   text-align: center; color: var(--fg-muted); }
-.sup__msg { max-width: 82%; padding: 9px 8px; font-size: 13px; line-height: 1.45;
+.sup__msg { max-width: 82%; padding: 8px 8px; font-size: 13px; line-height: 1.45;
   border-radius: var(--fg-r-lg); word-break: break-word; white-space: pre-wrap; }
 .sup__msg--user { align-self: flex-end; color: var(--fg-bg);
   background: var(--fg-accent); border-bottom-right-radius: var(--fg-r-sm); }
 .sup__msg--admin { align-self: flex-start; color: var(--fg-text);
   background: var(--fg-panel-2); border: 1px solid var(--fg-line);
   border-bottom-left-radius: var(--fg-r-sm); }
-.sup__meta { display: block; margin-top: 3px; font-size: 10px; opacity: .7; }
+.sup__meta { display: block; margin-top: 2px; font-size: 10px; opacity: .7; }
 
 .sup__foot { display: flex; gap: 8px; padding: 8px; border-top: 1px solid var(--fg-line); }
 .sup__input { flex: 1 1 auto; min-width: 0; padding: 10px 8px; font: inherit;
@@ -128,7 +100,6 @@ const CSS = `
 .sup__send:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 .sup__error { margin: 0; padding: 0 10px 10px; font-size: 12px; color: var(--fg-red); }
 
-@media (prefers-reduced-motion: reduce) { .sup__fab { transition: none; } }
 `;
 
 export interface SupportChatProps {
@@ -144,8 +115,7 @@ export function SupportChat({ open: openProp, onOpenChange }: SupportChatProps =
   const { token, socket } = useGameSocket();
   const { subscribe } = socket;
 
-  // Own state, mirrored to the parent when it is controlling. The widget still
-  // works standalone — the launcher below opens it without anyone's help.
+  // Own state, mirrored to the parent when it is controlling.
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = useCallback(
@@ -159,15 +129,8 @@ export function SupportChat({ open: openProp, onOpenChange }: SupportChatProps =
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [unread, setUnread] = useState(0);
-
-  // The same hook the dock uses, so the two move in lockstep instead of
-  // drifting apart mid-scroll on separate listeners.
-  const dockVisible = useScrollDirection();
 
   const bodyRef = useRef<HTMLDivElement>(null);
-  const openRef = useRef(open);
-  openRef.current = open;
 
   /** Adds a message unless its id is already on screen. */
   const absorb = useCallback((incoming: SupportMessage) => {
@@ -176,17 +139,14 @@ export function SupportChat({ open: openProp, onOpenChange }: SupportChatProps =
     );
   }, []);
 
-  // Live replies. Subscribed whether or not the panel is open, so the badge
-  // can count what arrived while it was closed.
+  // Live replies. Subscribed whether or not the panel is open, so the thread is
+  // current the moment it is reopened.
   useEffect(() => {
     if (!token) return;
     return subscribe('SUPPORT_MESSAGE', (data) => {
       const message = data as unknown as SupportMessage;
       if (!message?.id || !message.text) return;
       absorb(message);
-      if (message.sender === 'ADMIN' && !openRef.current) {
-        setUnread((n) => n + 1);
-      }
     });
   }, [subscribe, token, absorb]);
 
@@ -198,7 +158,6 @@ export function SupportChat({ open: openProp, onOpenChange }: SupportChatProps =
       .then((body) => {
         if (!active) return;
         setMessages(body.messages ?? []);
-        setUnread(0);
       })
       .catch(() => {
         /* an empty thread is the correct fallback */
@@ -242,31 +201,7 @@ export function SupportChat({ open: openProp, onOpenChange }: SupportChatProps =
   // Support is tied to an account, so there is nothing to show signed out.
   if (!token) return null;
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        className={`sup__fab ${dockVisible ? 'sup__fab--raised' : 'sup__fab--hidden'}`}
-        onClick={() => {
-          setOpen(true);
-          setUnread(0);
-        }}
-        aria-label={t('support.open')}
-      >
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-          <path
-            d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinejoin="round"
-          />
-        </svg>
-        {t('support.open')}
-        {unread > 0 && <span className="sup__fab-dot">{unread}</span>}
-      </button>
-    );
-  }
+  if (!open) return null;
 
   return (
     <div className="sup__panel" role="dialog" aria-label={t('support.title')}>

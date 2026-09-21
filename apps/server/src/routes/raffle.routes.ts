@@ -8,7 +8,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { identityFromRequest } from '../http/auth';
+import { identityFromRequest } from '../middleware/auth';
 import {
   claimTickets,
   getActiveRaffle,

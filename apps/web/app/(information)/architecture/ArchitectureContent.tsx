@@ -7,9 +7,9 @@
  * server-component export, `t()` needs the client-side LanguageProvider, and
  * one file cannot be both.
  *
- * Every claim here is one the codebase actually holds to, including the
- * uncomfortable one at the bottom — the two practice boards roll in the browser
- * and are marked as such rather than quietly included in "server-decided".
+ * Every claim here is one the codebase actually holds to. Every game on the
+ * platform is server-decided; if one ever is not, it gets called out on this
+ * page rather than quietly included in "server-decided".
  */
 
 import Link from 'next/link';
@@ -135,14 +135,6 @@ export function ArchitectureContent() {
         </ul>
         <p>
           {t('arch.s4p2')} <Link href="/rules#fair">{t('arch.s4Link')}</Link>.
-        </p>
-      </section>
-
-      <section className="info__section">
-        <h2>{t('arch.gapTitle')}</h2>
-        <p>
-          {t('arch.gapBodyA')} <b>{t('games.chicken.name')}</b> {t('arch.gapBodyB')}{' '}
-          <b>{t('games.avia-masters.name')}</b> — {t('arch.gapBodyC')}
         </p>
       </section>
 

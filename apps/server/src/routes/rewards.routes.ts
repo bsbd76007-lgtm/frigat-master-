@@ -12,7 +12,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { identityFromRequest } from '../http/auth';
+import { identityFromRequest } from '../middleware/auth';
 import { pushBalanceToUser } from '../websocket/socket.server';
 import {
   spinDailyWheel,

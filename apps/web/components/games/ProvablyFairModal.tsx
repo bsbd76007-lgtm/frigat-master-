@@ -77,8 +77,8 @@ const CSS = `
   transition: color var(--fg-t), border-color var(--fg-t); }
 .fg-pf__close:hover { color: var(--fg-text); border-color: var(--fg-line-2); }
 .fg-pf__close:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
-.fg-pf__list { display: flex; flex-direction: column; gap: 12px; margin: 18px 0 0; }
-.fg-pf__item { display: flex; flex-direction: column; gap: 5px; }
+.fg-pf__list { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 0; }
+.fg-pf__item { display: flex; flex-direction: column; gap: 4px; }
 .fg-pf__key { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
   letter-spacing: .05em; text-transform: uppercase; color: var(--fg-muted); }
 .fg-pf__val { display: flex; align-items: center; gap: 8px; }
@@ -87,18 +87,18 @@ const CSS = `
   background: var(--fg-line-2); border-radius: 50%; cursor: help; }
 .fg-pf__hint:hover { color: var(--fg-text); }
 .fg-pf__hint:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-.fg-pf__code { flex: 1 1 auto; min-width: 0; padding: 9px 7px; font-size: 12.5px;
+.fg-pf__code { flex: 1 1 auto; min-width: 0; padding: 8px 6px; font-size: 12.5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--fg-text);
   background: var(--fg-bg); border: 1px solid var(--fg-hover-2); border-radius: var(--fg-r);
   overflow-wrap: anywhere; }
 .fg-pf__code--muted { color: var(--fg-dim); font-style: italic; }
-.fg-pf__copy { flex: 0 0 auto; padding: 8px 7px; font-size: 12px; font-weight: 600;
+.fg-pf__copy { flex: 0 0 auto; padding: 8px 6px; font-size: 12px; font-weight: 600;
   color: var(--fg-text); background: var(--fg-panel-2); border: 1px solid var(--fg-line); border-radius: var(--fg-r);
   cursor: pointer; transition: background var(--fg-t), color var(--fg-t); }
 .fg-pf__copy:hover { background: var(--fg-hover-2); color: #fff; }
 .fg-pf__copy:focus-visible { outline: none; border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
 .fg-pf__rotate { margin: 20px 0 0; padding: 10px 0 0; border-top: 1px solid var(--fg-hover-2); }
-.fg-pf__row { display: flex; gap: 8px; margin-top: 9px; }
+.fg-pf__row { display: flex; gap: 8px; margin-top: 8px; }
 .fg-pf__input { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 10px 8px;
   font-size: 13px; font-family: var(--fg-num);
   color: var(--fg-text); background: var(--fg-sunken); border: 1px solid var(--fg-hairline);

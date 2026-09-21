@@ -28,7 +28,7 @@ const CSS = `
   .fg-toaster { right: 12px; left: 12px; bottom: 84px; width: auto; }
 }
 
-.fg-toast { display: flex; align-items: flex-start; gap: 10px; padding: 8px 9px;
+.fg-toast { display: flex; align-items: flex-start; gap: 10px; padding: 8px 8px;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 13px; font-weight: 600; line-height: 1.45; color: var(--fg-text);
   background: var(--fg-panel); border: var(--fg-edge); border-left-width: 3px;

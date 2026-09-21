@@ -16,7 +16,7 @@ import type { FastifyInstance } from 'fastify';
 import { SupportSender, SupportStatus } from '@prisma/client';
 
 import { prisma } from '../config/prisma';
-import { identityFromRequest, requireAdmin } from '../http/auth';
+import { identityFromRequest, requireAdmin } from '../middleware/auth';
 import { pushSupportEvent } from '../websocket/socket.server';
 
 /** Long enough for a real problem description, short enough to bound a row. */

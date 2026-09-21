@@ -47,7 +47,7 @@ const CSS = `
   -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%); }
 .fg-hist__scroll::-webkit-scrollbar { display: none; }
-.fg-hist__badge { flex: 0 0 auto; padding: 5px 10px; font-size: 12.5px; font-weight: 700;
+.fg-hist__badge { flex: 0 0 auto; padding: 4px 10px; font-size: 12.5px; font-weight: 700;
   font-variant-numeric: tabular-nums; line-height: 1.25; white-space: nowrap;
   border: 1px solid transparent; border-radius: var(--fg-r); background: var(--fg-panel-2); color: var(--fg-muted);
   animation: fg-hist-in .18s ease-out; }

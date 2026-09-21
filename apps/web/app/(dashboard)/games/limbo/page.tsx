@@ -6,6 +6,7 @@ import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { useGameRound } from '@/hooks/useGameRound';
 
 const MIN_TARGET = 1.01;
 const MAX_TARGET = 1_000_000;
@@ -26,13 +27,11 @@ function rolloutValue(target: number, t: number): number {
 }
 
 export default function LimboPage() {
-  const { socket, balance, send } = useGameSocket();
+  const { balance } = useGameSocket();
   const { t } = useLanguage();
-  const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
   const [targetInput, setTargetInput] = useState('2.00');
-  const [busy, setBusy] = useState(false);
   const [rolling, setRolling] = useState(false);
   const [display, setDisplay] = useState(1);
   const [achieved, setAchieved] = useState<number | null>(null);
@@ -50,63 +49,64 @@ export default function LimboPage() {
 
   const winChance = useMemo(() => ((1 - LIMBO_EDGE) / target) * 100, [target]);
 
-  useEffect(() => {
-    const off = [
-      subscribe('GAME_RESULT', (data) => {
-        if (data.gameType !== 'LIMBO') return;
-        const result = data.resultData as
-          | { achievedMultiplier?: number; targetMultiplier?: number }
-          | undefined;
-        const finalAchieved =
-          typeof result?.achievedMultiplier === 'number' ? result.achievedMultiplier : 1;
-        const usedTarget =
-          typeof result?.targetMultiplier === 'number' ? result.targetMultiplier : target;
+  // autoSettle is off: the controls stay locked for the whole count-up, not
+  // just until the server answers, so a second bet cannot land mid-rollout.
+  const { busy, bet, settle } = useGameRound<{
+    achievedMultiplier?: number;
+    targetMultiplier?: number;
+  }>('LIMBO', {
+    autoSettle: false,
+    onResult: ({ result, win, payout: paid }) => {
+      const finalAchieved =
+        typeof result?.achievedMultiplier === 'number' ? result.achievedMultiplier : 1;
+      const usedTarget =
+        typeof result?.targetMultiplier === 'number' ? result.targetMultiplier : target;
 
-        setSettledTarget(usedTarget);
-        setWon(null);
-        setAchieved(null);
-        setRolling(true);
+      setSettledTarget(usedTarget);
+      setWon(null);
+      setAchieved(null);
+      setRolling(true);
 
-        const start = performance.now();
-        const tick = (now: number) => {
-          const t = Math.min(1, (now - start) / ROLLOUT_MS);
-          setDisplay(rolloutValue(finalAchieved, t));
-          if (t < 1) {
-            rafRef.current = requestAnimationFrame(tick);
-          } else {
-            setDisplay(finalAchieved);
-            setAchieved(finalAchieved);
-            setWon(Boolean(data.win));
-            setPayout(typeof data.payout === 'string' ? data.payout : null);
-            setRolling(false);
-            setBusy(false);
-          }
-        };
-        rafRef.current = requestAnimationFrame(tick);
-      }),
-      subscribe('ERROR', () => {
-        setBusy(false);
-        setRolling(false);
-      }),
-    ];
-    return () => {
-      off.forEach((fn) => fn());
+      const start = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - start) / ROLLOUT_MS);
+        setDisplay(rolloutValue(finalAchieved, t));
+        if (t < 1) {
+          rafRef.current = requestAnimationFrame(tick);
+        } else {
+          setDisplay(finalAchieved);
+          setAchieved(finalAchieved);
+          setWon(win);
+          setPayout(paid);
+          setRolling(false);
+          settle();
+        }
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    },
+    onError: () => setRolling(false),
+  });
+
+  // The rollout frame is owned by this page, so unmounting mid-count has to
+  // cancel it — useGameRound only owns the subscription.
+  useEffect(
+    () => () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [subscribe, target]);
+    },
+    []
+  );
 
   const placeBet = useCallback(() => {
-    setBusy(true);
     setWon(null);
     setAchieved(null);
     setPayout(null);
     setDisplay(1);
-    send('BET', 'LIMBO', {
+    bet('BET', {
       amount,
       currency: balance.currency,
       params: { targetMultiplier: target },
     });
-  }, [amount, balance.currency, send, target]);
+  }, [amount, balance.currency, bet, target]);
 
   const readoutValue = achieved ?? display;
   const barPercent = Math.min(

@@ -68,7 +68,7 @@ const CSS = `
   color: var(--fg-text, #fff); }
 .sec__widget { display: flex; justify-content: center; margin-top: 16px; min-height: 68px; }
 
-.sec__foot { margin-top: 26px; padding-top: 16px;
+.sec__foot { margin-top: 24px; padding-top: 16px;
   border-top: 1px solid var(--fg-line, #2a3547); }
 .sec__meta { margin: 0; font-size: 11px; line-height: 1.7;
   color: var(--fg-dim, var(--fg-dim)); }

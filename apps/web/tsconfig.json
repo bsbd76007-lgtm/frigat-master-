@@ -35,11 +35,11 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next-prodcheck/types/**/*.ts",
-    ".next-ci/types/**/*.ts"
+    ".next-ci/types/**/*.ts",
+    ".next-verify/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     ".next"
   ]
 }
-

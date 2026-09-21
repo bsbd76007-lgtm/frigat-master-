@@ -6,22 +6,8 @@ import { config } from './config';
 import { prisma } from './config/prisma';
 import { version as SERVER_VERSION } from '../package.json';
 import { registerSocketServer } from './websocket/socket.server';
-import { registerSessionGuard } from './http/auth';
-import { registerHealthRoutes } from './routes/health.routes';
-import { registerAdminRoutes } from './http/admin.routes';
-import { registerAdminUserRoutes } from './http/adminUsers.routes';
-import { registerAdminRiskRoutes } from './http/adminRisk.routes';
-import { registerWalletRoutes } from './http/wallet.routes';
-import { registerReferralRoutes } from './http/referral.routes';
-import { registerVipRoutes } from './http/vip.routes';
-import { registerStreakRoutes } from './http/streak.routes';
-import { registerRewardsRoutes } from './routes/rewards.routes';
-import { registerRaffleRoutes } from './routes/raffle.routes';
-import { registerSeedRoutes } from './http/seed.routes';
-import { registerAuthRoutes } from './routes/auth.routes';
-import { registerPaymentRoutes } from './routes/payment.routes';
-import { registerSupportRoutes } from './routes/support.routes';
-import { registerGameRoutes } from './routes/games';
+import { registerSessionGuard } from './middleware/auth';
+import { registerRoutes } from './routes';
 
 /**
  * Builds the fully-wired app without binding a port.
@@ -129,35 +115,12 @@ export async function buildApp(options: { logger?: boolean } = {}) {
     return { status: 'ready' };
   });
 
-  // Public credential endpoints (register / login). Unauthenticated by design.
   // Before every route: verifies the token's signature *and* that its
   // tokenVersion still matches the account. Registered here rather than per
   // route so a new endpoint cannot forget it.
   registerSessionGuard(app);
 
-  registerHealthRoutes(app);
-
-  registerAuthRoutes(app);
-
-  registerAdminRoutes(app);
-  registerAdminUserRoutes(app);
-  registerAdminRiskRoutes(app);
-  registerWalletRoutes(app);
-
-  registerPaymentRoutes(app);
-
-  registerSupportRoutes(app);
-
-  registerReferralRoutes(app);
-  registerVipRoutes(app);
-  registerStreakRoutes(app);
-  registerRewardsRoutes(app);
-  registerRaffleRoutes(app);
-
-  // Player-scoped provably-fair seeds (read active pair, rotate).
-  registerSeedRoutes(app);
-
-  registerGameRoutes(app);
+  registerRoutes(app);
 
   registerSocketServer(app);
 
@@ -191,7 +154,7 @@ async function bootstrap() {
 // fight whatever is already on :4000.
 if (require.main === module) {
   bootstrap().catch((err) => {
-    // eslint-disable-next-line no-console
+     
     console.error('Fatal: failed to start server', err);
     process.exit(1);
   });

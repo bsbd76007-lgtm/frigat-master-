@@ -50,7 +50,7 @@ const STYLE_ID = 'fg-auth-modal-styles';
 
 const CSS = `
 .authm__overlay { position: fixed; inset: 0; z-index: 130; display: flex;
-  align-items: center; justify-content: center; padding: 13px;
+  align-items: center; justify-content: center; padding: 12px;
   background: rgba(5, 10, 16, .74); backdrop-filter: blur(4px); }
 .authm__panel { position: relative; width: 100%; max-width: 420px;
   max-height: min(90vh, 780px); overflow-y: auto; padding: 10px;
@@ -69,7 +69,7 @@ const CSS = `
 .authm__field label { display: block; margin-bottom: 6px; font-size: 11px;
   font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
   color: var(--fg-muted); }
-.authm__input { width: 100%; box-sizing: border-box; padding: 7px 8px;
+.authm__input { width: 100%; box-sizing: border-box; padding: 6px 8px;
   font: inherit; font-size: 13px; color: var(--fg-text); background: var(--fg-sunken);
   border: 1px solid var(--fg-hairline); border-radius: var(--fg-r); outline: none;
   box-shadow: var(--fg-input-inset);

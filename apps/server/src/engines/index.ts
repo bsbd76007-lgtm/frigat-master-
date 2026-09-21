@@ -7,8 +7,10 @@ import * as mines from './mines.engine';
 import * as limbo from './limbo.engine';
 import * as keno from './keno.engine';
 import * as slots from './slots.engine';
+import * as chicken from './chicken.engine';
+import * as avia from './avia.engine';
 
-export { dice, coinflip, roulette, plinko, crash, mines, limbo, keno, slots };
+export { dice, coinflip, roulette, plinko, crash, mines, limbo, keno, slots, chicken, avia };
 
 import type { EngineResult, SeedContext } from '../types/engine.types';
 
@@ -29,6 +31,9 @@ export const INSTANT_ENGINES = {
   // Registered here as well as behind its REST route, so a spin placed over the
   // socket settles down the exact same audited path as every other instant game.
   SLOTS: (p: Record<string, unknown>, s: SeedContext): EngineResult => slots.spin(p, s),
+  // One bet, one flight: the whole trajectory is decided here and the client
+  // only plays it back, so it settles like any other one-shot game.
+  AVIA: (p: Record<string, unknown>, s: SeedContext): EngineResult => avia.play(p, s),
 } as const;
 
 export type InstantGameType = keyof typeof INSTANT_ENGINES;

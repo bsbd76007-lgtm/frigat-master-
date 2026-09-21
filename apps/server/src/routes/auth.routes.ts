@@ -4,7 +4,7 @@
  * The endpoint the rest of the stack was already written against: until now a
  * JWT had to be minted out of band and pasted into the UI. Both routes end the
  * same way — an HS256 token carrying { userId, role }, which is exactly what
- * http/auth.ts and websocket/auth.middleware.ts already verify.
+ * middleware/auth.ts and websocket/auth.middleware.ts already verify.
  *
  * Password hashing is argon2id with the same parameters as prisma/seed.ts, so
  * seeded accounts and registered accounts verify through one code path.
@@ -17,7 +17,12 @@ import { Prisma, Role } from '@prisma/client';
 import { PASSWORD_POLICY, passwordProblems } from '@frigat/shared';
 import { config } from '../config';
 import { prisma } from '../config/prisma';
-import { identityFromRequest } from '../http/auth';
+import { identityFromRequest } from '../middleware/auth';
+import {
+  throttled,
+  recordAccountFailure,
+  clearThrottle,
+} from '../services/rateLimit.service';
 import { verifyTurnstileToken } from '../utils/turnstile';
 import { MailerNotConfiguredError, sendMail } from '../services/mailer.service';
 import {
@@ -95,86 +100,6 @@ function signToken(userId: string, role: Role, tokenVersion: number): string {
     expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'],
     subject: userId,
   });
-}
-
-/**
- * Attempt limiting, on two axes.
- *
- * Adapted from Event-space's rate limiter, which counts failures per IP *and*
- * per account. Either alone leaves a hole: per-IP only lets an attacker with a
- * pool of addresses grind a single account, and per-account only lets one
- * address walk a list of accounts. It also means a shared NAT cannot lock a
- * stranger out of their own login, because the account axis is keyed on email.
- *
- * State is in-memory, so it is per-instance and lost on restart. That is the
- * honest limit of this implementation: with several API instances behind a load
- * balancer the effective ceiling multiplies by the instance count. Moving these
- * counters to the Redis that is already configured is the fix, and is the same
- * shape Event-space uses.
- */
-const WINDOW_MS = 15 * 60 * 1000;
-/** Per IP: generous, because one address can legitimately be many people. */
-const MAX_PER_IP = 20;
-/** Per account: tight, because one account is one person who knows the password. */
-const MAX_PER_ACCOUNT = 8;
-/** How long an account stays locked once it trips the limit. */
-const ACCOUNT_LOCKOUT_MS = 15 * 60 * 1000;
-
-const attempts = new Map<string, { count: number; resetAt: number }>();
-
-function sweep(now: number) {
-  if (attempts.size <= 10_000) return;
-  for (const [k, v] of attempts) if (now >= v.resetAt) attempts.delete(k);
-}
-
-/** Records a hit against `key` and reports whether it is now over `max`. */
-function bump(key: string, max: number, windowMs: number): boolean {
-  const now = Date.now();
-  const entry = attempts.get(key);
-
-  if (!entry || now >= entry.resetAt) {
-    attempts.set(key, { count: 1, resetAt: now + windowMs });
-    sweep(now);
-    return false;
-  }
-
-  entry.count += 1;
-  return entry.count > max;
-}
-
-/** True when this key is already over its limit, without counting a new hit. */
-function isLocked(key: string, max: number): boolean {
-  const entry = attempts.get(key);
-  if (!entry || Date.now() >= entry.resetAt) return false;
-  return entry.count > max;
-}
-
-function ipKey(req: FastifyRequest, scope: string) {
-  return `${scope}:ip:${req.ip}`;
-}
-
-function accountKey(scope: string, email: string) {
-  return `${scope}:account:${email}`;
-}
-
-/**
- * Checked *before* the credentials are looked at, so a locked account costs an
- * attacker a request and no argon2 work.
- */
-function throttled(req: FastifyRequest, scope: string, email?: string): boolean {
-  if (bump(ipKey(req, scope), MAX_PER_IP, WINDOW_MS)) return true;
-  if (email && isLocked(accountKey(scope, email), MAX_PER_ACCOUNT)) return true;
-  return false;
-}
-
-/** Counts a failure against the account axis. Only called on a genuine miss. */
-function recordAccountFailure(scope: string, email: string) {
-  bump(accountKey(scope, email), MAX_PER_ACCOUNT, ACCOUNT_LOCKOUT_MS);
-}
-
-function clearThrottle(req: FastifyRequest, scope: string, email?: string) {
-  attempts.delete(ipKey(req, scope));
-  if (email) attempts.delete(accountKey(scope, email));
 }
 
 /**
@@ -427,7 +352,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
     req: FastifyRequest<{ Body: CredentialsBody; Querystring: RegisterQuery }>,
     reply: FastifyReply
   ) => {
-    if (throttled(req, 'register')) {
+    if (throttled(req.ip, 'register')) {
       return reply.code(429).send({ error: 'too_many_requests' });
     }
 
@@ -533,7 +458,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
       });
     }
 
-    if (throttled(req, 'register-confirm', email)) {
+    if (throttled(req.ip, 'register-confirm', email)) {
       return reply.code(429).send({
         error: 'too_many_requests',
         message: 'Too many attempts. Please wait a few minutes and try again.',
@@ -615,8 +540,8 @@ export function registerAuthRoutes(app: FastifyInstance) {
       throw err;
     }
 
-    clearThrottle(req, 'register', email);
-    clearThrottle(req, 'register-confirm', email);
+    clearThrottle(req.ip, 'register', email);
+    clearThrottle(req.ip, 'register-confirm', email);
     req.log.info({ userId: user.id, referredById }, 'account registered after email verification');
 
     return reply.code(201).send({
@@ -651,7 +576,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
     // looked up until the limits below have passed.
     const credentials = parseCredentials(req.body);
 
-    if (throttled(req, 'login', credentials?.email)) {
+    if (throttled(req.ip, 'login', credentials?.email)) {
       req.log.warn({ ip: req.ip, email: credentials?.email }, 'sign-in throttled');
       return reply.code(429).send({
         error: 'too_many_requests',
@@ -709,7 +634,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
 
     // The password was right, so the IP/account lockout for *this* factor is
     // cleared. The code step keeps its own budget under the 'otp-verify' scope.
-    clearThrottle(req, 'login', credentials.email);
+    clearThrottle(req.ip, 'login', credentials.email);
 
     // ── Admin bypass ──
     //
@@ -811,7 +736,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
         });
       }
 
-      if (throttled(req, 'otp-verify', email)) {
+      if (throttled(req.ip, 'otp-verify', email)) {
         return reply.code(429).send({
           error: 'too_many_requests',
           message: 'Too many attempts. Please wait a few minutes and try again.',
@@ -876,7 +801,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
         });
       }
 
-      clearThrottle(req, 'otp-verify', email);
+      clearThrottle(req.ip, 'otp-verify', email);
       req.log.info({ userId: account.id }, 'sign-in via email code');
 
       return reply.code(200).send({
@@ -923,7 +848,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
         });
       }
 
-      if (throttled(req, 'forgot-password')) {
+      if (throttled(req.ip, 'forgot-password')) {
         return reply.code(429).send({
           error: 'too_many_requests',
           message: 'Too many reset requests. Please wait a few minutes.',
@@ -1057,7 +982,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
       });
     }
 
-    if (throttled(req, 'forgot-password-reset', email)) {
+    if (throttled(req.ip, 'forgot-password-reset', email)) {
       return reply.code(429).send({
         error: 'too_many_requests',
         message: 'Too many attempts. Please wait a few minutes and try again.',
@@ -1108,8 +1033,8 @@ export function registerAuthRoutes(app: FastifyInstance) {
       });
     }
 
-    clearThrottle(req, 'forgot-password', email);
-    clearThrottle(req, 'forgot-password-reset', email);
+    clearThrottle(req.ip, 'forgot-password', email);
+    clearThrottle(req.ip, 'forgot-password-reset', email);
     req.log.info({ email }, 'password reset completed');
 
     return reply.send({

@@ -3,210 +3,73 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
+import { useGameRound } from '@/hooks/useGameRound';
 import { useCanvasRenderer, type CanvasFrame } from '@/lib/useCanvasRenderer';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
 import {
-
   compareDecimal,
-  divideDecimal,
   formatDecimalString,
   isDecimalString,
-  multiplyDecimal,
   safeDecimal,
   sanitizeDecimalInput,
 } from '@/lib/decimal';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+
+import {
+  GAME_CONFIG,
+  ON_DECK,
+  PICKUPS,
+  altitudeAt,
+  formatMetres,
+  formatMultiplier,
+  payoutFor,
+  planFlight,
+  specFor,
+  type FlightPlan,
+  type Phase,
+  type ServerEvent,
+} from './aviaMasters/config';
+import {
+  drawBomb,
+  drawCarrier,
+  drawFinishMarker,
+  drawPickup,
+  drawPlane,
+} from './aviaMasters/draw';
+import { CSS, STYLE_ID } from './aviaMasters/styles';
+
+// Configuration was part of this file before it was split three ways;
+// re-exported so nothing that reached for it here has to move.
+export { GAME_CONFIG, PICKUPS, payoutFor } from './aviaMasters/config';
+export type { Phase, PickupSpec } from './aviaMasters/config';
 
 /**
- * Avia Masters — carrier-launch multiplier run, drawn on a canvas.
+ * Avia Masters — one bet, one flight, drawn on a canvas.
  *
- * A red biplane leaves the deck and flies right forever. The player holds the
- * altitude: the airframe sinks on its own, so staying up is an active choice,
- * and the whole game is deciding how long to keep climbing through the pickup
- * lane before taking the multiplier home.
+ * The player sets a stake and presses Fly; there is no input after that. The
+ * red biplane leaves the launch carrier, flies through a string of pickups and
+ * rockets, and either lands on the finish carrier — paying what it collected —
+ * or ditches in the sea short of it.
  *
- * ── What is server-decided, and what is not ────────────────────────────────
- * NOTHING here is. There is no `AVIA` engine in `apps/server/src/engines/`, no
- * socket frame, and no ledger call: pickups, bombs and the landing are rolled
- * in the browser, so this is a **practice board**, exactly like ChickenRoad.
- * It reads the wallet to size the stake and to stop a player betting more than
- * they hold, and it never moves a balance — `useBalance` is read-only by
- * design and the only thing that can debit a player is a server-settled bet.
+ * ── What is server-decided ─────────────────────────────────────────────────
+ * All of it. BET goes to the game socket, and the server's engine
+ * (apps/server/src/engines/avia.engine.ts) rolls the whole flight from the
+ * round's committed seed and settles it through the ledger in the same frame.
+ * GAME_RESULT carries every event and whether the flight lands; this component
+ * lays that out (`planFlight`) and flies it. The landing chance is priced off
+ * the pickup table so the round returns 97.5% — see AVIA in @frigat/shared.
  *
- * Before this becomes a real-stakes game, three things have to happen:
- *   1. an engine under `apps/server/src/engines/` owns the run, seeded from
- *      the committed server seed (`services/provableFair.service.ts`);
- *   2. `processBet` / `processWin` in `services/ledger.service.ts` settle it;
- *   3. **the paytable is calibrated.** The pickup table below is tuned to feel
- *      right, not to hold a house edge — the multiplier compounds (`x5` on top
- *      of `x5`) with no survival-probability pricing behind it, so wiring this
- *      to the ledger as it stands would pay out an uncapped edge to the player.
- *      This is the same trap the multiplier ladder note in CLAUDE.md describes.
+ * The result is known before take-off, so the panel shows the balance as it
+ * stood at launch until the plane is down, rather than giving the ending away.
  *
  * Styling is injected CSS: this project ships no utility CSS framework, so a
  * class like `bg-[#0b1622]` would resolve to nothing.
  */
 
-// ─────────────────────────────────────────────
-// Configuration
-// ─────────────────────────────────────────────
-
-export const GAME_CONFIG = {
-  currency: 'USD',
-  minBet: '1.00',
-  maxBet: '1000.00',
-  /** Ceiling of the flyable column, in metres. */
-  maxAltitude: 1000,
-  /** Deck height above the sea, where a launch begins and a landing ends. */
-  deckAltitude: 120,
-  /**
-   * Downward acceleration, in metres per second squared.
-   *
-   * The plane has no lift of its own: altitude is entirely the residue of the
-   * last jump, which is what makes every tap a decision rather than a nudge on
-   * a steering rate.
-   */
-  gravity: 240,
-  /** Upward velocity a tap sets, in metres per second. Not added — set. */
-  jumpImpulse: 240,
-  /** The catapult shot off the deck, which has to clear the launch carrier. */
-  launchImpulse: 330,
-  /**
-   * Terminal velocity on the way down.
-   *
-   * Free fall from the ceiling would otherwise arrive at ~690 m/s, which is
-   * both unreadable and unrecoverable — the clamp is what keeps a long drop
-   * survivable if the player starts tapping again.
-   */
-  maxFallSpeed: 420,
-  /** Nose-up and nose-down limits, in radians. */
-  maxPitchUp: 0.5,
-  maxPitchDown: 0.85,
-  /** Ground speed at launch, in metres per second. */
-  baseSpeed: 115,
-  /** Ground speed gained per 1000 m travelled — the run tightens as it goes. */
-  speedRamp: 26,
-  /**
-   * Ceiling on ground speed.
-   *
-   * The ramp is unbounded on its own: a long run reaches ~550 m/s by 16 km,
-   * at which point pickups and bombs arrive faster than they can be read
-   * and the board stops being a game. The cap keeps the escalation without the
-   * runaway.
-   */
-  maxSpeed: 300,
-  /**
-   * Distance between landing platforms.
-   *
-   * This is the whole risk curve: overfly a deck and the next chance to bank
-   * the multiplier is a full span away, with more bombs in between.
-   */
-  platformSpacing: 900,
-  /** The first platform sits further out, so the launch is not an instant exit. */
-  firstPlatformAt: 700,
-  /** Half-width of a deck, in metres. */
-  platformHalfWidth: 95,
-  /**
-   * How far below the deck a descending plane still counts as touching down.
-   * Wide enough that a fast descent cannot tunnel through the deck between two
-   * frames — at terminal velocity the plane covers ~7m per frame.
-   */
-  touchdownBand: 26,
-  /** Plane bounding box, in metres. Used for bombs and for touchdown alike. */
-  planeHalfWidth: 30,
-  planeHalfHeight: 18,
-  /** How long the landing animation runs before the round settles. */
-  landingMs: 1250,
-} as const;
-
-export type Phase = 'IDLE' | 'FLYING' | 'LANDING' | 'LANDED' | 'CRASHED';
-
-/**
- * Pickup table.
- *
- * `weight` is relative spawn frequency, not odds of anything — see the header:
- * nothing here is priced against survival probability.
- */
-export type PickupKind = 'x2' | 'x3' | 'x5' | 'add2' | 'add10' | 'half';
-
-interface PickupSpec {
-  kind: PickupKind;
-  label: string;
-  weight: number;
-  /** Applied to the running multiplier on pickup. */
-  apply: (multiplier: number) => number;
-  hazard: boolean;
-}
-
-const PICKUPS: readonly PickupSpec[] = [
-  { kind: 'add2', label: '+2', weight: 12, apply: (m) => m + 2, hazard: false },
-  { kind: 'x2', label: 'x2', weight: 10, apply: (m) => m * 2, hazard: false },
-  { kind: 'x3', label: 'x3', weight: 5, apply: (m) => m * 3, hazard: false },
-  { kind: 'add10', label: '+10', weight: 3, apply: (m) => m + 10, hazard: false },
-  { kind: 'x5', label: 'x5', weight: 2, apply: (m) => m * 5, hazard: false },
-  // The only pickup worth dodging, and deliberately common: without a reason to
-  // steer *away* from something, the pickup lane is just a collection chore.
-  { kind: 'half', label: '/2', weight: 12, apply: (m) => Math.max(1, m / 2), hazard: true },
-];
-
-const PICKUP_WEIGHT_TOTAL = PICKUPS.reduce((sum, p) => sum + p.weight, 0);
-
-/**
- * What a bomb costs.
- *
- * Multiplier rather than altitude: with the round now ending only at a deck or
- * in the sea, an altitude penalty would be a stealth instant-loss at low
- * height. Halving the multiplier hurts exactly as much as the player has to
- * lose, which is the point of flying on.
- */
-const BOMB_MULTIPLIER_PENALTY = 0.5;
-
-function rollPickup(): PickupSpec {
-  let roll = Math.random() * PICKUP_WEIGHT_TOTAL;
-  for (const spec of PICKUPS) {
-    roll -= spec.weight;
-    if (roll <= 0) return spec;
-  }
-  return PICKUPS[0];
-}
 
 // ─────────────────────────────────────────────
 // World objects
 // ─────────────────────────────────────────────
-
-interface Pickup {
-  /** Distance along the run, in metres — the same axis as `distance`. */
-  x: number;
-  /** Altitude in metres. */
-  y: number;
-  spec: PickupSpec;
-  taken: boolean;
-  /** Seconds since collection, for the pop animation. */
-  age: number;
-}
-
-/**
- * An airborne mine. It does not chase the plane — it hangs at its altitude and
- * drifts, so hitting one is the player's own doing rather than something aimed
- * at them.
- */
-interface Bomb {
-  x: number;
-  y: number;
-  /** Metres per second of vertical drift; small, and it reverses at the ends. */
-  drift: number;
-  /** Bob phase, so a field of bombs does not pulse in unison. */
-  phase: number;
-  spent: boolean;
-}
-
-/** A floating deck the plane can land on to bank the round. */
-interface Platform {
-  /** Centre of the deck along the run, in metres. */
-  x: number;
-  deckAltitude: number;
-  /** Set once landed on, so the same deck cannot settle the round twice. */
-  used: boolean;
-}
 
 interface Particle {
   x: number;
@@ -224,463 +87,30 @@ interface Particle {
   kind: 'spark' | 'smoke';
 }
 
-/** Damage text that rises off the plane and fades. */
+/** Call-out text that rises off the plane and fades. */
 interface Floater {
-  /** Screen coordinates, fixed at spawn — it marks where the hit landed. */
+  /** Screen coordinates, fixed at spawn — it marks where the event landed. */
   x: number;
   y: number;
   life: number;
   maxLife: number;
   text: string;
   sub: string;
+  /** Pickups call out in green, rockets and the splash in red. */
+  good: boolean;
 }
 
-// ─────────────────────────────────────────────
-// Formatting
-// ─────────────────────────────────────────────
-
-function formatMultiplier(value: number): string {
-  if (value >= 10_000) return `${Math.round(value / 1000)}Kx`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}Kx`;
-  if (value >= 100) return `${value.toFixed(0)}x`;
-  return `${value.toFixed(2)}x`;
+/** What the server settled, held until the plane is down to show it. */
+interface Settlement {
+  landed: boolean;
+  multiplier: number;
+  payout: string;
 }
 
-function formatMetres(value: number): string {
-  return `${Math.round(value).toLocaleString('en-US')} m`;
-}
-
-/**
- * Stake times multiplier, in exact decimal.
- *
- * The multiplier is a float, so it is taken to two places and folded in as an
- * integer — parsing the *stake* into a JS number would reintroduce exactly the
- * drift `Decimal(18,8)` and `lib/decimal.ts` exist to prevent.
- */
-function payoutFor(bet: string, multiplier: number): string {
-  const hundredths = BigInt(Math.max(0, Math.round(multiplier * 100)));
-  return divideDecimal(multiplyDecimal(bet, hundredths), 100n);
-}
-
-// ─────────────────────────────────────────────
-// Painting
-// ─────────────────────────────────────────────
-
-/** The red vintage biplane, nose right, banked by its climb rate. */
-function drawPlane(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  scale: number,
-  bank: number,
-  propellerPhase: number
-) {
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(bank);
-
-  const L = scale * 4.6; // nose-to-tail
-  const H = scale * 1.15; // fuselage depth
-
-  // Tailplane
-  ctx.fillStyle = '#dc2626';
-  ctx.beginPath();
-  ctx.moveTo(-L * 0.5, 0);
-  ctx.lineTo(-L * 0.5, -H * 1.5);
-  ctx.lineTo(-L * 0.24, -H * 0.2);
-  ctx.closePath();
-  ctx.fill();
-
-  // Lower wing, drawn before the fuselage so the body sits on top
-  ctx.fillStyle = '#e5e7eb';
-  roundRect(ctx, -L * 0.12, H * 0.25, L * 0.5, H * 0.42, H * 0.2);
-  ctx.fill();
-
-  // Fuselage
-  const body = ctx.createLinearGradient(0, -H, 0, H);
-  body.addColorStop(0, '#c25560');
-  body.addColorStop(0.55, '#dc2626');
-  body.addColorStop(1, '#991b1b');
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.moveTo(L * 0.52, 0);
-  ctx.quadraticCurveTo(L * 0.35, -H, -L * 0.1, -H * 0.85);
-  ctx.lineTo(-L * 0.5, -H * 0.3);
-  ctx.lineTo(-L * 0.5, H * 0.35);
-  ctx.lineTo(-L * 0.1, H * 0.8);
-  ctx.quadraticCurveTo(L * 0.35, H * 0.9, L * 0.52, 0);
-  ctx.closePath();
-  ctx.fill();
-
-  // Upper wing
-  ctx.fillStyle = '#f3f4f6';
-  roundRect(ctx, -L * 0.18, -H * 1.55, L * 0.56, H * 0.4, H * 0.2);
-  ctx.fill();
-  // Wing struts
-  ctx.strokeStyle = 'rgba(15,23,42,.55)';
-  ctx.lineWidth = Math.max(1, scale * 0.12);
-  ctx.beginPath();
-  ctx.moveTo(-L * 0.1, -H * 1.2);
-  ctx.lineTo(-L * 0.06, -H * 0.7);
-  ctx.moveTo(L * 0.28, -H * 1.2);
-  ctx.lineTo(L * 0.24, -H * 0.7);
-  ctx.stroke();
-
-  // Cockpit
-  ctx.fillStyle = 'rgba(15,23,42,.8)';
-  ctx.beginPath();
-  ctx.ellipse(L * 0.02, -H * 0.55, scale * 0.42, scale * 0.3, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Propeller disc — the blur is the phase, so it reads as spinning
-  ctx.strokeStyle = 'rgba(250,204,21,.85)';
-  ctx.lineWidth = Math.max(1, scale * 0.14);
-  ctx.beginPath();
-  const spin = Math.sin(propellerPhase) * H * 1.5;
-  ctx.moveTo(L * 0.54, -spin);
-  ctx.lineTo(L * 0.54, spin);
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number
-) {
-  const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-  ctx.lineTo(x + radius, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x, y + radius);
-  ctx.closePath();
-}
-
-/** An aircraft carrier seen side-on: the launch deck and the landing target. */
-function drawCarrier(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  deckY: number,
-  seaY: number,
-  width: number,
-  accent: string
-) {
-  const hullH = Math.max(10, (seaY - deckY) * 0.9);
-
-  ctx.fillStyle = '#1e293b';
-  ctx.beginPath();
-  ctx.moveTo(x, deckY);
-  ctx.lineTo(x + width, deckY);
-  ctx.lineTo(x + width * 0.9, deckY + hullH);
-  ctx.lineTo(x + width * 0.08, deckY + hullH);
-  ctx.closePath();
-  ctx.fill();
-
-  // Deck surface
-  ctx.fillStyle = '#334155';
-  ctx.fillRect(x, deckY - Math.max(3, hullH * 0.08), width, Math.max(3, hullH * 0.08));
-
-  // Centreline markings
-  ctx.strokeStyle = accent;
-  ctx.lineWidth = Math.max(1.5, width * 0.008);
-  ctx.setLineDash([width * 0.05, width * 0.04]);
-  ctx.beginPath();
-  ctx.moveTo(x + width * 0.06, deckY - Math.max(3, hullH * 0.08) / 2);
-  ctx.lineTo(x + width * 0.94, deckY - Math.max(3, hullH * 0.08) / 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Island superstructure
-  ctx.fillStyle = '#475569';
-  roundRect(ctx, x + width * 0.7, deckY - hullH * 0.55, width * 0.12, hullH * 0.55, 2);
-  ctx.fill();
-}
-
-/** A pickup badge: the label is the whole point, so it leads. */
-function drawPickup(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  radius: number,
-  spec: PickupSpec,
-  age: number
-) {
-  // Collected badges pop and fade rather than vanishing on the frame they land.
-  const pop = age > 0 ? 1 + age * 3 : 1;
-  const alpha = age > 0 ? Math.max(0, 1 - age * 3.5) : 1;
-  if (alpha <= 0) return;
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(x, y);
-  ctx.scale(pop, pop);
-
-  const fill = spec.hazard ? '#ef4444' : '#e0b055';
-  const ring = spec.hazard ? '#7f1d1d' : '#14532d';
-
-  ctx.fillStyle = 'rgba(0,0,0,.25)';
-  ctx.beginPath();
-  ctx.arc(2, 3, radius, 0, Math.PI * 2);
-  ctx.fill();
-
-  const grad = ctx.createRadialGradient(-radius * 0.3, -radius * 0.4, radius * 0.2, 0, 0, radius);
-  grad.addColorStop(0, spec.hazard ? '#d69199' : '#86bda6');
-  grad.addColorStop(1, fill);
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = ring;
-  ctx.lineWidth = Math.max(1.5, radius * 0.14);
-  ctx.stroke();
-
-  ctx.fillStyle = '#0b0e14';
-  ctx.font = `800 ${radius * 0.92}px ui-sans-serif, system-ui, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(spec.label, 0, radius * 0.06);
-
-  ctx.restore();
-}
-
-/**
- * A floating mine: dark sphere, spikes, and a slow blinking fuse light.
- *
- * Deliberately unlike the old missile — nothing about it should read as
- * "incoming". It is scenery the player flies into.
- */
-function drawBomb(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  scale: number,
-  phase: number
-) {
-  const r = scale * 1.5;
-
-  ctx.save();
-  ctx.translate(x, y);
-
-  // Spikes first, so the body caps them.
-  ctx.strokeStyle = '#475569';
-  ctx.lineWidth = Math.max(1.4, scale * 0.34);
-  ctx.lineCap = 'round';
-  for (let i = 0; i < 8; i += 1) {
-    const angle = (i / 8) * Math.PI * 2 + phase * 0.15;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(angle) * r * 0.85, Math.sin(angle) * r * 0.85);
-    ctx.lineTo(Math.cos(angle) * r * 1.45, Math.sin(angle) * r * 1.45);
-    ctx.stroke();
-  }
-
-  const shell = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.15, 0, 0, r);
-  shell.addColorStop(0, '#64748b');
-  shell.addColorStop(0.55, '#334155');
-  shell.addColorStop(1, '#111827');
-  ctx.fillStyle = shell;
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(8,17,27,.9)';
-  ctx.lineWidth = Math.max(1, scale * 0.2);
-  ctx.stroke();
-
-  // Fuse light — the one warm thing on it, so a bomb is legible against a dark
-  // sky at small sizes.
-  const pulse = 0.55 + Math.sin(phase * 3.2) * 0.45;
-  ctx.fillStyle = `rgba(239,68,68,${pulse})`;
-  ctx.beginPath();
-  ctx.arc(r * 0.28, -r * 0.34, r * 0.24, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-/**
- * A floating landing deck.
- *
- * Drawn from its *centre* so the world position and the collision span are the
- * same number — an x that means "left edge" in the renderer and "centre" in the
- * physics is exactly how a plane lands on thin air.
- */
-function drawPlatform(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  deckY: number,
-  halfWidth: number,
-  used: boolean
-) {
-  const w = halfWidth * 2;
-  const thickness = Math.max(7, w * 0.055);
-  const accent = used ? '#64748b' : '#e0b055';
-
-  ctx.save();
-
-  // Hull under the deck, tapering, so it reads as a vessel rather than a bar.
-  ctx.fillStyle = '#1e293b';
-  ctx.beginPath();
-  ctx.moveTo(cx - halfWidth, deckY);
-  ctx.lineTo(cx + halfWidth, deckY);
-  ctx.lineTo(cx + halfWidth * 0.74, deckY + thickness * 2.4);
-  ctx.lineTo(cx - halfWidth * 0.74, deckY + thickness * 2.4);
-  ctx.closePath();
-  ctx.fill();
-
-  // Deck surface — the line the plane actually lands on.
-  ctx.fillStyle = used ? '#334155' : '#3f4d5c';
-  ctx.fillRect(cx - halfWidth, deckY - thickness, w, thickness);
-
-  // Centreline markings.
-  ctx.strokeStyle = accent;
-  ctx.lineWidth = Math.max(1.5, thickness * 0.22);
-  ctx.setLineDash([w * 0.06, w * 0.05]);
-  ctx.beginPath();
-  ctx.moveTo(cx - halfWidth * 0.88, deckY - thickness / 2);
-  ctx.lineTo(cx + halfWidth * 0.88, deckY - thickness / 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Threshold bars at both ends, and a glow while the deck is still live.
-  ctx.fillStyle = accent;
-  ctx.fillRect(cx - halfWidth, deckY - thickness * 1.5, w * 0.06, thickness * 1.5);
-  ctx.fillRect(cx + halfWidth - w * 0.06, deckY - thickness * 1.5, w * 0.06, thickness * 1.5);
-
-  if (!used) {
-    ctx.strokeStyle = 'rgba(34,197,94,.35)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx - halfWidth, deckY - thickness - 3);
-    ctx.lineTo(cx + halfWidth, deckY - thickness - 3);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
-
-const STYLE_ID = 'fg-avia-masters-styles';
-
-const CSS = `
-.avia { display: flex; flex-direction: column; align-items: center; gap: 20px;
-  width: 100%; max-width: 1180px; margin-inline: auto; padding: 10px;
-  box-sizing: border-box; color: var(--fg-text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-@media (min-width: 1024px) {
-  .avia { flex-direction: row; align-items: flex-start; justify-content: center; }
-}
-
-.avia__stage { position: relative; width: 100%; max-width: 820px; min-width: 0;
-  aspect-ratio: 16 / 9; background: var(--fg-panel-2); border: var(--fg-edge);
-  border-radius: var(--fg-r-lg); overflow: hidden; }
-/* touch-action: none — the canvas is a steering surface, so a drag across it
-   must not be interpreted as a page scroll or a pinch. cursor stays a pointer
-   so it reads as interactive on desktop. */
-.avia__canvas { display: block; width: 100%; height: 100%; touch-action: none;
-  cursor: pointer; }
-
-/* ── Telemetry ── */
-.avia__hud { position: absolute; left: 12px; right: 12px; top: 12px; display: flex;
-  flex-wrap: wrap; gap: 8px; pointer-events: none; }
-.avia__tile { flex: 1 1 auto; min-width: 84px; padding: 7px 7px;
-  background: rgba(8,17,27,.72); border: 1px solid rgba(148,163,184,.22);
-  border-radius: var(--fg-r-lg); backdrop-filter: blur(6px); }
-.avia__tile-label { display: block; font-size: 9.5px; font-weight: 700;
-  letter-spacing: .1em; text-transform: uppercase; color: var(--fg-dim); }
-.avia__tile-value { display: block; margin-top: 2px; font-size: 15px; font-weight: 800;
-  font-variant-numeric: tabular-nums; color: var(--fg-text); }
-.avia__tile--mult .avia__tile-value { color: var(--fg-pos); }
-.avia__tile--payout .avia__tile-value { color: var(--fg-gold); }
-
-/* ── Steering, for touch ── */
-.avia__banner { position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%);
-  padding: 9px 16px; text-align: center; font-size: 17px; font-weight: 800;
-  border-radius: var(--fg-r-lg); pointer-events: none; }
-.avia__banner--won { color: var(--fg-bg); background: rgba(74,222,128,.94); }
-.avia__banner--lost { color: #450a0a; background: rgba(248,113,113,.94); }
-.avia__banner small { display: block; margin-top: 3px; font-size: 12px; font-weight: 700;
-  opacity: .8; }
-
-.avia__hint { position: absolute; left: 12px; bottom: 12px; margin: 0; font-size: 11px;
-  color: rgba(226,232,240,.6); pointer-events: none; }
-
-/* ── Panel ── */
-.avia__panel { display: flex; flex-direction: column; gap: 15px; width: 100%;
-  max-width: 820px; min-width: 0; flex: 0 0 auto; padding: 13px; box-sizing: border-box;
-  background: var(--fg-panel); border: 1px solid var(--fg-line); border-radius: var(--fg-r-lg); }
-@media (min-width: 1024px) { .avia__panel { width: 320px; } }
-
-.avia__label { display: flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: 7px; font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--fg-dim); }
-.avia__label b { font-size: 12.5px; color: var(--fg-muted); letter-spacing: 0; }
-
-.avia__inputs { display: flex; gap: 6px; }
-.avia__input { flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box;
-  padding: 7px 8px; font-family: inherit; font-size: 15px; font-weight: 700;
-  font-variant-numeric: tabular-nums; color: var(--fg-text); background: var(--fg-sunken);
-  border: 1px solid var(--fg-line); border-radius: var(--fg-r-lg); outline: none; }
-.avia__input:focus-visible { border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
-.avia__input:disabled { opacity: .5; cursor: not-allowed; }
-.avia__mod { flex: 0 0 auto; min-width: 42px; padding: 0 9px; font-family: inherit;
-  font-size: 12px; font-weight: 800; color: var(--fg-muted); background: var(--fg-sunken);
-  border: 1px solid var(--fg-line); border-radius: var(--fg-r-lg); cursor: pointer;
-  transition: background var(--fg-t), color var(--fg-t); }
-.avia__mod:hover:not(:disabled) { color: #fff; background: var(--fg-line); }
-.avia__mod:disabled { opacity: .45; cursor: not-allowed; }
-.avia__mod:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-
-.avia__action { width: 100%; padding: 10px; font-family: inherit; font-size: 16px;
-  font-weight: 900; color: var(--fg-bg);
-  background: linear-gradient(90deg, var(--fg-accent), var(--fg-accent-deep)); border: none;
-  border-radius: var(--fg-r-lg); cursor: pointer; box-shadow: 0 10px 20px -6px rgba(34,197,94,.45);
-  transition: background var(--fg-t), transform var(--fg-t); }
-.avia__action:hover:not(:disabled) { background: linear-gradient(90deg, var(--fg-pos), var(--fg-accent)); }
-.avia__action:active:not(:disabled) { transform: translateY(1px); }
-.avia__action:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
-.avia__action:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-/* In-flight standing. Replaces the old Land button: the deck banks the round,
-   so this reports rather than offers. */
-.avia__standing { display: flex; flex-direction: column; gap: 2px; width: 100%;
-  padding: 8px 10px; text-align: center; border-radius: var(--fg-r-lg);
-  background: rgba(250,204,21,.1); border: 1px solid rgba(250,204,21,.35); }
-.avia__standing span { font-size: 10.5px; font-weight: 800; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--fg-gold); }
-.avia__standing b { font-size: 19px; font-weight: 900; font-variant-numeric: tabular-nums;
-  color: var(--fg-gold-soft); }
-.avia__standing small { font-size: 11px; color: rgba(253,224,71,.75); }
-
-.avia__error { margin: 0; font-size: 12px; font-weight: 600; color: #c25560;
-  text-align: center; }
-.avia__note { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--fg-line-2);
-  text-align: center; }
-
-.avia__legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.avia__chip { padding: 6px 4px; text-align: center; font-size: 11px; font-weight: 800;
-  border-radius: var(--fg-r); background: color-mix(in srgb, var(--fg-pos) 12%, transparent); color: var(--fg-pos-soft);
-  border: 1px solid color-mix(in srgb, var(--fg-pos) 30%, transparent); }
-.avia__chip--bad { background: rgba(239,68,68,.12); color: #d69199;
-  border-color: rgba(239,68,68,.3); }
-`;
 
 // ─────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────
-
-import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export default function AviaMasters() {
   const { t } = useLanguage();
@@ -690,7 +120,9 @@ export default function AviaMasters() {
 
   const [phase, setPhase] = useState<Phase>('IDLE');
   const [bet, setBet] = useState('10.00');
-  const [settled, setSettled] = useState<{ multiplier: number; payout: string } | null>(null);
+  const [settled, setSettled] = useState<Settlement | null>(null);
+  /** The balance as it stood when Fly was pressed — shown until touchdown. */
+  const [launchBalance, setLaunchBalance] = useState<string | null>(null);
 
   /** Telemetry mirrored out of the loop for the HUD, at a readable rate. */
   const [hud, setHud] = useState({ altitude: 0, distance: 0, multiplier: 1 });
@@ -698,26 +130,23 @@ export default function AviaMasters() {
   // The render loop reads refs, so it never restarts and never closes over a
   // stale value.
   const phaseRef = useRef<Phase>('IDLE');
-  // Annotated: `GAME_CONFIG` is `as const`, so seeding from `deckAltitude`
-  // would infer the literal type 120 and reject every later assignment.
-  const altitudeRef = useRef<number>(GAME_CONFIG.deckAltitude);
+  const planRef = useRef<FlightPlan | null>(null);
+  const resultRef = useRef<Settlement | null>(null);
+  const flightClockRef = useRef(0);
+  const altitudeRef = useRef<number>(ON_DECK);
   const distanceRef = useRef(0);
   const multiplierRef = useRef(1);
-  const pickupsRef = useRef<Pickup[]>([]);
-  const bombsRef = useRef<Bomb[]>([]);
-  const platformsRef = useRef<Platform[]>([]);
+  /** Index of the next event the plane has not reached yet. */
+  const nextEventRef = useRef(0);
+  /** Seconds since each event was collected, for the pop; -1 while ahead. */
+  const eventAgeRef = useRef<number[]>([]);
   const particlesRef = useRef<Particle[]>([]);
-  const nextPickupAtRef = useRef(0);
-  const nextBombAtRef = useRef(0);
-  const nextPlatformAtRef = useRef(0);
-  /** The deck being landed on, so the animation knows where to settle. */
-  const landingOnRef = useRef<Platform | null>(null);
   const landingStartedRef = useRef<number | null>(null);
-  const landingFromRef = useRef(0);
   const shakeRef = useRef(0);
   const hudClockRef = useRef(0);
   const propellerRef = useRef(0);
-  const settleRef = useRef<(won: boolean) => void>(() => {});
+  const waveRef = useRef(0);
+  const settleRoundRef = useRef<() => void>(() => {});
 
   // ── Damage feedback ──
   /** Seconds of red screen flash left after a hit. */
@@ -726,14 +155,10 @@ export default function AviaMasters() {
   const smokeRef = useRef(0);
   const floatersRef = useRef<Floater[]>([]);
 
-  // ── Flight ──
-  /** Vertical velocity in metres per second, positive up. */
-  const velocityRef = useRef(0);
-  /** Rendered pitch in radians, eased toward the velocity's implied angle. */
+  /** Rendered pitch in radians, eased toward the path's slope. */
   const pitchRef = useRef(0);
 
-  const isFlying = phase === 'FLYING';
-  const isLanding = phase === 'LANDING';
+  const isAirborne = phase === 'WAITING' || phase === 'FLYING' || phase === 'LANDING';
   const isOver = phase === 'LANDED' || phase === 'CRASHED';
 
   // ── Stake, checked against the wallet in exact decimal ──
@@ -762,7 +187,12 @@ export default function AviaMasters() {
     return null;
   }, [bet, safeBet, balance.hasSynced, balance.balance]);
 
-  const payout = useMemo(() => payoutFor(safeBet, hud.multiplier), [safeBet, hud.multiplier]);
+  // What the flight would pay right now. Once it has ditched it pays nothing,
+  // whatever it collected on the way down.
+  const payout = useMemo(
+    () => (phase === 'CRASHED' ? '0' : payoutFor(safeBet, hud.multiplier)),
+    [phase, safeBet, hud.multiplier]
+  );
 
   const setPhaseBoth = useCallback((next: Phase) => {
     phaseRef.current = next;
@@ -822,103 +252,102 @@ export default function AviaMasters() {
         y: screenY - 26,
         life: 0,
         maxLife: 1.15,
-        text: 'DAMAGE!',
+        text: 'ROCKET!',
         // The honest number: what the hit actually took off the multiplier.
         sub: `−${multiplierLost.toFixed(2)}x`,
+        good: false,
       });
     },
     [burst]
   );
 
   // ── Round flow ──
-  const settle = useCallback(
-    (won: boolean) => {
-      if (phaseRef.current !== 'FLYING' && phaseRef.current !== 'LANDING') return;
-      const multiplier = won ? multiplierRef.current : 0;
-      setSettled({
-        multiplier,
-        payout: won ? payoutFor(safeDecimal(bet, GAME_CONFIG.minBet), multiplier) : '0',
-      });
-      setPhaseBoth(won ? 'LANDED' : 'CRASHED');
-      velocityRef.current = 0;
+  const { busy, settle: releaseControls, bet: placeBet } = useGameRound('AVIA', {
+    // The flight plays out after the frame lands; the controls stay locked
+    // until the plane is down, or a second bet would take off mid-flight.
+    autoSettle: false,
+    onResult: ({ raw }) => {
+      if (phaseRef.current !== 'WAITING') return;
+      const data = (raw.resultData ?? {}) as { landed?: boolean; events?: ServerEvent[] };
+      const plan = planFlight(data.events ?? [], Boolean(data.landed));
+      planRef.current = plan;
+      resultRef.current = {
+        landed: plan.landed,
+        multiplier: typeof raw.multiplier === 'number' ? raw.multiplier : 0,
+        payout: typeof raw.payout === 'string' ? raw.payout : '0',
+      };
+      eventAgeRef.current = plan.events.map(() => -1);
+      flightClockRef.current = 0;
+      setPhaseBoth('FLYING');
     },
-    [bet, setPhaseBoth]
-  );
-  settleRef.current = settle;
+    onError: () => {
+      if (phaseRef.current === 'WAITING') setPhaseBoth('IDLE');
+      setLaunchBalance(null);
+    },
+  });
+
+  /** The plane is down: reveal what the server settled and free the controls. */
+  const settleRound = useCallback(() => {
+    const result = resultRef.current;
+    if (!result) return;
+    setSettled(result);
+    setPhaseBoth(result.landed ? 'LANDED' : 'CRASHED');
+    setLaunchBalance(null);
+    releaseControls();
+  }, [releaseControls, setPhaseBoth]);
+  settleRoundRef.current = settleRound;
 
   const launch = useCallback(() => {
-    if (betError) return;
-    altitudeRef.current = GAME_CONFIG.deckAltitude;
+    if (betError || busy) return;
+    if (phaseRef.current !== 'IDLE' && phaseRef.current !== 'LANDED' && phaseRef.current !== 'CRASHED') {
+      return;
+    }
+    planRef.current = null;
+    resultRef.current = null;
+    altitudeRef.current = ON_DECK;
     distanceRef.current = 0;
     multiplierRef.current = 1;
-    pickupsRef.current = [];
-    bombsRef.current = [];
-    platformsRef.current = [];
+    nextEventRef.current = 0;
+    eventAgeRef.current = [];
     particlesRef.current = [];
-    nextPickupAtRef.current = 140;
-    nextBombAtRef.current = 460;
-    nextPlatformAtRef.current = GAME_CONFIG.firstPlatformAt;
     landingStartedRef.current = null;
-    landingOnRef.current = null;
-    // The catapult shot: the round opens with the plane already climbing off
-    // the deck, so the first tap is a choice rather than a scramble.
-    velocityRef.current = GAME_CONFIG.launchImpulse;
-    pitchRef.current = -GAME_CONFIG.maxPitchUp;
+    pitchRef.current = 0;
     shakeRef.current = 0;
     flashRef.current = 0;
     smokeRef.current = 0;
     floatersRef.current = [];
     setSettled(null);
-    setHud({ altitude: GAME_CONFIG.deckAltitude, distance: 0, multiplier: 1 });
-    setPhaseBoth('FLYING');
-  }, [betError, setPhaseBoth]);
+    setLaunchBalance(balance.balance);
+    setHud({ altitude: ON_DECK, distance: 0, multiplier: 1 });
+    setPhaseBoth('WAITING');
+    placeBet('BET', {
+      amount: formatDecimalString(safeBet, 2).replace(/,/g, ''),
+      currency: balance.currency,
+      params: {},
+    });
+  }, [betError, busy, balance.balance, balance.currency, placeBet, safeBet, setPhaseBoth]);
 
-
-  // ── Jump ──
-  //
-  // One verb. A tap sets the upward velocity outright rather than adding to
-  // it, so a frantic player and a patient one get the same climb per tap and
-  // the arc stays readable — accumulating impulses would let a burst of taps
-  // fire the plane through the ceiling.
-  const jump = useCallback(() => {
-    if (phaseRef.current !== 'FLYING') return;
-    velocityRef.current = GAME_CONFIG.jumpImpulse;
-  }, []);
-
-  /** A tap anywhere on the board is a jump. There is no down control. */
+  /** The board, Space and Enter all do one thing: launch when grounded. */
   const onCanvasPointerDown = useCallback(
     (event: React.PointerEvent<HTMLCanvasElement>) => {
-      // Pointer rather than click, so touch does not wait on the 300ms
-      // synthetic-click delay: at this gravity that lag is a wet plane.
       event.preventDefault();
-      if (phaseRef.current === 'FLYING') jump();
-      else if (phaseRef.current !== 'LANDING') launch();
+      launch();
     },
-    [jump, launch]
+    [launch]
   );
 
-  // ── Keyboard ──
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
-      const key = event.key;
-      // Space is the jump, so landing moved to Enter. Holding a key repeats it
-      // through the OS, which would be a free hover — `event.repeat` filters
-      // that back down to one jump per press.
-      if (key === ' ' || key === 'ArrowUp' || key === 'w' || key === 'W') {
-        event.preventDefault();
-        if (event.repeat) return;
-        if (phaseRef.current === 'FLYING') jump();
-        else if (phaseRef.current !== 'LANDING') launch();
-      } else if (key === 'Enter') {
-        event.preventDefault();
-        // Nothing to land with any more — the deck does that. Enter only starts
-        // a round.
-        if (phaseRef.current !== 'FLYING' && phaseRef.current !== 'LANDING') launch();
-      }
+      if (event.key !== ' ' && event.key !== 'Enter') return;
+      // Leave Space and Enter alone in the stake field and on buttons.
+      const target = event.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|BUTTON|SELECT)$/.test(target.tagName)) return;
+      event.preventDefault();
+      if (!event.repeat) launch();
     };
     window.addEventListener('keydown', down);
     return () => window.removeEventListener('keydown', down);
-  }, [jump, launch]);
+  }, [launch]);
 
   // ── Renderer ──
   const draw = useCallback(
@@ -936,208 +365,105 @@ export default function AviaMasters() {
 
       const altToY = (alt: number) =>
         seaY - (alt / GAME_CONFIG.maxAltitude) * (seaY - skyTop);
+      /** The baseline every deck and the finish marker are drawn from. */
+      const deckY = altToY(GAME_CONFIG.deckAltitude);
 
+      const plan = planRef.current;
       const phaseNow = phaseRef.current;
-      const flying = phaseNow === 'FLYING';
-      const landing = phaseNow === 'LANDING';
+      const flying = phaseNow === 'FLYING' && plan !== null;
+      const landing = phaseNow === 'LANDING' && plan !== null;
+      waveRef.current += dt;
 
-      // ── Simulation ──
-      const speed = Math.min(
-        GAME_CONFIG.maxSpeed,
-        GAME_CONFIG.baseSpeed + (distanceRef.current / 1000) * GAME_CONFIG.speedRamp
-      );
-
-      const halfHeight = GAME_CONFIG.planeHalfHeight;
-
+      // ── Playback ──
       if (flying) {
-        distanceRef.current += speed * dt;
+        flightClockRef.current += dt;
+        // The catapult: ease up to cruise instead of leaving at full speed.
+        const launchT = Math.min(1, flightClockRef.current / GAME_CONFIG.catapultSeconds);
+        const speed = GAME_CONFIG.cruiseSpeed * (0.35 + 0.65 * launchT);
+        const before = distanceRef.current;
+        distanceRef.current = Math.min(plan.endX, before + speed * dt);
+        altitudeRef.current = altitudeAt(plan, distanceRef.current);
 
-        // ── Vertical motion ──
-        // Gravity always pulls; a jump is the only thing that ever pushes back.
-        velocityRef.current -= GAME_CONFIG.gravity * dt;
-        if (velocityRef.current < -GAME_CONFIG.maxFallSpeed) {
-          velocityRef.current = -GAME_CONFIG.maxFallSpeed;
-        }
-        altitudeRef.current += velocityRef.current * dt;
-
-        // The ceiling is a hard stop, and it kills the climb rather than
-        // letting the plane skate along the top holding velocity it would
-        // otherwise cash in the moment it dropped away from the roof.
-        if (altitudeRef.current > GAME_CONFIG.maxAltitude) {
-          altitudeRef.current = GAME_CONFIG.maxAltitude;
-          if (velocityRef.current > 0) velocityRef.current = 0;
-        }
-
-        // ── Touchdown ──
-        // Checked before the sea, and only while descending: a plane climbing
-        // up through a deck is passing it, not landing on it. `prevBottom`
-        // makes this a *crossing* test rather than a proximity one, so a fast
-        // descent cannot tunnel between two frames.
-        if (velocityRef.current <= 0) {
-          const bottom = altitudeRef.current - halfHeight;
-          const prevBottom = bottom - velocityRef.current * dt;
-          for (const platform of platformsRef.current) {
-            if (platform.used) continue;
-            if (Math.abs(platform.x - distanceRef.current) > GAME_CONFIG.platformHalfWidth) {
-              continue;
-            }
-            const deck = platform.deckAltitude;
-            const crossed = prevBottom >= deck && bottom <= deck + GAME_CONFIG.touchdownBand;
-            if (!crossed) continue;
-
-            // Clean landing: stop dead on the deck and bank the round.
-            platform.used = true;
-            landingOnRef.current = platform;
-            altitudeRef.current = deck + halfHeight;
-            velocityRef.current = 0;
-            landingStartedRef.current = now;
-            landingFromRef.current = distanceRef.current;
-            burst(planeX, altToY(deck), 14, 130);
+        // Events are met in order; a long frame may pass more than one.
+        while (
+          nextEventRef.current < plan.events.length &&
+          distanceRef.current >= plan.events[nextEventRef.current].x
+        ) {
+          const i = nextEventRef.current;
+          const event = plan.events[i];
+          const spec = specFor(event.kind);
+          const previous = multiplierRef.current;
+          multiplierRef.current = event.multiplier;
+          eventAgeRef.current[i] = 0;
+          const y = altToY(event.alt);
+          if (spec.hazard) {
+            registerHit(planeX, y, Math.max(0, previous - event.multiplier));
+          } else {
+            burst(planeX, y, 12, 130);
             floatersRef.current.push({
               x: planeX,
-              y: altToY(deck) - 46,
+              y: y - 30,
+              life: 0,
+              maxLife: 0.9,
+              text: spec.label,
+              sub: formatMultiplier(event.multiplier),
+              good: true,
+            });
+          }
+          nextEventRef.current += 1;
+        }
+
+        if (distanceRef.current >= plan.endX) {
+          if (plan.landed) {
+            landingStartedRef.current = now;
+            burst(planeX, deckY, 14, 130);
+            floatersRef.current.push({
+              x: planeX,
+              y: deckY - 46,
               life: 0,
               maxLife: 1.4,
               text: 'TOUCHDOWN',
               sub: `${formatMultiplier(multiplierRef.current)} banked`,
+              good: true,
             });
             setPhaseBoth('LANDING');
-            break;
+          } else {
+            // Short of the deck: the one way to lose, so it gets the full
+            // splash, a long shake and a call-out.
+            altitudeRef.current = 0;
+            burst(planeX, seaY, 34, 200);
+            burst(planeX, seaY, 20, 40);
+            flashRef.current = 0.4;
+            shakeRef.current = 0.7;
+            floatersRef.current.push({
+              x: planeX,
+              y: seaY - 42,
+              life: 0,
+              maxLife: 1.3,
+              text: 'SPLASHDOWN',
+              sub: 'Short of the deck',
+              good: false,
+            });
+            settleRoundRef.current();
           }
-        }
-
-        // ── Water impact ──
-        // The one way to lose. Bigger than a bomb hit on purpose: this ends
-        // the round, so it gets a full splash, a long shake and a call-out.
-        if (altitudeRef.current <= 0) {
-          altitudeRef.current = 0;
-          velocityRef.current = 0;
-          burst(planeX, seaY, 34, 200);
-          burst(planeX, seaY, 20, 40);
-          flashRef.current = 0.4;
-          shakeRef.current = 0.7;
-          floatersRef.current.push({
-            x: planeX,
-            y: seaY - 42,
-            life: 0,
-            maxLife: 1.3,
-            text: 'SPLASHDOWN',
-            sub: 'Round over',
-          });
-          settleRef.current(false);
         }
       }
 
       if (landing && landingStartedRef.current !== null) {
         const t = Math.min(1, (now - landingStartedRef.current) / GAME_CONFIG.landingMs);
         const eased = 1 - Math.pow(1 - t, 3);
-        const deck = landingOnRef.current;
-        if (deck) {
-          // Roll forward along the deck and stop, rather than freezing mid-air
-          // the instant the wheels touch.
-          const rollout = Math.min(GAME_CONFIG.platformHalfWidth * 0.8, 70);
-          distanceRef.current = landingFromRef.current + rollout * eased;
-          altitudeRef.current = deck.deckAltitude + halfHeight;
-        }
-        velocityRef.current = 0;
-        // Settles as a WIN, which credits the multiplier automatically. There
-        // is no button in this path — landing is the cashout.
-        if (t >= 1) settleRef.current(true);
+        // Roll forward along the deck and stop, rather than freezing the
+        // instant the wheels touch.
+        distanceRef.current = plan.endX + GAME_CONFIG.carrierLength * 0.4 * eased;
+        altitudeRef.current = ON_DECK;
+        if (t >= 1) settleRoundRef.current();
       }
 
       const distance = distanceRef.current;
-      const altitude = altitudeRef.current;
 
-      // ── Spawning ──
-      if (flying) {
-        // Pickups sit ahead of the plane at a readable altitude spread.
-        while (distance + 700 > nextPickupAtRef.current) {
-          const spec = rollPickup();
-          nextPickupAtRef.current += 90 + Math.random() * 120;
-          pickupsRef.current.push({
-            x: nextPickupAtRef.current,
-            y: 90 + Math.random() * (GAME_CONFIG.maxAltitude - 200),
-            spec,
-            taken: false,
-            age: 0,
-          });
-        }
-
-        // Bombs. Placed at a *random* altitude rather than near the plane:
-        // they are a minefield to be flown around, not a weapon aimed at
-        // anyone. Density rises with distance, which is the reason not to fly
-        // forever now that the deck is the only exit.
-        while (distance + 900 > nextBombAtRef.current) {
-          const pressure = Math.min(1, distance / 4200);
-          nextBombAtRef.current += 260 - pressure * 130 + Math.random() * 170;
-          bombsRef.current.push({
-            x: nextBombAtRef.current,
-            y: 70 + Math.random() * (GAME_CONFIG.maxAltitude - 140),
-            drift: (Math.random() * 2 - 1) * 9,
-            phase: Math.random() * Math.PI * 2,
-            spent: false,
-          });
-        }
-
-        // Landing decks at fixed milestones, at a readable spread of heights.
-        while (distance + 1400 > nextPlatformAtRef.current) {
-          platformsRef.current.push({
-            x: nextPlatformAtRef.current,
-            deckAltitude: 150 + Math.random() * 420,
-            used: false,
-          });
-          nextPlatformAtRef.current += GAME_CONFIG.platformSpacing;
-        }
+      for (const [i, age] of eventAgeRef.current.entries()) {
+        if (age >= 0) eventAgeRef.current[i] = age + dt;
       }
-
-      // ── Movement and collisions ──
-      const planeHitR = 34; // metres — pickups keep the older radial test
-      const halfW = GAME_CONFIG.planeHalfWidth;
-      const halfH = GAME_CONFIG.planeHalfHeight;
-
-      // Bombs drift gently and reverse at the ends of the column. Nothing here
-      // steers toward the plane.
-      for (const bomb of bombsRef.current) {
-        if (flying) {
-          bomb.phase += dt;
-          bomb.y += bomb.drift * dt;
-          if (bomb.y < 60 || bomb.y > GAME_CONFIG.maxAltitude - 60) bomb.drift *= -1;
-        }
-        if (bomb.spent || !flying) continue;
-
-        // Box-on-box. The bomb is a disc, so its half-extent is its radius in
-        // both axes; damage fires only on a true overlap of the two boxes.
-        const bombHalf = 26;
-        const hit =
-          Math.abs(bomb.x - distance) < halfW + bombHalf &&
-          Math.abs(bomb.y - altitude) < halfH + bombHalf;
-        if (!hit) continue;
-
-        bomb.spent = true;
-        const before = multiplierRef.current;
-        multiplierRef.current = Math.max(1, before * BOMB_MULTIPLIER_PENALTY);
-        registerHit(planeX, altToY(altitude), before - multiplierRef.current);
-      }
-      bombsRef.current = bombsRef.current.filter((b) => b.x > distance - 220);
-
-      for (const pickup of pickupsRef.current) {
-        if (pickup.taken) {
-          pickup.age += dt;
-          continue;
-        }
-        if (
-          flying &&
-          Math.abs(pickup.x - distance) < planeHitR &&
-          Math.abs(pickup.y - altitude) < planeHitR
-        ) {
-          pickup.taken = true;
-          multiplierRef.current = pickup.spec.apply(multiplierRef.current);
-          burst(planeX, altToY(pickup.y), 12, pickup.spec.hazard ? 0 : 130);
-        }
-      }
-      pickupsRef.current = pickupsRef.current.filter(
-        (p) => p.x > distance - 150 && p.age < 0.5
-      );
 
       // Damage trail: the engine keeps smoking for a couple of seconds after a
       // hit, so the plane carries visible evidence of it rather than the whole
@@ -1228,54 +554,56 @@ export default function AviaMasters() {
         ctx.stroke();
       }
 
-      // Launch carrier, scrolling away behind the plane
-      const launchDeckX = planeX - distance * pxPerMetre - width * 0.14;
-      if (launchDeckX > -width * 0.6) {
-        drawCarrier(ctx, launchDeckX, altToY(GAME_CONFIG.deckAltitude), seaY, width * 0.42, '#e0b055');
+      const toScreenX = (x: number) => planeX + (x - distance) * pxPerMetre;
+      const carrierPx = GAME_CONFIG.carrierLength * pxPerMetre;
+
+      // Launch carrier: the plane starts near its bow and it scrolls away.
+      const launchX = toScreenX(-GAME_CONFIG.carrierLength * 0.85);
+      if (launchX + carrierPx > -40) {
+        drawCarrier(ctx, launchX, deckY, seaY, carrierPx, '#e0b055');
       }
 
-      // Landing decks, at their real world positions — the same x the
-      // touchdown test uses, so what is drawn is what can be landed on.
-      for (const platform of platformsRef.current) {
-        const x = planeX + (platform.x - distance) * pxPerMetre;
-        const halfPx = GAME_CONFIG.platformHalfWidth * pxPerMetre;
-        if (x + halfPx < -40 || x - halfPx > width + 40) continue;
-        drawPlatform(ctx, x, altToY(platform.deckAltitude), halfPx, platform.used);
+      // Finish carrier and its flag, on the same baseline as the launch deck.
+      if (plan) {
+        const finishLeft = toScreenX(plan.finishX - GAME_CONFIG.carrierLength / 2);
+        if (finishLeft < width + 40 && finishLeft + carrierPx > -40) {
+          drawCarrier(ctx, finishLeft, deckY, seaY, carrierPx, '#22c55e');
+          drawFinishMarker(ctx, finishLeft + carrierPx * 0.9, deckY, scale, waveRef.current);
+        }
       }
 
-      // Pickups
-      for (const pickup of pickupsRef.current) {
-        const x = planeX + (pickup.x - distance) * pxPerMetre;
-        if (x < -60 || x > width + 60) continue;
-        drawPickup(ctx, x, altToY(pickup.y), scale * 2.1, pickup.spec, pickup.age);
-      }
-
-      // Bombs
-      for (const bomb of bombsRef.current) {
-        if (bomb.spent) continue;
-        const x = planeX + (bomb.x - distance) * pxPerMetre;
-        if (x < -60 || x > width + 60) continue;
-        drawBomb(ctx, x, altToY(bomb.y), scale, bomb.phase);
+      // Pickups and rockets, where the path will meet them. Collected ones pop
+      // and fade; rockets that have gone off simply vanish into the smoke.
+      if (plan) {
+        for (const [i, event] of plan.events.entries()) {
+          const x = toScreenX(event.x);
+          if (x < -60 || x > width + 60) continue;
+          const age = eventAgeRef.current[i] ?? -1;
+          const spec = specFor(event.kind);
+          if (spec.hazard) {
+            if (age < 0) drawBomb(ctx, x, altToY(event.alt), scale, waveRef.current + i);
+          } else {
+            drawPickup(ctx, x, altToY(event.alt), scale * 2.1, spec, Math.max(0, age));
+          }
+        }
       }
 
       // Plane — banked by what the player is asking for, so input reads visually
       if (phaseNow !== 'CRASHED' || particlesRef.current.length > 0) {
-        // Banked by the steer actually applied, so pointer and keyboard pitch
-        // the airframe identically.
         // ── Pitch ──
-        // Nose follows the velocity, clamped either side and eased toward the
-        // target rather than snapped to it: a jump reverses velocity in one
-        // frame, and pinning the sprite straight to that reads as a flick
-        // rather than a plane pulling up.
-        const v = velocityRef.current;
-        const targetPitch = landing
-          ? -0.22
-          : v >= 0
-            ? -Math.min(GAME_CONFIG.maxPitchUp, (v / GAME_CONFIG.jumpImpulse) * GAME_CONFIG.maxPitchUp)
-            : Math.min(
-                GAME_CONFIG.maxPitchDown,
-                (-v / GAME_CONFIG.maxFallSpeed) * GAME_CONFIG.maxPitchDown
-              );
+        // The nose follows the path's slope a few metres ahead, eased so a
+        // change of direction reads as a plane pulling up, not a flick. The
+        // slope is measured on screen, not in metres: the two axes are scaled
+        // differently, and a world-space angle points the nose several times
+        // steeper than the line the plane is visibly flying.
+        let targetPitch = 0;
+        if (plan && flying) {
+          const rise = altToY(altitudeAt(plan, distance)) - altToY(altitudeAt(plan, distance + 25));
+          const slope = Math.atan2(rise, 25 * pxPerMetre);
+          targetPitch = Math.max(-GAME_CONFIG.maxPitchUp, Math.min(GAME_CONFIG.maxPitchDown, -slope));
+        } else if (landing) {
+          targetPitch = -0.05;
+        }
         pitchRef.current += (targetPitch - pitchRef.current) * Math.min(1, dt * 9);
         const climbing = pitchRef.current;
         propellerRef.current += dt * 34;
@@ -1306,7 +634,7 @@ export default function AviaMasters() {
         }
       }
 
-      // Damage call-outs, rising and fading above the plane.
+      // Call-outs, rising and fading above the plane.
       for (const floater of floatersRef.current) {
         const t = floater.life / floater.maxLife;
         const rise = t * 34;
@@ -1321,12 +649,12 @@ export default function AviaMasters() {
         ctx.strokeStyle = 'rgba(8,17,27,.85)';
         ctx.font = `900 ${scale * 2.1}px ui-sans-serif, system-ui, sans-serif`;
         ctx.strokeText(floater.text, floater.x, floater.y - rise);
-        ctx.fillStyle = '#ef4444';
+        ctx.fillStyle = floater.good ? '#4ade80' : '#ef4444';
         ctx.fillText(floater.text, floater.x, floater.y - rise);
 
         ctx.font = `800 ${scale * 1.5}px ui-sans-serif, system-ui, sans-serif`;
         ctx.strokeText(floater.sub, floater.x, floater.y - rise + scale * 2);
-        ctx.fillStyle = '#d69199';
+        ctx.fillStyle = floater.good ? '#bbf7d0' : '#d69199';
         ctx.fillText(floater.sub, floater.x, floater.y - rise + scale * 2);
         ctx.restore();
       }
@@ -1340,7 +668,7 @@ export default function AviaMasters() {
         ctx.fillRect(0, 0, width, height);
       }
     },
-    [burst, emitSmoke, registerHit]
+    [burst, emitSmoke, registerHit, setPhaseBoth]
   );
 
   const canvasRef = useCanvasRenderer(draw, { maxPixelRatio: 3 });
@@ -1361,12 +689,17 @@ export default function AviaMasters() {
     setBet(formatDecimalString(ceiling, 2));
   };
 
+  // Until the plane is down the panel shows the balance from take-off: the
+  // ledger has already settled the flight, and the live figure would give the
+  // ending away. It is still a ledger-reported value — nothing is computed.
+  const shownBalance = isAirborne && launchBalance !== null ? launchBalance : balance.balance;
+
   return (
     <div className="avia">
       {/* ---------- Stage ---------- */}
       <div className="avia__stage">
-        {/* Steering surface. Pointer events are the primary control; the
-            keyboard and the two buttons below remain as alternatives. */}
+        {/* A tap on the board launches when the plane is on deck. There is
+            nothing to steer: the flight is decided at take-off. */}
         <canvas
           ref={canvasRef}
           className="avia__canvas"
@@ -1397,18 +730,18 @@ export default function AviaMasters() {
         {isOver && settled && (
           <div
             className={`avia__banner ${
-              phase === 'LANDED' ? 'avia__banner--won' : 'avia__banner--lost'
+              settled.landed ? 'avia__banner--won' : 'avia__banner--lost'
             }`}
             role="status"
           >
-            {phase === 'LANDED' ? (
+            {settled.landed ? (
               <>
-                Landed at {formatMultiplier(settled.multiplier)}
-                <small>+${formatDecimalString(settled.payout, 2)} (practice)</small>
+                {t('gameUi.aviaLanded', { multiplier: formatMultiplier(settled.multiplier) })}
+                <small>+${formatDecimalString(settled.payout, 2)}</small>
               </>
             ) : (
               <>
-                Ditched in the sea
+                {t('gameUi.aviaDitched')}
                 <small>{t('gameUi.aviaStakeLost')}</small>
               </>
             )}
@@ -1416,9 +749,7 @@ export default function AviaMasters() {
         )}
 
         <p className="avia__hint">
-          {isFlying
-            ? t('gameUi.aviaHintFlying')
-            : t('gameUi.aviaHintIdle')}
+          {isAirborne ? t('gameUi.aviaHintFlying') : t('gameUi.aviaHintIdle')}
         </p>
       </div>
 
@@ -1428,7 +759,9 @@ export default function AviaMasters() {
           <div className="avia__label">
             <span>{t('gameUi.betAmount')}</span>
             <b>
-              {balance.hasSynced ? `${balance.formatted} ${balance.currency}` : '—'}
+              {balance.hasSynced && shownBalance
+                ? `${formatDecimalString(shownBalance, 2)} ${balance.currency}`
+                : '—'}
             </b>
           </div>
           <div className="avia__inputs">
@@ -1436,7 +769,7 @@ export default function AviaMasters() {
               className="avia__input"
               inputMode="decimal"
               value={bet}
-              disabled={isFlying || isLanding}
+              disabled={isAirborne}
               aria-invalid={betError !== null}
               aria-label={t('gameUi.betAmount')}
               onChange={(event) => setBet(sanitizeDecimalInput(event.target.value))}
@@ -1444,7 +777,7 @@ export default function AviaMasters() {
             <button
               type="button"
               className="avia__mod"
-              disabled={isFlying || isLanding}
+              disabled={isAirborne}
               aria-label={t('gameUi.halveBet')}
               onClick={() => scaleBet(0.5)}
             >
@@ -1453,7 +786,7 @@ export default function AviaMasters() {
             <button
               type="button"
               className="avia__mod"
-              disabled={isFlying || isLanding}
+              disabled={isAirborne}
               aria-label={t('gameUi.doubleBet')}
               onClick={() => scaleBet(2)}
             >
@@ -1462,7 +795,7 @@ export default function AviaMasters() {
             <button
               type="button"
               className="avia__mod"
-              disabled={isFlying || isLanding}
+              disabled={isAirborne}
               aria-label={t('gameUi.maxBet')}
               onClick={maxStake}
             >
@@ -1482,18 +815,24 @@ export default function AviaMasters() {
           ))}
         </div>
 
-        {!isFlying && !isLanding && betError && <p className="avia__error">{betError}</p>}
+        {!isAirborne && betError && <p className="avia__error">{betError}</p>}
 
-        {isFlying || isLanding ? (
-          // Not a button. Cashing out is landing on a deck, and a control that
-          // banked the round from the panel would make the platforms pointless.
+        {isAirborne ? (
+          // Not a button: one bet is one flight, and nothing can change it
+          // once the plane has left the deck.
           <div className="avia__standing" role="status">
-            <span>{isLanding ? t('gameUi.aviaTouchdown') : t('gameUi.aviaInFlight')}</span>
+            <span>
+              {phase === 'WAITING'
+                ? t('gameUi.aviaWaiting')
+                : phase === 'LANDING'
+                  ? t('gameUi.aviaTouchdown')
+                  : t('gameUi.aviaInFlight')}
+            </span>
             <b>
               {formatMultiplier(hud.multiplier)} · ${formatDecimalString(payout, 2)}
             </b>
             <small>
-              {isLanding ? t('gameUi.aviaAutoCashout') : t('gameUi.aviaLandToBank')}
+              {phase === 'LANDING' ? t('gameUi.aviaAutoCashout') : t('gameUi.aviaLandToBank')}
             </small>
           </div>
         ) : (
@@ -1501,17 +840,13 @@ export default function AviaMasters() {
             type="button"
             className="avia__action"
             onClick={launch}
-            disabled={betError !== null}
+            disabled={betError !== null || busy}
           >
-            {isOver ? 'Fly again' : 'Fly'}
+            {isOver ? t('gameUi.aviaFlyAgain') : t('gameUi.aviaFly')}
           </button>
         )}
 
-        <p className="avia__note">
-          Practice board. Outcomes are rolled in your browser and no balance
-          moves — this table cannot be played for real stakes until a server
-          engine settles it.
-        </p>
+        <p className="avia__note">{t('gameUi.aviaNote')}</p>
       </div>
     </div>
   );

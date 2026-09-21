@@ -13,17 +13,16 @@ import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { useGameRound } from '@/hooks/useGameRound';
 
 const REVEAL_STEP_MS = 130;
 
 export default function KenoPage() {
-  const { socket, balance, send } = useGameSocket();
+  const { balance } = useGameSocket();
   const { t } = useLanguage();
-  const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
   const [picks, setPicks] = useState<number[]>([]);
-  const [busy, setBusy] = useState(false);
   const [drawn, setDrawn] = useState<number[] | null>(null);
   const [revealedCount, setRevealedCount] = useState(0);
   const [hitCount, setHitCount] = useState<number | null>(null);
@@ -33,48 +32,61 @@ export default function KenoPage() {
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  useEffect(() => {
-    const off = [
-      subscribe('GAME_RESULT', (data) => {
-        if (data.gameType !== 'KENO') return;
-        const result = data.resultData as
-          | { drawn?: number[]; hitCount?: number; picks?: number[] }
-          | undefined;
-        const drawnNumbers = Array.isArray(result?.drawn) ? result!.drawn! : [];
-        const resultPickCount = Array.isArray(result?.picks) ? result!.picks!.length : 0;
+  // autoSettle is off: the tiles reveal one at a time, and the round is not
+  // over until the last one turns.
+  const { busy, bet, settle } = useGameRound<{
+    drawn?: number[];
+    hitCount?: number;
+    picks?: number[];
+  }>('KENO', {
+    autoSettle: false,
+    onResult: ({ result, win, payout: paid }) => {
+      const drawnNumbers = Array.isArray(result?.drawn) ? result.drawn : [];
+      const resultPickCount = Array.isArray(result?.picks) ? result.picks.length : 0;
 
-        timersRef.current.forEach(clearTimeout);
-        timersRef.current = [];
-
-        setDrawn(drawnNumbers);
-        setRevealedCount(0);
-        setHitCount(null);
-        setWon(null);
-        setSettledPickCount(resultPickCount);
-
-        drawnNumbers.forEach((_, i) => {
-          const timer = setTimeout(() => {
-            setRevealedCount(i + 1);
-            if (i === drawnNumbers.length - 1) {
-              setHitCount(typeof result?.hitCount === 'number' ? result.hitCount : 0);
-              setWon(Boolean(data.win));
-              setPayout(typeof data.payout === 'string' ? data.payout : null);
-              setBusy(false);
-            }
-          }, i * REVEAL_STEP_MS);
-          timersRef.current.push(timer);
-        });
-      }),
-      subscribe('ERROR', () => setBusy(false)),
-    ];
-    return () => {
-      off.forEach((fn) => fn());
       timersRef.current.forEach(clearTimeout);
-    };
-    // `picks` is read only to snapshot the pick count a round was played
-    // with; re-subscribing on every pick change would drop mid-flight timers.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subscribe]);
+      timersRef.current = [];
+
+      setDrawn(drawnNumbers);
+      setRevealedCount(0);
+      setHitCount(null);
+      setWon(null);
+      setSettledPickCount(resultPickCount);
+
+      // Nothing to reveal means no timer will ever fire, and the last timer is
+      // what ends the round — so without this the board stays locked until the
+      // player reloads. Plinko already guarded its equivalent empty-path case.
+      if (drawnNumbers.length === 0) {
+        setHitCount(0);
+        setWon(win);
+        setPayout(paid);
+        settle();
+        return;
+      }
+
+      drawnNumbers.forEach((_, i) => {
+        const timer = setTimeout(() => {
+          setRevealedCount(i + 1);
+          if (i === drawnNumbers.length - 1) {
+            setHitCount(typeof result?.hitCount === 'number' ? result.hitCount : 0);
+            setWon(win);
+            setPayout(paid);
+            settle();
+          }
+        }, i * REVEAL_STEP_MS);
+        timersRef.current.push(timer);
+      });
+    },
+  });
+
+  // The reveal timers are owned by this page, so unmounting mid-reveal has to
+  // clear them — useGameRound only owns the subscription.
+  useEffect(
+    () => () => {
+      timersRef.current.forEach(clearTimeout);
+    },
+    []
+  );
 
   const togglePick = (tile: number) => {
     if (busy) return;
@@ -121,18 +133,17 @@ export default function KenoPage() {
 
   const placeBet = useCallback(() => {
     if (picks.length === 0) return;
-    setBusy(true);
     setDrawn(null);
     setRevealedCount(0);
     setHitCount(null);
     setWon(null);
     setPayout(null);
-    send('BET', 'KENO', {
+    bet('BET', {
       amount,
       currency: balance.currency,
       params: { picks },
     });
-  }, [amount, balance.currency, picks, send]);
+  }, [amount, balance.currency, picks, bet]);
 
   return (
     <GameShell

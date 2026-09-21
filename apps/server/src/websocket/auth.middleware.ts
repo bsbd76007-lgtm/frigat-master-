@@ -71,7 +71,7 @@ export function authenticateConnection(req: IncomingMessage): AuthedIdentity {
 /**
  * Second half of socket authentication: everything that needs the database.
  *
- * A valid signature is not a live session. The HTTP guard (http/auth.ts) already
+ * A valid signature is not a live session. The HTTP guard (middleware/auth.ts) already
  * re-reads tokenVersion and role on every request; the socket did neither, which
  * left two holes:
  *

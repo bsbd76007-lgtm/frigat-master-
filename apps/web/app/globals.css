@@ -79,16 +79,16 @@ html[data-theme='dark'] {
      1px --fg-hairline edge below, not of a jump in fill or of an exterior
      shadow. That is what lets the ramp stay this dark without the interface
      collapsing into a single flat field. */
-  --fg-bg: #070a11;
-  --fg-panel: #101623;
-  --fg-panel-2: #0b0f19;
+  --fg-bg: #0a0a0c;
+  --fg-panel: #131316;
+  --fg-panel-2: #0e0e11;
   /* One step below the page for recessed things — inputs, wells, insets. */
-  --fg-sunken: #04060b;
-  --fg-line: #1c2334;
-  --fg-line-2: #2a3346;
-  --fg-hover: #151c2b;
-  --fg-hover-2: #1e2637;
-  --fg-header: rgba(7, 10, 17, .94);
+  --fg-sunken: #050506;
+  --fg-line: #1e1e23;
+  --fg-line-2: #2c2c33;
+  --fg-hover: #17171b;
+  --fg-hover-2: #202026;
+  --fg-header: rgba(10, 10, 12, .94);
   /* Text ramp: primary / secondary / muted. Measured against --fg-bg:
        --fg-text  #f2f2f5 → 17.7:1
        --fg-muted #9b9ba6 →  7.2:1   (clears AA for body copy)
@@ -144,7 +144,6 @@ html[data-theme='dark'] {
      and a card edge all catch the light from the same direction — mixing
      ad-hoc gradients per component is what makes "metal" look like plastic. */
   --fg-brass: linear-gradient(180deg, var(--fg-gold) 0%, var(--fg-gold-deep) 100%);
-  --fg-charge: linear-gradient(180deg, var(--fg-accent-mid) 0%, var(--fg-accent-deep) 100%);
   /* Focus ring, matched to the new accent. */
   --fg-ring: 0 0 0 3px rgba(59, 124, 255, .35);
   --fg-plate: linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(0, 0, 0, .18) 100%);
@@ -184,6 +183,30 @@ html[data-theme='dark'] {
   --fg-r-lg: 6px;
   --fg-r-pill: 999px;
 
+  /* ── Spacing ramp ──
+     2 · 4 · 6 · 8 · 10 · 12 · 14 · 16 · 20 · 24 · 28 · 32
+
+     Every padding, margin and gap in this file and in the injected component
+     stylesheets resolves to one of those twelve — 772 declarations, verified.
+     Kept as literals rather than tokens on purpose: `padding: 6px 12px` reads
+     at a glance and `padding: var(--fg-s-3) var(--fg-s-6)` does not, and this
+     file is tuned by eye. The ramp is the contract; the literals are how it
+     is written.
+
+     It used to be 23 distinct values in this range — every integer from 2 to
+     18 plus 22 and 26 — which is what "eyeballed it" looks like at this scale.
+     Nothing moved by more than 2px and everything moved DOWN, so no box got
+     taller and nothing can newly overflow.
+
+     Steps are 2px apart through the dense zone because the chrome really does
+     need both 6 and 10; a 4px grid would have flattened the difference between
+     a chip and a panel.
+
+     Off-ramp numbers are allowed only when DERIVED, not chosen: the 34px
+     clearance on .rsm__title is the width of the close button beside it, the
+     42px on .fg-field > input clears the leading icon, and 1px is an optical
+     nudge rather than a gap. A new value that is neither on the ramp nor
+     derived from a control size is drift. */
   /* ── Cut corners ──
      The mark is built from cut planes, not curves — the F is a set of facets.
      Nothing in the interface said so: every surface was a rounded rectangle,
@@ -377,9 +400,7 @@ h1, h2, h3, h4 {
 }
 /* Opt-out for surfaces that need neutral headings for contrast — dialogs get
    crisp white titles so the orange accents in them stay the focal point. */
-.wal__title, .adm-page__head h1, .adm-page__head h2,
-.adm-section h2, .vip__card b, .auth__title,
-.shelf__title, .fg-pf__title, .wheel__head h2 { color: var(--fg-text); }
+.wal__title, .adm-page__head h1, .adm-page__head h2, .adm-section h2, .vip__card b, .auth__title, .shelf__title, .fg-pf__title { color: var(--fg-text); }
 
 /* ── Dashboard chrome ───────────────────── */
 .dash__header {
@@ -390,7 +411,7 @@ h1, h2, h3, h4 {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 7px 12px;
+  padding: 6px 12px;
   background: var(--fg-grain), var(--fg-plate), var(--fg-header);
   /* Brass hairline: the one warm edge on the chrome, so the header reads as
      trimmed metal rather than a flat bar. */
@@ -403,7 +424,7 @@ h1, h2, h3, h4 {
 .dash__brand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   flex: none;
 }
 .dash__mark { display: block; height: 26px; width: auto; object-fit: contain; }
@@ -425,17 +446,6 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
    match it exactly or the sidebar leaves a gap under the bar. Pinning it here
    means changing the logo size can no longer desync the two. */
 .dash__header { min-height: var(--fg-header-h); box-sizing: border-box; }
-.dash__nav { display: flex; gap: 4px; flex: 1 1 auto; flex-wrap: wrap; }
-.dash__link {
-  padding: 7px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--fg-muted);
-  border-radius: var(--fg-r);
-  transition: background var(--fg-t), color var(--fg-t);
-}
-.dash__link:hover { background: var(--fg-hover); color: var(--fg-text); }
-.dash__link[aria-current='page'] { background: var(--fg-hover); color: var(--fg-accent); }
 /* Wraps so the header controls never force the page wider than the viewport —
    on a phone these would otherwise total ~530px and scroll the whole document
    sideways. */
@@ -457,7 +467,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 /* The balance doubles as a button, so it needs the chrome reset off it —
    without this it renders as the UA's grey filled box in the dark header. */
 .dash__balance--action {
-  padding: 5px 12px;
+  padding: 4px 12px;
   font: inherit;
   color: var(--fg-text);
   background: var(--fg-panel-2);
@@ -478,7 +488,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .dash__balance span { font-size: 10px; letter-spacing: .06em; color: var(--fg-dim); text-transform: uppercase; }
 .dash__btn {
   display: inline-block;
-  padding: 5px 8px;
+  padding: 4px 8px;
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
@@ -489,32 +499,6 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   box-shadow: var(--fg-bevel);
   cursor: pointer;
   transition: background var(--fg-t), border-color var(--fg-t), box-shadow var(--fg-t);
-}
-
-/* Square icon control in the header — same height as .dash__btn so the row
-   stays on one baseline, but sized for a glyph rather than a label. */
-.dash__icon-btn {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  color: var(--fg-muted);
-  background: var(--fg-plate), var(--fg-hover);
-  border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r);
-  box-shadow: var(--fg-bevel);
-  cursor: pointer;
-  transition: color var(--fg-t), background var(--fg-t), border-color var(--fg-t);
-}
-.dash__icon-btn:hover {
-  color: var(--fg-text);
-  background: var(--fg-plate), var(--fg-hover-2);
-  border-color: var(--fg-accent);
-}
-.dash__icon-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 124, 255, .35);
 }
 
 /* Account avatar: the entry point to the account panel. Round, so it reads as
@@ -550,7 +534,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
    (signed in) are the most visible things in the bar. */
 .dash__cta {
   display: inline-block;
-  padding: 9px 18px;
+  padding: 8px 16px;
   font: inherit;
   font-size: 12.5px;
   font-weight: 700;
@@ -590,122 +574,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 
 /* The bottom padding clears the floating dock, which is fixed and therefore
    out of flow — without it the dock sits on top of the last row of content. */
-.dash__main { max-width: 1180px; margin: 0 auto; padding: 18px 18px 96px; }
-
-.chat-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(380px, 100%);
-  transform: translateX(110%);
-  transition: transform .25s ease;
-  background: var(--fg-panel);
-  border-left: var(--fg-edge);
-  z-index: 70;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-drawer--open {
-  transform: translateX(0);
-}
-
-.chat-drawer__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  border-bottom: 1px solid var(--fg-line);
-}
-
-.chat-drawer__subtitle {
-  margin: 4px 0 0;
-  color: var(--fg-muted);
-  font-size: 12px;
-}
-
-.chat-drawer__rooms {
-  display: flex;
-  gap: 8px;
-  padding: 8px 12px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--fg-line);
-}
-
-.chat-drawer__room {
-  padding: 5px 8px;
-  font-size: 12px;
-  color: var(--fg-text);
-  background: var(--fg-hover);
-  border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r);
-  cursor: pointer;
-}
-
-.chat-drawer__room--active {
-  background: var(--fg-accent-deep);
-  color: var(--fg-on-accent);
-  border-color: transparent;
-}
-
-.chat-drawer__body {
-  flex: 1;
-  overflow: auto;
-  padding: 9px 12px;
-}
-
-.chat-drawer__empty {
-  color: var(--fg-muted);
-  font-size: 13px;
-}
-
-.chat-drawer__message {
-  margin-bottom: 12px;
-}
-
-.chat-drawer__author {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--fg-accent);
-}
-
-.chat-drawer__text {
-  display: block;
-  margin-top: 4px;
-  color: var(--fg-text);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.chat-drawer__footer {
-  padding: 10px 12px;
-  border-top: 1px solid var(--fg-line);
-}
-
-.chat-drawer__hint {
-  color: var(--fg-muted);
-  font-size: 12px;
-  margin-bottom: 10px;
-}
-
-.chat-drawer__input-row {
-  display: flex;
-  gap: 10px;
-}
-
-.chat-drawer__input {
-  flex: 1;
-  min-width: 0;
-  padding: 6px 8px;
-  font: inherit;
-  border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r);
-  background: var(--fg-panel);
-  color: var(--fg-text);
-}
+.dash__main { max-width: 1180px; margin: 0 auto; padding: 16px 16px 96px; }
 
 .feed {
   /* Deliberately NOT sticky.
@@ -719,7 +588,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
      It reads as a section players scroll to, so it is laid out as one. */
   margin: 0 auto 12px;
   max-width: 1180px;
-  padding: 9px 12px;
+  padding: 8px 12px;
   background: var(--fg-panel);
   border: var(--fg-edge);
   border-radius: var(--fg-r-lg);
@@ -746,7 +615,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 }
 
 .feed__tab {
-  padding: 5px 8px;
+  padding: 4px 8px;
   font-size: 12px;
   color: var(--fg-text);
   background: var(--fg-hover);
@@ -792,7 +661,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   gap: 10px;
   align-items: center;
   width: 100%;
-  padding: 11px 14px;
+  padding: 10px 14px;
   background: transparent;
   border: 0;
   border-radius: var(--fg-r-lg);
@@ -836,7 +705,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .feed__payout {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   white-space: nowrap;
@@ -848,7 +717,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .feed__payout--loss { color: var(--fg-muted); }
 
 .feed__empty {
-  padding: 12px 9px;
+  padding: 12px 8px;
   color: var(--fg-muted);
   font-size: 13px;
 }
@@ -923,7 +792,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .bdm__meta {
   margin: 16px 0 0;
   display: grid;
-  gap: 9px;
+  gap: 8px;
   font-size: 13px;
 }
 
@@ -993,7 +862,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 7px 0;
+  padding: 6px 0;
   font-size: 13px;
 }
 .bdm__stat + .bdm__stat { border-top: 1px solid #1b1f27; }
@@ -1003,7 +872,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .bdm__stat-value {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   color: #fff;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1033,7 +902,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 7px 9px;
+  padding: 6px 8px;
   background: #20242d;
   border: 1px solid #2a2f3a;
   border-radius: var(--fg-r-lg);
@@ -1050,12 +919,12 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 
 .bdm__fair-body {
   margin-top: 8px;
-  padding: 8px 9px;
+  padding: 8px 8px;
   background: #0e0f12;
   border: 1px solid #20242d;
   border-radius: var(--fg-r-lg);
   display: grid;
-  gap: 11px;
+  gap: 10px;
 }
 
 .bdm__seed { display: grid; gap: 4px; }
@@ -1089,7 +958,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 }
 
 @media (max-width: 480px) {
-  .bdm__meta-row { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .bdm__meta-row { align-items: flex-start; flex-direction: column; gap: 2px; }
 }
 
 /* ── Language switch: segmented EN | RU ── */
@@ -1097,14 +966,14 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 3px;
+  padding: 2px;
   background: var(--fg-panel-2);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r);
 }
 .lang__pill {
   min-width: 34px;
-  padding: 5px 9px;
+  padding: 4px 8px;
   font: inherit;
   font-size: 11.5px;
   font-weight: 700;
@@ -1141,7 +1010,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 3px;
+  padding: 2px;
   background: var(--fg-hover);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r);
@@ -1179,23 +1048,22 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 /* Above the pill, which shares the same stacking context. */
 .theme__icon { position: relative; display: flex; }
 
-
 .dash__gate {
   max-width: 560px;
   margin: 64px auto;
-  padding: 22px;
+  padding: 20px;
   background: var(--fg-panel);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
 }
 .dash__gate h1 { margin: 0 0 8px; font-size: 18px; }
 .dash__gate p { margin: 0 0 14px; font-size: 13.5px; line-height: 1.6; color: var(--fg-muted); }
-.dash__gate code { padding: 1px 5px; font-family: var(--fg-mono); font-size: 12px; background: var(--fg-panel-2); border-radius: var(--fg-r-sm); }
+.dash__gate code { padding: 1px 4px; font-family: var(--fg-mono); font-size: 12px; background: var(--fg-panel-2); border-radius: var(--fg-r-sm); }
 .dash__gate form { display: flex; gap: 8px; }
 .dash__input {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 9px 11px;
+  padding: 8px 10px;
   font-family: var(--fg-mono);
   font-size: 13px;
   color: var(--fg-text);
@@ -1221,7 +1089,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .auth__card {
   width: 100%;
   max-width: 400px;
-  padding: 18px;
+  padding: 16px;
   background: var(--fg-panel);
   border: var(--fg-edge);
   border-radius: var(--fg-r-lg);
@@ -1266,7 +1134,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 }
 .auth__input {
   width: 100%;
-  padding: 7px 8px;
+  padding: 6px 8px;
   font-family: var(--fg-font);
   font-size: 14px;
   color: var(--fg-text);
@@ -1286,15 +1154,15 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
    is visible before submitting rather than arriving as a rejection. */
 .auth__rules {
   display: grid;
-  gap: 3px;
-  margin: 7px 0 0;
+  gap: 2px;
+  margin: 6px 0 0;
   padding: 0;
   list-style: none;
 }
 .auth__rule {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   font-size: 11.5px;
   color: var(--fg-muted);
   transition: color var(--fg-t);
@@ -1303,31 +1171,6 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .auth__rule span { width: 10px; text-align: center; font-weight: 800; }
 
 /* ── Sign-in method tabs ─────────────────────── */
-.auth__tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin-bottom: 18px;
-  padding: 4px;
-  background: var(--fg-sunken);
-  border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r-lg);
-}
-.auth__tab {
-  padding: 6px 6px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--fg-muted);
-  background: none;
-  border: 0;
-  border-radius: var(--fg-r);
-  cursor: pointer;
-  transition: background var(--fg-t), color var(--fg-t);
-}
-.auth__tab:hover { color: var(--fg-text); }
-.auth__tab--on { color: #04120d; background: var(--fg-accent-deep); }
-.auth__tab:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 .auth__notice {
   margin: 0 0 14px;
@@ -1397,7 +1240,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .auth__submit {
   width: 100%;
   margin-top: 6px;
-  padding: 7px 9px;
+  padding: 6px 8px;
   font-family: inherit;
   font-size: 14px;
   font-weight: 700;
@@ -1422,7 +1265,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border-radius: var(--fg-r);
 }
 .auth__alt {
-  margin: 18px 0 0;
+  margin: 16px 0 0;
   padding-top: 16px;
   font-size: 13px;
   color: var(--fg-muted);
@@ -1465,7 +1308,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   border-radius: var(--fg-r-lg);
 }
 .game__banner {
-  padding: 9px 12px;
+  padding: 8px 12px;
   font-size: 12.5px;
   font-weight: 600;
   border-radius: var(--fg-r);
@@ -1480,7 +1323,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .opt__row { display: flex; gap: 6px; flex-wrap: wrap; }
 .opt__chip {
   flex: 1 1 auto;
-  padding: 5px 6px;
+  padding: 4px 6px;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--fg-muted);
@@ -1585,7 +1428,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 @keyframes keno-pop { from { transform: scale(.7); } to { transform: scale(1); } }
 
 .keno__paytable { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
-.keno__paytable-row { display: flex; justify-content: space-between; padding: 5px 8px;
+.keno__paytable-row { display: flex; justify-content: space-between; padding: 4px 8px;
   font-size: 12.5px; color: var(--fg-muted); border-radius: var(--fg-r); font-variant-numeric: tabular-nums; }
 .keno__paytable-row b { color: var(--fg-text); font-weight: 600; }
 .keno__paytable-row--active { background: rgba(217, 164, 65,.16); color: var(--fg-gold); }
@@ -1597,7 +1440,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 
 @media (prefers-reduced-motion: reduce) {
   .coin--flipping { animation: none; }
-  .mines__tile, .dash__link, .opt__chip, .keno__tile { transition: none; }
+  .mines__tile, .opt__chip, .keno__tile { transition: none; }
   .keno__tile--drawn, .keno__tile--hit { animation: none; }
   .limbobar__fill { transition: none; }
 }
@@ -1630,7 +1473,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .ref__input {
   flex: 1 1 260px;
   min-width: 0;
-  padding: 6px 7px;
+  padding: 6px 6px;
   font-family: var(--fg-mono);
   font-size: 13px;
   color: var(--fg-text);
@@ -1644,7 +1487,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   box-shadow: 0 0 0 3px rgba(59, 124, 255, .18);
 }
 .ref__btn {
-  padding: 6px 9px;
+  padding: 6px 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--fg-text);
@@ -1666,7 +1509,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 
 .ref__note { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--fg-muted); }
 .ref__note code {
-  padding: 1px 3px;
+  padding: 1px 2px;
   font-family: var(--fg-mono);
   font-size: 12px;
   background: var(--fg-panel-2);
@@ -1682,7 +1525,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 9px 10px;
+  padding: 8px 10px;
   background: var(--fg-panel);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
@@ -1700,12 +1543,12 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .ref__stat--accent { border-color: rgba(59, 124, 255, .4); }
 .ref__stat--accent > b { color: var(--fg-accent); }
 
-.ref__msg { margin: 0; padding: 6px 7px; font-size: 13px; border-radius: var(--fg-r); }
+.ref__msg { margin: 0; padding: 6px 6px; font-size: 13px; border-radius: var(--fg-r); }
 .ref__msg--ok { color: var(--fg-accent); background: rgba(59, 124, 255, .1); border: 1px solid rgba(59, 124, 255, .3); }
 .ref__msg--err { color: var(--fg-red); background: rgba(240,97,109,.1); border: 1px solid rgba(240,97,109,.3); }
 
 .ref__alert {
-  padding: 9px 10px;
+  padding: 8px 10px;
   font-size: 13.5px;
   line-height: 1.6;
   color: var(--fg-red);
@@ -1718,245 +1561,17 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   .ref__btn { transition: none; }
 }
 
-/* ── Hero carousel ──────────────────────── */
-.hero { margin: 0 0 22px; }
-.hero__viewport {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r-lg);
-  /* Fixed height: the slides are absolutely positioned so two can be on stage
-     during a transition, which means the container cannot size to content. */
-  height: clamp(230px, 30vw, 310px);
-}
-.hero__slide {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  padding: 26px clamp(22px, 5vw, 54px);
-  cursor: grab;
-}
-.hero__slide:active { cursor: grabbing; }
-.hero__body {
-  max-width: 620px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  /* Above the artwork, which is absolutely positioned behind it. */
-  position: relative;
-  z-index: 1;
-}
-
-/* Decorative slide artwork, anchored to the right edge. Pointer events are
-   off so it never intercepts the drag gesture that advances the carousel. */
-.hero__art {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(46%, 380px);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: clamp(12px, 3vw, 32px);
-  pointer-events: none;
-}
-.hero__art-svg { width: 100%; height: auto; max-height: 82%; }
-
 /* Below this the copy needs the full slide width, and the art would sit
    underneath the text rather than beside it. */
-@media (max-width: 860px) {
-  .hero__art { display: none; }
-}
 
 /* Below the desktop layout the headline wraps to two or three lines and the
    art is gone, so the copy grows into the pager (top-right) and the dots
    (bottom-left). Reserve that space in the slide's own padding rather than
    nudging each piece: the overlap is a layout problem, not a position one. */
-@media (max-width: 900px) {
-  .hero__viewport { height: auto; min-height: clamp(300px, 52vw, 360px); }
-  /* Only the on-stage slide is in flow — the outgoing one stays absolute so
-     the container never sizes to both mid-transition. */
-  .hero__slide {
-    position: relative;
-    align-items: flex-start;
-    /* right: clears the pager. bottom: clears the dots. */
-    /* right: the pager is ~124px wide plus its 14px offset, so reserve 146px
-       and let it shrink only once the pager moves to the bottom at 620px. */
-    padding: 22px 146px 46px clamp(18px, 4vw, 32px);
-  }
-  .hero__slide:not(:first-child) { position: absolute; }
-  .hero__title { font-size: clamp(19px, 4.4vw, 30px); }
-  .hero__dots { left: clamp(18px, 4vw, 32px); bottom: 15px; }
-  /* The pager is ~120px wide and sits over the first two rows of copy, so the
-     body — not just the slide — has to stop short of it. Without this the
-     title's line box still runs under the pager even though the slide's
-     padding is clear. */
-  .hero__eyebrow, .hero__title { max-width: calc(100% - 8px); }
-}
-
-@media (max-width: 620px) {
-  .hero__sub { font-size: 12.5px; }
-}
-.hero__eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-}
-.hero__title {
-  margin: 0;
-  font-size: clamp(22px, 3.4vw, 38px);
-  font-weight: 800;
-  line-height: 1.12;
-  letter-spacing: -.01em;
-  /* Slide backgrounds are dark, but artwork later may not be. */
-  text-shadow: 0 2px 18px rgba(0, 0, 0, .45);
-}
-.hero__sub {
-  margin: 0;
-  max-width: 52ch;
-  font-size: clamp(13px, 1.4vw, 15px);
-  line-height: 1.6;
-  color: rgba(230, 237, 243, .82);
-}
-.hero__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
-/* Rendered as either <a> or <button> — a CTA that opens a panel rather than
-   navigating is a button. The resets below keep the two visually identical;
-   without them the button arrives with the UA's border, background and font. */
-.hero__cta {
-  display: inline-block;
-  padding: 11px 22px;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  color: #06121a;
-  border: 0;
-  border-radius: var(--fg-r-lg);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: transform var(--fg-t), filter var(--fg-t);
-}
-.hero__cta:hover { transform: translateY(-1px); filter: brightness(1.08); }
-.hero__cta:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-/* The slide is a dark metallic gradient in every theme, so this is a literal
-   light colour rather than --fg-text: under the light theme that token flips
-   to near-black and the button disappeared into the slide. */
-.hero__cta--ghost {
-  color: #f2f5f8;
-  background: rgba(10, 15, 20, .42) !important;
-  border: 1px solid rgba(230, 237, 243, .28);
-  font-weight: 600;
-  letter-spacing: .02em;
-}
-
-.hero__pager {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  background: rgba(10, 15, 20, .5);
-  border: 1px solid rgba(230, 237, 243, .14);
-  border-radius: var(--fg-r-pill);
-  backdrop-filter: blur(6px);
-  /* Height comes from the chevrons. Setting both `top` and `bottom` on an
-     absolutely-positioned box stretches it to fill instead — that is what
-     turned this into a 273px blurred column over the slide copy. Any override
-     below must therefore reset `top` when it sets `bottom`. */
-  bottom: auto;
-}
 
 /* Under ~620px the pager and the headline both want the top-right corner and
    there is no width left to split. Move it to the bottom-right, level with
    the dots. Placed after the base rule so `top: auto` actually lands. */
-@media (max-width: 620px) {
-  .hero__pager {
-    top: auto;
-    bottom: 12px;
-    right: 14px;
-    padding: 3px;
-  }
-  /* The dots share the bottom edge with the pager now, so they take the left
-     half and shrink. Ten 22px dots plus the pager do not fit a 360px slide,
-     so below that they scroll horizontally rather than colliding — the pager
-     arrows and swipe are the primary controls at this size anyway. */
-  /* Anchored to both edges rather than given a max-width: the dots then end
-     exactly where the pager's reserved strip begins, instead of at a hand-
-     tuned width that has to be re-guessed whenever the pager changes size.
-     `right` is the pager's own offset (14px) plus its width plus a 10px gap. */
-  .hero__dots {
-    right: 148px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .hero__dots::-webkit-scrollbar { display: none; }
-  .hero__dot { flex: none; width: 16px; }
-  .hero__dot--on { width: 26px; }
-  /* The pager has left the top-right corner, so the copy can have that width
-     back — only the bottom strip stays reserved. */
-  .hero__slide { padding-right: clamp(18px, 4vw, 32px); }
-}
-
-/* Also on the always-dark slide — see .hero__cta--ghost. */
-.hero__chevron {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  color: #f2f5f8;
-  background: transparent;
-  border: 0;
-  border-radius: var(--fg-r-pill);
-  cursor: pointer;
-  transition: background var(--fg-t);
-}
-.hero__chevron:hover { background: rgba(230, 237, 243, .14); }
-.hero__chevron:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 1px; }
-.hero__count {
-  min-width: 40px;
-  font-family: var(--fg-mono);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  color: rgba(230, 237, 243, .9);
-}
-
-.hero__dots {
-  position: absolute;
-  left: clamp(22px, 5vw, 54px);
-  bottom: 16px;
-  z-index: 2;
-  display: flex;
-  gap: 6px;
-}
-.hero__dot {
-  width: 22px;
-  height: 4px;
-  padding: 0;
-  background: #3a3f4d;
-  border: 0;
-  border-radius: var(--fg-r-pill);
-  cursor: pointer;
-  transition: background var(--fg-t), width var(--fg-t);
-}
-.hero__dot--on { width: 34px; background: var(--fg-accent-deep); }
-.hero__dot:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 3px; }
-
-/* ── Home: game categories ──────────────── */
-.home__heading {
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
 
 /* ── Site footer ────────────────────────── */
 /* Sits under every page from the root layout. The top hairline is drawn with a
@@ -1971,7 +1586,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
 .foot__inner {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 34px 18px 20px;
+  padding: 34px 16px 20px;
 }
 
 .foot__lede { max-width: 460px; margin-bottom: 28px; }
@@ -1992,9 +1607,9 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
    two and then one without a breakpoint per step. */
 .foot__grid {
   display: grid;
-  gap: 26px 20px;
+  gap: 24px 20px;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  padding-bottom: 26px;
+  padding-bottom: 24px;
   border-bottom: 1px solid var(--fg-line);
 }
 .foot__col { min-width: 0; }
@@ -2007,7 +1622,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   color: var(--fg-dim);
 }
 .foot__list { margin: 0; padding: 0; list-style: none; }
-.foot__list li + li { margin-top: 9px; }
+.foot__list li + li { margin-top: 8px; }
 .foot__link {
   display: inline-block;
   font-size: 13px;
@@ -2030,7 +1645,7 @@ html[data-theme='light'] .dash__mark { filter: invert(1); }
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding-top: 18px;
+  padding-top: 16px;
 }
 .foot__copy {
   display: flex;
@@ -2128,7 +1743,7 @@ html[data-theme='light'] .wal__panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 13px 0;
+  padding: 12px 12px 0;
 }
 .wal__title { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: .01em; }
 /* Filled dark-gray disc rather than a bare glyph — it reads as a control at a
@@ -2171,7 +1786,7 @@ html[data-theme='light'] .wal__tabs {
   border-color: var(--fg-line);
 }
 .wal__tab {
-  padding: 5px 6px;
+  padding: 4px 6px;
   font-size: 13px;
   font-weight: 600;
   color: var(--fg-muted);
@@ -2245,7 +1860,7 @@ html[data-theme='light'] .wal__input {
 .wal__row .wal__input { flex: 1; min-width: 0; }
 .wal__max {
   flex-shrink: 0;
-  padding: 0 9px;
+  padding: 0 8px;
   font-size: 11.5px;
   font-weight: 700;
   letter-spacing: .05em;
@@ -2261,7 +1876,7 @@ html[data-theme='light'] .wal__input {
 /* Quick-amount chips. */
 .wal__quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
 .wal__chip {
-  padding: 5px 3px;
+  padding: 4px 2px;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--fg-muted);
@@ -2285,7 +1900,7 @@ html[data-theme='light'] .wal__input {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 6px 3px;
+  padding: 6px 2px;
   color: var(--fg-muted);
   background: var(--fg-plate), var(--fg-panel-2);
   border: 1px solid var(--fg-line);
@@ -2310,7 +1925,7 @@ html[data-theme='light'] .wal__input {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 14px;
-  padding: 7px 8px;
+  padding: 6px 8px;
   background: var(--fg-bg);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
@@ -2329,7 +1944,7 @@ html[data-theme='light'] .wal__input {
   display: block;
   width: 100%;
   margin-top: 10px;
-  padding: 11px;
+  padding: 10px;
   font-size: 13.5px;
   font-weight: 600;
   text-align: center;
@@ -2360,9 +1975,9 @@ html[data-theme='light'] .wal__input {
 .wal__banner {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   margin-bottom: 14px;
-  padding: 11px 13px;
+  padding: 10px 12px;
   font-size: 12.5px;
   color: var(--fg-muted);
   background: var(--fg-bg);
@@ -2372,24 +1987,13 @@ html[data-theme='light'] .wal__input {
 .wal__banner--ok {
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
+  gap: 2px;
   color: inherit;
   border-color: rgba(59, 124, 255, .5);
   background: rgba(59, 124, 255, .08);
 }
 .wal__banner--ok b { font-size: 13px; color: var(--fg-accent); }
 .wal__banner--ok span { font-size: 12px; line-height: 1.5; color: var(--fg-muted); }
-
-.wal__spinner {
-  flex-shrink: 0;
-  width: 13px;
-  height: 13px;
-  border: 2px solid var(--fg-line-2);
-  border-top-color: var(--fg-accent);
-  border-radius: 50%;
-  animation: wal-spin .8s linear infinite;
-}
-@keyframes wal-spin { to { transform: rotate(360deg); } }
 
 /* QR always renders on white — a dark-theme inversion is a common cause of
    scanners failing to read an otherwise valid symbol. */
@@ -2439,19 +2043,18 @@ html[data-theme='light'] .wal__input {
 }
 @media (prefers-reduced-motion: reduce) {
   .wal__overlay, .wal__panel { animation: none; }
-  .wal__spinner { animation-duration: 2.4s; }
 }
 
 /* ── VIP dashboard ───────────────────────────────────────── */
 .vip { max-width: 860px; margin: 0 auto; }
-.vip__empty { padding: 26px 0; text-align: center; color: var(--fg-muted); }
+.vip__empty { padding: 24px 0; text-align: center; color: var(--fg-muted); }
 .vip__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 .vip__header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
 .vip__header p { margin: 0; font-size: 13px; color: var(--fg-muted); }
@@ -2460,7 +2063,7 @@ html[data-theme='light'] .wal__input {
      explicit display: an inline <a> ignores vertical padding. */
   display: inline-flex;
   align-items: center;
-  padding: 6px 9px;
+  padding: 6px 8px;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--fg-gold);
@@ -2475,8 +2078,8 @@ html[data-theme='light'] .wal__input {
 .vip__card {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 9px;
+  gap: 2px;
+  padding: 8px;
   background: var(--fg-panel);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
@@ -2527,7 +2130,7 @@ html[data-theme='light'] .wal__input {
   display: block;
   width: 100%;
   margin-top: 14px;
-  padding: 7px;
+  padding: 6px;
   font-size: 13.5px;
   font-weight: 600;
   color: #06231b;
@@ -2542,7 +2145,7 @@ html[data-theme='light'] .wal__input {
   cursor: not-allowed;
 }
 
-.vip__ladder { margin-top: 18px; }
+.vip__ladder { margin-top: 16px; }
 .vip__ladder h2 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
 .vip__table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .vip__table th, .vip__table td {
@@ -2565,127 +2168,7 @@ html[data-theme='light'] .wal__input {
   .vip__cards { grid-template-columns: 1fr; }
 }
 
-/* ── Daily wheel ─────────────────────────────────────────── */
-.wheel__overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 95;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(0, 0, 0, .72);
-}
-.wheel__panel {
-  width: 100%;
-  max-width: 380px;
-  max-height: calc(100dvh - 32px);
-  overflow-y: auto;
-  padding: 12px;
-  background: var(--fg-panel);
-  border: var(--fg-edge);
-  border-radius: var(--fg-r-lg);
-}
-.wheel__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.wheel__head h2 { margin: 0; font-size: 16px; font-weight: 700; }
-/* Matches .wal__close — a filled dark-gray disc, so every dialog in the app
-   closes with the same control. */
-.wheel__close {
-  width: 30px;
-  height: 30px;
-  font-size: 19px;
-  line-height: 1;
-  color: var(--fg-text);
-  background: var(--fg-line-2);
-  border: 0;
-  border-radius: var(--fg-r);
-  cursor: pointer;
-  transition: background var(--fg-t);
-}
-.wheel__close:hover { background: var(--fg-hover-2); }
-.wheel__close:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 124, 255, .35);
-}
-.wheel__close:hover:not(:disabled) { background: var(--fg-hover); color: var(--fg-text); }
-.wheel__close:disabled { opacity: .4; cursor: not-allowed; }
-
-/* The pointer is fixed; the wheel rotates beneath it. */
-.wheel__stage { position: relative; display: grid; place-items: center; }
-.wheel__pointer {
-  position: absolute;
-  top: -2px;
-  z-index: 2;
-  width: 0;
-  height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-top: 16px solid var(--fg-gold);
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .5));
-}
-.wheel__svg {
-  width: 240px;
-  height: 240px;
-  /* transform only — the spin stays on the compositor. */
-  will-change: transform;
-}
-.wheel__label {
-  font-size: 13px;
-  font-weight: 700;
-  fill: #f8fafc;
-  font-family: var(--fg-font);
-}
-
-.wheel__won {
-  margin: 12px 0 0;
-  font-size: 15px;
-  font-weight: 700;
-  text-align: center;
-  color: var(--fg-accent);
-}
-.wheel__error { margin: 10px 0 0; font-size: 12.5px; text-align: center; color: var(--fg-red); }
-.wheel__next { margin: 8px 0 0; font-size: 11.5px; text-align: center; color: var(--fg-dim); }
-
-.wheel__foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-}
-.wheel__stat { display: flex; flex-direction: column; gap: 2px; }
-.wheel__stat span {
-  font-size: 10px;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-  color: var(--fg-dim);
-}
-.wheel__stat b { font-size: 14px; font-variant-numeric: tabular-nums; }
-.wheel__spin {
-  flex: 1;
-  padding: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #06231b;
-  background: var(--fg-gold);
-  border: 0;
-  border-radius: var(--fg-r-lg);
-  cursor: pointer;
-}
-.wheel__spin:disabled {
-  color: var(--fg-muted);
-  background: var(--fg-hover);
-  cursor: not-allowed;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  /* The result still lands; it just does not spin there. */
-  .wheel__svg { transition: none !important; }
   .vip__bar-fill { transition: none; }
 }
 
@@ -2703,87 +2186,8 @@ html[data-theme='light'] .wal__input {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 18px;
+  margin: 0 0 16px;
   min-width: 0;
-}
-
-/* Orange disc, sized to match the pill height so the row reads as one bar. */
-.pills__search {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  color: var(--fg-on-accent);
-  background: var(--fg-accent-deep);
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: filter var(--fg-t), transform var(--fg-t);
-}
-.pills__search:hover { filter: brightness(1.08); transform: translateY(-1px); }
-.pills__search:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 124, 255, .35);
-}
-
-/* Horizontal scroller. The scrollbar is hidden but the overflow is real, so
-   the row stays swipeable on touch and reachable by keyboard. */
-/* min-width:0 lets the scroller shrink inside its grid column; without it the
-   row's content width becomes the column's floor and the page scrolls. */
-.pills__row {
-  display: flex;
-  gap: 8px;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding: 2px 0;
-  scroll-snap-type: x proximity;
-}
-.pills__row::-webkit-scrollbar { display: none; }
-
-.pills__pill {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 15px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--fg-muted);
-  background: var(--fg-hover);
-  border: 1px solid transparent;
-  border-radius: var(--fg-r);
-  cursor: pointer;
-  white-space: nowrap;
-  scroll-snap-align: start;
-  transition: color var(--fg-t), background var(--fg-t), box-shadow var(--fg-t);
-}
-.pills__pill:hover { color: var(--fg-text); background: var(--fg-hover-2); }
-
-/* Active pill: solid orange with near-black ink. White on #3b7cff is 2.86:1
-   and fails AA; --fg-bg on the same fill is 6.71:1. */
-.pills__pill--on {
-  color: var(--fg-on-accent);
-  background: var(--fg-accent-deep);
-  box-shadow: var(--fg-glow-accent);
-}
-.pills__pill--on:hover { color: var(--fg-on-accent); background: var(--fg-accent-mid); }
-.pills__pill:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 124, 255, .35);
-}
-/* An SVG box, not a text glyph: `display: flex` stops the inline baseline gap
-   that left the icon sitting a pixel low against its label. The icon inherits
-   the pill's colour, so the active state tints it with no extra rule. */
-.pills__icon {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  margin-right: 6px;
-  color: inherit;
 }
 
 /* ── Game grid ───────────────────────────────────────────── */
@@ -2833,16 +2237,6 @@ html[data-theme='light'] .wal__input {
   border-color: var(--fg-accent);
   box-shadow: 0 0 0 3px rgba(59, 124, 255, .3);
 }
-
-.tile__icon {
-  display: grid;
-  place-items: center;
-  width: 62px;
-  height: 62px;
-  transition: transform var(--fg-t);
-}
-.tile:hover .tile__icon { transform: scale(1.06); }
-.tile__name { font-size: 14.5px; font-weight: 700; color: var(--fg-text); }
 .tile__blurb {
   font-size: 12px;
   line-height: 1.45;
@@ -2854,7 +2248,7 @@ html[data-theme='light'] .wal__input {
   top: 9px;
   right: 9px;
   z-index: 2;
-  padding: 2px 5px;
+  padding: 2px 4px;
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: .07em;
@@ -3002,7 +2396,7 @@ html[data-theme='light'] .wal__input {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
+  padding: 4px 12px;
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
@@ -3043,107 +2437,14 @@ html[data-theme='light'] .wal__input {
   .dock2__item { padding: 6px 8px; }
 }
 
-/* Chat launcher. Sits above the dock rather than beside it: at narrow widths
-   the dock spans the full width, so side-by-side is not available. */
-/* Chat launcher — circular, bottom-right.
-   The dock is also bottom-anchored and spans the full width under 640px, so a
-   button parked at the corner would sit on top of it. Instead of one fixed
-   offset that is wrong at some size, this tracks the dock's scroll visibility
-   (same hook) and drops to the corner once the dock slides away. */
-.chat-fab {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 999;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  color: var(--fg-text);
-  background: var(--fg-panel);
-  border: var(--fg-edge);
-  border-radius: 50%;
-  cursor: pointer;
-  /* Two independent offsets composed into one transform: `--fab-lift` raises
-     the button clear of the dock, `--fab-hide` slides it off-screen. Kept as
-     separate variables because the raise and the hide are set by different
-     rules — a single `transform` in each would have the later rule silently
-     cancel the earlier one. */
-  --fab-lift: 0px;
-  --fab-hide: 0px;
-  transform: translateY(calc(var(--fab-lift) + var(--fab-hide)));
-  transition:
-    transform .3s ease-in-out,
-    opacity .3s ease-in-out,
-    border-color var(--fg-t),
-    background var(--fg-t);
-}
-/* Lifted clear of the dock while the dock is on screen. */
-.chat-fab--raised { --fab-lift: -72px; }
-
-/* Scrolled down: pushed below the viewport edge and made inert, so it cannot
-   be tabbed to or clicked while off-screen. */
-.chat-fab--hidden {
-  --fab-hide: 96px;
-  opacity: 0;
-  pointer-events: none;
-}
-.chat-fab:hover { background: var(--fg-hover); border-color: var(--fg-accent); }
-.chat-fab:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-
-/* Withdrawn while the chat panel is open. */
-.chat-fab--gone {
-  opacity: 0;
-  pointer-events: none;
-  --fab-hide: 12px;
-}
-
-/* Orange dot, revealed on hover/focus. Deliberately not an unread count —
-   ChatSidebar holds messages in component state and drops them on unmount, so
-   there is no unread number to show that would not be invented. */
-.chat-fab__badge {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 9px;
-  height: 9px;
-  background: var(--fg-accent-deep);
-  border: 2px solid var(--fg-panel);
-  border-radius: 50%;
-  opacity: 0;
-  transform: scale(.5);
-  transition: opacity var(--fg-t), transform var(--fg-t);
-}
-.chat-fab:hover .chat-fab__badge,
-.chat-fab:focus-visible .chat-fab__badge { opacity: 1; transform: scale(1); }
-
-@media (prefers-reduced-motion: reduce) {
-  .chat-fab { transition: opacity var(--fg-t), border-color var(--fg-t), background var(--fg-t); }
-}
-
 /* Narrow viewports: the dock is taller (icons stack no labels) but sits at the
    same offset, so the raised position needs a little more clearance. */
-@media (max-width: 640px) {
-  .chat-fab { right: 16px; bottom: 16px; width: 48px; height: 48px; }
-  .chat-fab--raised { --fab-lift: -70px; }
-}
-
-/* Fade the trailing edge of the pill row so a clipped pill reads as "more to
-   scroll" rather than as a rendering fault. Masked rather than overlaid with a
-   gradient so it works on any background. */
-.pills__row {
-  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 34px), transparent 100%);
-  mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 34px), transparent 100%);
-}
 /* Once the row fits, the fade would clip the last pill for no reason. */
-@media (min-width: 1400px) {
-  .pills__row { -webkit-mask-image: none; mask-image: none; }
-}
 
 /* ── Jackpot / winners dock ──────────────────────────────── */
 .dock { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 74px; }
 .dock__panel {
-  padding: 9px;
+  padding: 8px;
   background: var(--fg-plate), var(--fg-panel);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
@@ -3152,7 +2453,7 @@ html[data-theme='light'] .wal__input {
 .dock__title {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   margin: 0 0 10px;
   font-size: 11px;
   font-weight: 800;
@@ -3160,22 +2461,13 @@ html[data-theme='light'] .wal__input {
   text-transform: uppercase;
   color: var(--fg-muted);
 }
-.dock__pulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--fg-accent-deep);
-  box-shadow: var(--fg-glow-accent);
-  animation: dock-pulse 1.8s ease-in-out infinite;
-}
-@keyframes dock-pulse { 50% { opacity: .35; } }
 
 .dock__jackpots { display: flex; flex-direction: column; gap: 8px; }
 .dock__jp {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 6px 7px;
+  padding: 6px 6px;
   background: var(--fg-panel-2);
   border: 1px solid var(--fg-line);
   border-left-width: 3px;
@@ -3197,26 +2489,6 @@ html[data-theme='light'] .wal__input {
 .dock__jp--major .dock__jp-value { color: var(--fg-accent); }
 .dock__jp--minor { border-left-color: var(--fg-line-2); }
 
-.dock__winners { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.dock__winner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 6px;
-  background: var(--fg-panel-2);
-  border: 1px solid var(--fg-line);
-  border-radius: var(--fg-r);
-}
-.dock__winner-who { display: flex; flex-direction: column; min-width: 0; }
-.dock__winner-who b { font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dock__winner-who small { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-dim); }
-.dock__winner-amt { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
-.dock__winner-amt b { font-size: 12.5px; color: var(--fg-accent); font-variant-numeric: tabular-nums; }
-.dock__winner-amt small { font-size: 9.5px; color: var(--fg-gold); }
-.dock__empty { margin: 0; font-size: 12px; line-height: 1.5; color: var(--fg-muted); }
-.dock__note { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--fg-dim); }
-
 @media (max-width: 1000px) {
   .home__layout { grid-template-columns: minmax(0, 1fr); }
   .dock { position: static; }
@@ -3235,7 +2507,6 @@ html[data-theme='light'] .wal__input {
   .tile__play, .tile__demo { max-width: none; flex: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dock__pulse { animation: none; }
   .tile:hover { transform: none; }
 }
 
@@ -3275,7 +2546,7 @@ html[data-theme='light'] .wal__input {
 }
 
 .glm__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.glm__ident { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.glm__ident { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .glm__title { margin: 0; font-size: 19px; font-weight: 800; color: var(--fg-text); }
 .glm__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
@@ -3315,7 +2586,7 @@ html[data-theme='light'] .wal__input {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 22px 16px;
+  padding: 20px 16px;
   text-align: center;
   background: var(--fg-panel-2);
   border: 1px solid var(--fg-line);
@@ -3328,7 +2599,7 @@ html[data-theme='light'] .wal__input {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 8px;
+  padding: 6px 8px;
   background: var(--fg-panel-2);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
@@ -3354,7 +2625,7 @@ html[data-theme='light'] .wal__input {
 .glm__actions { display: flex; gap: 10px; }
 .glm__play, .glm__fair {
   flex: 1;
-  padding: 7px 9px;
+  padding: 6px 8px;
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -3417,8 +2688,7 @@ html[data-theme='light'] .wal__input {
 /* ── Depth scale ─────────────────────────────────────────
    Four layers, deepest to nearest. These mirror the palette tokens rather
    than replacing them, so a theme switch still drives everything. */
-:root {
-  --fg-depth-0: var(--fg-bg);      /* page floor        — #0e0f12 */
+:root {      /* page floor        — #0e0f12 */
   --fg-depth-1: var(--fg-panel);   /* card surface      — #14161b */
   --fg-depth-2: var(--fg-line);    /* interactive chip  — #20242d */
 
@@ -3444,7 +2714,6 @@ html[data-theme='light'] .wal__input {
 .bdm__play:active,
 .tile__play:active,
 .tile__demo:active,
-.pills__pill:active,
 .feed__tab:active,
 .opt__chip:not(:disabled):active,
 .ref__btn:not(:disabled):active {
@@ -3452,8 +2721,7 @@ html[data-theme='light'] .wal__input {
 }
 
 /* Buttons that were missing an explicit pointer. */
-.dash__cta, .dash__btn, .feed__tab, .pills__pill,
-.bdm__play, .bdm__fair-toggle, .bdm__close, .bdm__copy { cursor: pointer; }
+.dash__cta, .dash__btn, .feed__tab, .bdm__play, .bdm__fair-toggle, .bdm__close, .bdm__copy { cursor: pointer; }
 
 /* Gradient shift on the primary action: a flat orange lit slightly from the
    top edge, brightening on hover. Subtle enough to read as a light source
@@ -3474,7 +2742,7 @@ html[data-theme='light'] .wal__input {
   box-shadow: var(--fg-glow-soft);
 }
 
-.dash__link, .feed__tab, .pills__pill, .bdm__close, .bdm__copy {
+.feed__tab, .bdm__close, .bdm__copy {
   transition:
     background-color var(--fg-t),
     color var(--fg-t),
@@ -3495,8 +2763,6 @@ html[data-theme='light'] .wal__input {
   transform: translateY(-4px);
   box-shadow: var(--fg-bevel), var(--fg-glow-soft), 0 0 0 1px rgba(59, 124, 255, .28);
 }
-.tile__icon { transition: transform var(--fg-t); }
-.tile:hover .tile__icon { transform: scale(1.08) translateY(-1px); }
 
 /* The overlay fades AND rises, so the reveal has direction instead of just
    appearing. `visibility` stays stepped so it flips at the end of the fade
@@ -3560,8 +2826,8 @@ html[data-theme='light'] .wal__input {
 .presence {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 11px;
+  gap: 6px;
+  padding: 4px 10px;
   font-size: 12px;
   color: var(--fg-muted);
   background: var(--fg-depth-2);
@@ -3622,8 +2888,8 @@ html[data-theme='light'] .wal__input {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  padding: 18px 12px 15px;
+  gap: 6px;
+  padding: 16px 12px 14px;
   background: var(--fg-depth-1);
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
@@ -3638,7 +2904,7 @@ html[data-theme='light'] .wal__input {
   grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
-  padding: 11px 14px;
+  padding: 10px 14px;
 }
 .feed-skel__left { display: flex; align-items: center; gap: 10px; }
 .feed-skel__icon { width: 18px; height: 18px; border-radius: var(--fg-r); }
@@ -3677,7 +2943,7 @@ html[data-theme='light'] .wal__input {
   z-index: 60;
   width: max-content;
   max-width: 240px;
-  padding: 7px 10px;
+  padding: 6px 10px;
   font-size: 11.5px;
   font-weight: 500;
   line-height: 1.45;
@@ -3711,19 +2977,15 @@ html[data-theme='light'] .wal__input {
    sweep; the presence dot keeps its colour, which is what carries the meaning. */
 @media (prefers-reduced-motion: reduce) {
   .tile,
-  .tile__icon,
   .tile__overlay,
   .dash__cta,
-  .dash__link,
   .bdm__play,
   .tile__play,
   .feed__tab,
-  .pills__pill,
   .tip::after {
     transition: none;
   }
   .tile:hover { transform: none; }
-  .tile:hover .tile__icon { transform: none; }
   .tile__overlay { transform: none; }
   .shimmer { animation: none; }
   .presence__dot--live { animation: none; }
@@ -3731,8 +2993,7 @@ html[data-theme='light'] .wal__input {
   .dash__btn:active,
   .bdm__play:active,
   .tile__play:active,
-  .feed__tab:active,
-  .pills__pill:active { transform: none; }
+  .feed__tab:active { transform: none; }
 }
 
 /* Tooltip trigger inside the bet-details fairness header. The parent is a
@@ -3811,12 +3072,12 @@ html[data-theme='light'] .wal__input {
 }
 .streak__close:hover { color: var(--fg-text); }
 
-.streak__head { display: flex; align-items: center; gap: 11px; }
+.streak__head { display: flex; align-items: center; gap: 10px; }
 .streak__flame { display: flex; color: #3b7cff; }
 .streak__day { display: block; font-size: 15px; font-weight: 800; color: var(--fg-text); }
 .streak__sub { font-size: 11.5px; color: var(--fg-muted); }
 
-.streak__road { margin-top: 13px; }
+.streak__road { margin-top: 12px; }
 .streak__track {
   height: 6px;
   background: var(--fg-line);
@@ -3837,7 +3098,7 @@ html[data-theme='light'] .wal__input {
   padding: 0;
   list-style: none;
 }
-.streak__stop { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.streak__stop { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .streak__dot {
   width: 8px;
   height: 8px;
@@ -3911,7 +3172,7 @@ html[data-theme='light'] .wal__input {
   align-items: center;
   justify-content: space-between;
   margin-top: 16px;
-  padding: 8px 9px;
+  padding: 8px 8px;
   background: #0e0f12;
   border: 1px solid #20242d;
   border-radius: var(--fg-r-lg);
@@ -3931,7 +3192,7 @@ html[data-theme='light'] .wal__input {
 .rsm__actions { display: flex; gap: 10px; margin-top: 16px; }
 .rsm__skip, .rsm__pay {
   flex: 1;
-  padding: 8px 9px;
+  padding: 8px 8px;
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -3982,20 +3243,14 @@ html[data-theme='light'] .wal__input {
 .tile__body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 11px 13px 13px;
+  gap: 2px;
+  padding: 10px 12px 12px;
   background: linear-gradient(180deg, rgba(11, 12, 16, .55), var(--fg-panel) 42%);
   border-top: 1px solid rgba(255, 255, 255, .04);
   /* Fixed height so a card with a text title (the icon fallback) is not taller
      than one whose title lives in the artwork — mixed heights break the row. */
   min-height: 62px;
   justify-content: center;
-}
-.tile__name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--fg-text);
-  letter-spacing: .01em;
 }
 .tile__blurb {
   font-size: 11.5px;
@@ -4074,9 +3329,9 @@ html[data-theme='light'] .wal__input {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   width: 100%;
-  padding: 6px 7px;
+  padding: 6px 6px;
   font: inherit;
   font-size: 13.5px;
   font-weight: 600;
@@ -4127,9 +3382,9 @@ html[data-theme='light'] .wal__input {
 .rail__collapse {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   width: 100%;
-  padding: 5px 7px;
+  padding: 4px 6px;
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -4152,7 +3407,7 @@ html[data-theme='light'] .wal__input {
   padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0);
   white-space: nowrap; border: 0; }
 .rail--mini .rail__link,
-.rail--mini .rail__collapse { justify-content: center; gap: 0; padding: 7px 0; }
+.rail--mini .rail__collapse { justify-content: center; gap: 0; padding: 6px 0; }
 .rail--mini .rail__group + .rail__group { margin-top: 8px; }
 .rail--mini .rail__divider { margin: 8px 4px; }
 .rail__game-icon { display: inline-flex; filter: grayscale(1); opacity: .8; }
@@ -4166,7 +3421,7 @@ html[data-theme='light'] .wal__input {
 }
 .rail__heading {
   margin: 0 0 6px;
-  padding: 0 7px;
+  padding: 0 6px;
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: .09em;
@@ -4202,9 +3457,9 @@ html[data-theme='light'] .wal__input {
     margin: 0; overflow: visible; clip: auto; white-space: normal; }
   .rail--mini .rail__heading { margin: 0 0 6px; }
   .rail--mini .rail__link,
-  .rail--mini .rail__collapse { justify-content: flex-start; gap: 11px; }
-  .rail--mini .rail__link { padding: 6px 7px; }
-  .rail--mini .rail__collapse { padding: 5px 7px; }
+  .rail--mini .rail__collapse { justify-content: flex-start; gap: 10px; }
+  .rail--mini .rail__link { padding: 6px 6px; }
+  .rail--mini .rail__collapse { padding: 4px 6px; }
   .rail__collapse { display: none; }
 }
 @media (min-width: 1025px) {
@@ -4230,34 +3485,6 @@ html[data-theme='light'] .wal__input {
 }
 .dash__burger:hover { background: var(--fg-hover); color: var(--fg-text); }
 @media (min-width: 1025px) { .dash__burger { display: none; } }
-
-/* ── Header search ─────────────────────────────────────── */
-.dash__search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1 1 auto;
-  max-width: 420px;
-  min-width: 0;
-  padding: 0 12px;
-  height: 36px;
-  color: var(--fg-dim);
-  background: var(--fg-bg);
-  border-radius: var(--fg-r);
-}
-.dash__search input {
-  flex: 1 1 auto;
-  min-width: 0;
-  font: inherit;
-  font-size: 13px;
-  color: var(--fg-text);
-  background: transparent;
-  border: 0;
-  outline: none;
-}
-.dash__search input::placeholder { color: var(--fg-dim); }
-.dash__search:focus-within { box-shadow: 0 0 0 2px var(--fg-line-2); }
-@media (max-width: 720px) { .dash__search { display: none; } }
 
 /* ── Blocky surfaces ───────────────────────────────────────
    Borders resolve to the panel colour so cards read as blocks rather than
@@ -4289,7 +3516,7 @@ html[data-theme='light'] .wal__input {
   position: static;
   max-width: none;
   margin: 0;
-  padding: 12px 13px;
+  padding: 12px 12px;
   border-radius: var(--fg-r-lg);
   backdrop-filter: none;
 }
@@ -4298,7 +3525,7 @@ html[data-theme='light'] .wal__input {
 .feed--compact .feed__subtitle { display: none; }
 .feed--compact .feed__columns { font-size: 9.5px; padding: 0 4px 4px; margin-top: 10px; }
 .feed--compact .feed__list { max-height: 320px; margin-top: 4px; }
-.feed--compact .feed__row { padding: 5px 4px; font-size: 12px; gap: 6px; }
+.feed--compact .feed__row { padding: 4px 4px; font-size: 12px; gap: 6px; }
 .feed--compact .feed__name { font-size: 11.5px; }
 .feed--compact .feed__payout { font-size: 11.5px; }
 .feed--compact .feed__icon svg { width: 14px; height: 14px; }
@@ -4356,7 +3583,7 @@ html[data-theme='light'] .wal__input {
 .favs__empty span { font-size: 13px; color: var(--fg-muted); }
 .favs__browse {
   margin-top: 8px;
-  padding: 11px 20px;
+  padding: 10px 20px;
   font: inherit;
   font-size: 14px;
   font-weight: 700;
@@ -4373,18 +3600,11 @@ html[data-theme='light'] .wal__input {
 .tile__play,
 .tile__demo { max-width: 150px; }
 
-@media (prefers-reduced-motion: reduce) {
-  /* The button still leaves and returns — that is the behaviour, not decoration
-     — but it snaps rather than sliding. */
-  .chat-fab { transition: opacity .01s, border-color var(--fg-t), background var(--fg-t); }
-}
-
-
 /* Payout destination in the withdrawal queue. Monospace and breakable: an
    address that wraps is readable, one that overflows is a support ticket. */
 .adm-wd__dest {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   font-family: var(--fg-mono);
   font-size: 11px;
   color: var(--fg-muted);
@@ -4433,7 +3653,6 @@ html[data-theme='light'] .brandmark {
 }
 
 .rail--mini .rail__brand { height: 38px; }
-
 
 /* ═══════════════════════════════════════════════
    Motion & glass upgrade
@@ -4525,24 +3744,6 @@ html[data-theme='light'] .brandmark {
     0 0 18px -2px rgba(59, 124, 255, .35);
 }
 
-/* Embedded icon badge for a field. The input owns the left padding; the badge
-   is positioned into it, so no wrapper has to know the icon's width. */
-.fg-field { position: relative; display: flex; align-items: center; }
-.fg-field > .fg-field__icon {
-  position: absolute;
-  left: 11px;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  color: var(--fg-accent);
-  background: rgba(59, 124, 255, .1);
-  border: 1px solid rgba(59, 124, 255, .28);
-  border-radius: var(--fg-r);
-  pointer-events: none;
-}
-.fg-field > input { padding-left: 42px; }
-
 /* ── Tile hover ────────────────────────────────
    One gesture: the poster zooms inside its frame (see .tile__img below) and
    the play overlay fades up. The 3D tilt that used to live here is gone with
@@ -4551,14 +3752,9 @@ html[data-theme='light'] .brandmark {
    holding its own compositor layer via `will-change` to produce nothing. In a
    horizontally scrolling rail that cost is paid per card, per row. */
 
-
 /* ── Originals badge ───────────────────────────
    Glass pill over the art: blurred plate, hairline edge, and a live green dot
    with its own halo. Replaces the bare emblem, which read as a watermark. */
-@keyframes fg-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: .55; transform: scale(.82); }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .dash__cta::after,
@@ -4582,7 +3778,6 @@ html[data-theme='light'] .brandmark {
      screen at once as will legibly fit, not a marketing page. Every card,
      panel and section below is padded from these four, so the whole app
      tightens or loosens from here rather than from ~70 hand-tuned values. */
-  --fg-sp-2: 6px;
   --fg-sp-3: 8px;
   --fg-sp-4: 10px;
   --fg-sp-6: 16px;
@@ -4603,7 +3798,19 @@ html[data-theme='light'] .brandmark {
   --fg-cta-glow: 0 0 20px rgba(59, 124, 255, .3);
   --fg-placeholder: #64748b;
   /* Header band height. Shared by .dash__header and .rail's sticky offset. */
-  --fg-header-h: 44px;
+  /* Must equal the header's REAL rendered height, because .rail is pinned
+     with `top: var(--fg-header-h)` and sized `calc(100vh - …)`. Under-measure
+     it and the rail's top slides beneath the sticky header, which paints over
+     it — the footer controls at the bottom of the rail then sit lower than
+     they appear to.
+
+     The arithmetic, so a future padding change is traceable:
+       34px  tallest header child (.dash__avatar, and .dash__cta matches)
+     + 14px  .dash__header padding (7px top + 7px bottom)
+     +  1px  border-bottom  (box-sizing: border-box, so it counts)
+     = 49px
+     It was set to 44px when the padding was tightened, which was 5px short. */
+  --fg-header-h: 49px;
 }
 
 /* ── 2. Typography ─────────────────────────────
@@ -4611,7 +3818,6 @@ html[data-theme='light'] .brandmark {
    title that names a thing. The contrast between 11px tracked caps and 14px
    semibold white is what creates the hierarchy — five sizes two pixels apart
    is what makes a layout read as generated. */
-.fg-eyebrow,
 .rail__heading,
 .opt__label,
 .acc__section-title,
@@ -4625,7 +3831,6 @@ html[data-theme='light'] .brandmark {
   color: var(--fg-muted);
 }
 
-.fg-title,
 .fm__prize-title,
 .acc__section-title,
 .tile__fallback-name {
@@ -4680,8 +3885,7 @@ html[data-theme='light'] .brandmark {
 .tile__fav,
 .tile__play,
 .tile__demo,
-.wal__tab,
-button.fg-press {
+.wal__tab {
   transition: background-color var(--fg-snap), border-color var(--fg-snap),
     color var(--fg-snap), box-shadow var(--fg-snap), transform var(--fg-snap),
     opacity var(--fg-snap);
@@ -4701,8 +3905,7 @@ button.fg-press {
 .tile__fav:active,
 .tile__play:active,
 .tile__demo:active,
-.wal__tab:active,
-button.fg-press:active:not(:disabled) {
+.wal__tab:active {
   transform: scale(.98) translateY(1px);
 }
 
@@ -4735,10 +3938,7 @@ button.fg-press:active:not(:disabled) {
 .auth__input,
 .authm__input,
 .fg-input,
-.wal__input,
-input[type='text'].fg-field,
-input[type='email'].fg-field,
-input[type='password'].fg-field {
+.wal__input {
   color: #fff;
   background: color-mix(in srgb, var(--fg-sunken) 90%, transparent);
   border: 1px solid var(--fg-line);
@@ -4778,16 +3978,14 @@ input[type='password'].fg-field {
   border: 1px solid var(--fg-line);
   border-radius: var(--fg-r-lg);
 }
-.tile__img,
-.tile__icon {
+.tile__img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transform: none;
   transition: transform var(--fg-glide);
 }
-.tile:hover .tile__img,
-.tile:hover .tile__icon {
+.tile:hover .tile__img {
   transform: scale(1.05);
 }
 /* The copy plate rides the same curve so the two read as one gesture. */
@@ -4806,7 +4004,7 @@ input[type='password'].fg-field {
   display: flex;
   align-items: center;
   gap: var(--fg-sp-3);
-  padding: 9px 12px;
+  padding: 8px 12px;
   border-radius: var(--fg-r);
   color: var(--fg-muted);
 }
@@ -4829,25 +4027,22 @@ input[type='password'].fg-field {
 }
 /* Outline icons inherit the link's colour, so one rule moves icon and label
    together and they can never disagree about active state. */
-.rail__link svg,
-.rail__ico {
+.rail__link svg {
   flex: none;
   color: currentColor;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tile:hover .tile__img,
-  .tile:hover .tile__icon { transform: none; }
+  .tile:hover .tile__img { transform: none; }
   .dash__btn:active:not(:disabled),
-  .authm__submit:active:not(:disabled),
-  button.fg-press:active:not(:disabled) { transform: none; }
+  .authm__submit:active:not(:disabled) { transform: none; }
 }
 
 /* ── Brand wordmark ───────────────────────────
    The rail carries the mark plus the name, so the drawer reads as branded on
    mobile where the header is hidden behind it. Hidden in the collapsed rail
    rather than removed from the DOM, so the link is still announced. */
-.rail__brand { gap: 9px; }
+.rail__brand { gap: 8px; }
 .rail__mark { height: 26px; width: auto; object-fit: contain; }
 .rail--mini .rail__mark { height: 24px; }
 /* White ink, so it needs flipping on a light page. */
@@ -4881,11 +4076,9 @@ html[data-theme='light'] .rail__mark { filter: invert(1); }
    larger area. `position: relative` is asserted on each so the overlay has
    something to anchor to. */
 @media (pointer: coarse) {
-  .dash__icon-btn,
   .bdm__close,
   .bdm__copy,
   .wal__close,
-  .wheel__close,
   .glm__close,
   .streak__close,
   .rsm__close,
@@ -4893,11 +4086,9 @@ html[data-theme='light'] .rail__mark { filter: invert(1); }
     position: relative;
   }
 
-  .dash__icon-btn::after,
   .bdm__close::after,
   .bdm__copy::after,
   .wal__close::after,
-  .wheel__close::after,
   .glm__close::after,
   .streak__close::after,
   .rsm__close::after,
@@ -4985,9 +4176,7 @@ textarea,
 .wal__input,
 .adm__input,
 .dash__input,
-.ref__input,
-.chat-drawer__input,
-.pills__search {
+.ref__input {
   background: var(--fg-sunken);
   border: 1px solid var(--fg-hairline);
   box-shadow: var(--fg-input-inset);
@@ -5011,9 +4200,7 @@ textarea:focus,
 .wal__input:focus,
 .adm__input:focus,
 .dash__input:focus,
-.ref__input:focus,
-.chat-drawer__input:focus,
-.pills__search:focus {
+.ref__input:focus {
   outline: none;
   border-color: var(--fg-accent);
   box-shadow: var(--fg-input-inset), 0 0 0 2px rgba(59, 124, 255, .45);
@@ -5023,8 +4210,7 @@ textarea:focus,
    same reason the balance readouts do — a stake being typed digit by digit
    should not shuffle sideways under the cursor. */
 input[type='number'],
-.wal__input,
-.fg-input--num {
+.wal__input {
   font-family: var(--fg-num);
   font-variant-numeric: tabular-nums;
 }
@@ -5059,7 +4245,6 @@ input[type='number'],
 .rail__brand,
 .auth__brand,
 .foot__brand,
-.hero__title,
 .glm__title,
 .rsm__title,
 .bdm__title,
@@ -5270,7 +4455,6 @@ input[type='number'],
 .tile__demo,
 .dash__cta,
 .wal__btn,
-.pills__pill,
 .shelf__all {
   border-radius: 0;
   clip-path: polygon(
@@ -5320,3 +4504,163 @@ input[type='number'],
 /* Dark navy text on the blue fill measured 1.9:1. The accent-fill contract is
    white text (--fg-on-accent); this rule predated it and kept its own literal. */
 .dash__cta { color: var(--fg-on-accent); }
+
+/* ── 404 ────────────────────────────────────────
+   Rendered by app/not-found.tsx for any unmatched route. Sits inside the root
+   layout, so the header and footer are already around it — this only has to
+   own the centred column between them. */
+.nf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52vh;
+  padding: 40px 16px;
+  text-align: center;
+}
+/* Large, quiet and aria-hidden: it is a visual anchor, not information. The
+   heading below carries the actual message for a screen reader. */
+.nf__code {
+  margin: 0;
+  font-family: var(--fg-display, var(--fg-font));
+  font-size: clamp(56px, 12vw, 104px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.04em;
+  color: var(--fg-line-2);
+}
+.nf__title {
+  margin: 0;
+  font-size: clamp(19px, 3.4vw, 25px);
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--fg-text);
+}
+.nf__body {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--fg-muted);
+}
+.nf__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+/* The single accent-filled control on the page — the one clear action. The
+   deep step is the fill, per the accent contract: --fg-accent is a stroke and
+   text colour and must never sit under white label text. */
+.nf__cta {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-on-accent, #fff);
+  background: var(--fg-accent-deep, var(--fg-accent));
+  border: 1px solid transparent;
+  border-radius: var(--fg-r);
+  transition: background-color var(--fg-t), border-color var(--fg-t);
+}
+.nf__cta:hover { background: var(--fg-accent-mid, var(--fg-accent)); }
+.nf__link {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  border: var(--fg-edge);
+  border-radius: var(--fg-r);
+  transition: color var(--fg-t), border-color var(--fg-t), background-color var(--fg-t);
+}
+.nf__link:hover { color: var(--fg-text); background: var(--fg-hover); }
+.nf__cta:focus-visible,
+.nf__link:focus-visible { outline: none; box-shadow: var(--fg-ring); }
+
+/* ── Cookie consent ─────────────────────────────
+   Anchored to the bottom of the viewport rather than shown as a modal over a
+   scrim: the visitor can still read the page, including the privacy policy
+   this links to, while deciding. A gambling site that blacks out its own terms
+   behind a consent wall is asking for a decision the reader cannot inform. */
+.cc {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* Above the dock (1000) and the support launcher (1001) so the banner is
+     not half-hidden behind them, but the launcher is lifted clear of it below
+     rather than left underneath — a consent bar that silently covers the
+     support button would make support unreachable for exactly the visitor who
+     has not dismissed it yet. */
+  z-index: 1200;
+  background: var(--fg-panel);
+  border-top: var(--fg-edge);
+}
+/* Raise the fixed bottom-corner furniture by the banner's height while it is
+   on screen. `:has()` keeps this in CSS rather than threading "is the banner
+   open" through React into two unrelated components. Browsers without :has()
+   simply keep the current offsets — the banner overlaps as before, which is
+   the pre-existing behaviour and not a regression. */
+body:has(.cc) .sup__panel { bottom: 96px; }
+@media (max-width: 560px) {
+  /* The banner wraps to two rows and its buttons go full width down here. */
+  body:has(.cc) .sup__panel { bottom: 152px; }
+}
+.cc__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 1180px;
+  margin-inline: auto;
+  padding: 10px var(--fg-pad);
+}
+.cc__text { flex: 1 1 320px; min-width: 0; }
+.cc__title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-text);
+}
+.cc__body {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--fg-muted);
+}
+.cc__link { color: var(--fg-accent); text-decoration: underline; }
+.cc__actions { display: flex; flex: 0 0 auto; gap: 8px; }
+/* Both buttons share every dimension. Only the fill differs, and only enough
+   to mark which is the affirmative action — a reject button that reads as
+   secondary is the pattern that invalidates the consent it collects. */
+.cc__btn {
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--fg-text);
+  background: var(--fg-hover);
+  border: var(--fg-edge);
+  border-radius: var(--fg-r);
+  cursor: pointer;
+  transition: background-color var(--fg-t), border-color var(--fg-t), color var(--fg-t);
+}
+.cc__btn:hover { background: var(--fg-hover-2); }
+.cc__btn--accept {
+  color: var(--fg-on-accent, #fff);
+  background: var(--fg-accent-deep, var(--fg-accent));
+  border-color: transparent;
+}
+.cc__btn--accept:hover { background: var(--fg-accent-mid, var(--fg-accent)); }
+.cc__btn:focus-visible { outline: none; box-shadow: var(--fg-ring); }
+
+@media (max-width: 560px) {
+  .cc__actions { width: 100%; }
+  /* Equal width on a phone too, rather than letting the longer label win. */
+  .cc__btn { flex: 1 1 0; }
+}

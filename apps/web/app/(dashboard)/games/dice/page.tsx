@@ -1,20 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { useGameRound } from '@/hooks/useGameRound';
 
 type Direction = 'OVER' | 'UNDER';
 
 const DICE_EDGE = 0.01;
 
 export default function DicePage() {
-  const { socket, balance, send } = useGameSocket();
+  const { balance } = useGameSocket();
   const { t } = useLanguage();
-  const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
   const [target, setTarget] = useState(50);
@@ -22,22 +22,14 @@ export default function DicePage() {
   const [roll, setRoll] = useState<number | null>(null);
   const [won, setWon] = useState<boolean | null>(null);
   const [payout, setPayout] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    const off = [
-      subscribe('GAME_RESULT', (data) => {
-        if (data.gameType !== 'DICE') return;
-        const result = data.resultData as { roll?: number } | undefined;
-        if (typeof result?.roll === 'number') setRoll(result.roll);
-        setWon(Boolean(data.win));
-        setPayout(typeof data.payout === 'string' ? data.payout : null);
-        setBusy(false);
-      }),
-      subscribe('ERROR', () => setBusy(false)),
-    ];
-    return () => off.forEach((fn) => fn());
-  }, [subscribe]);
+  const { busy, bet } = useGameRound<{ roll?: number }>('DICE', {
+    onResult: ({ result, win, payout: paid }) => {
+      if (typeof result?.roll === 'number') setRoll(result.roll);
+      setWon(win);
+      setPayout(paid);
+    },
+  });
 
   const { winChance, quote } = useMemo(() => {
     const chance = direction === 'UNDER' ? target : 100 - target;
@@ -144,10 +136,9 @@ export default function DicePage() {
             balance={balance.balance}
             currency={balance.currency}
             onBet={() => {
-              setBusy(true);
               setRoll(null);
               setWon(null);
-              send('BET', 'DICE', {
+              bet('BET', {
                 amount,
                 currency: balance.currency,
                 params: { target, direction },

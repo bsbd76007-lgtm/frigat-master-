@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   RouletteCanvas,
@@ -11,6 +11,7 @@ import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { useGameRound } from '@/hooks/useGameRound';
 
 const POSITIONS: Array<{ id: string; label: string; pays: string }> = [
   { id: 'red', label: 'Red', pays: '2×' },
@@ -28,9 +29,8 @@ const POSITIONS: Array<{ id: string; label: string; pays: string }> = [
 ];
 
 export default function RoulettePage() {
-  const { socket, balance, send } = useGameSocket();
+  const { balance } = useGameSocket();
   const { t } = useLanguage();
-  const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
   const [position, setPosition] = useState('red');
@@ -38,7 +38,6 @@ export default function RoulettePage() {
   const [phase, setPhase] = useState<RoulettePhase>('IDLE');
   const [pocket, setPocket] = useState<number | null>(null);
   const [lastWin, setLastWin] = useState<boolean | null>(null);
-  const [busy, setBusy] = useState(false);
   /**
    * The settled round, held back until the wheel finishes. The server answers
    * an instant game in milliseconds; applying it on arrival announced the
@@ -52,29 +51,26 @@ export default function RoulettePage() {
    */
   const [heldBalance, setHeldBalance] = useState<string | null>(null);
 
-  useEffect(() => {
-    const off = [
-      subscribe('GAME_RESULT', (data) => {
-        if (data.gameType !== 'ROULETTE') return;
-        const result = data.resultData as { pocket?: number } | undefined;
-        if (typeof result?.pocket !== 'number') return;
+  // autoSettle is off: the ball is still in the air when the server answers,
+  // and revealResult below is what ends the round.
+  const { busy, bet, settle } = useGameRound<{ pocket?: number }>('ROULETTE', {
+    autoSettle: false,
+    onResult: ({ result, win }) => {
+      if (typeof result?.pocket !== 'number') return;
 
-        // The pocket goes to the canvas so it can aim the ball, but the phase
-        // stays SPINNING and the win/loss stays hidden until it lands.
-        pendingRef.current = { pocket: result.pocket, win: Boolean(data.win) };
-        setPocket(result.pocket);
-      }),
-      subscribe('ERROR', () => {
-        // A rejected bet never spins, so nothing is pending and the held
-        // balance must be released or the panel would freeze on a stale value.
-        pendingRef.current = null;
-        setHeldBalance(null);
-        setBusy(false);
-        setPhase('IDLE');
-      }),
-    ];
-    return () => off.forEach((fn) => fn());
-  }, [subscribe]);
+      // The pocket goes to the canvas so it can aim the ball, but the phase
+      // stays SPINNING and the win/loss stays hidden until it lands.
+      pendingRef.current = { pocket: result.pocket, win };
+      setPocket(result.pocket);
+    },
+    onError: () => {
+      // A rejected bet never spins, so nothing is pending and the held
+      // balance must be released or the panel would freeze on a stale value.
+      pendingRef.current = null;
+      setHeldBalance(null);
+      setPhase('IDLE');
+    },
+  });
 
   const activePosition = straight.trim() !== '' ? `straight:${straight.trim()}` : position;
 
@@ -87,17 +83,16 @@ export default function RoulettePage() {
       setPhase('RESULT');
     }
     setHeldBalance(null);
-    setBusy(false);
+    settle();
   };
 
   const spin = () => {
-    setBusy(true);
     setPhase('SPINNING');
     setPocket(null);
     setLastWin(null);
     pendingRef.current = null;
     setHeldBalance(balance.balance);
-    send('SPIN', 'ROULETTE', {
+    bet('SPIN', {
       amount,
       currency: balance.currency,
       params: { bets: [{ position: activePosition, amount }] },

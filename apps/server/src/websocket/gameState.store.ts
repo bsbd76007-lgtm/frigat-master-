@@ -1,3 +1,4 @@
+import type { ChickenMode } from '@frigat/shared';
 import type { MinesLayout } from '../engines/mines.engine';
 import type { SeedContext } from '../types/engine.types';
 
@@ -9,6 +10,22 @@ export interface MinesState {
   layout: MinesLayout;
   seed: SeedContext;
   revealed: number[];
+  active: boolean;
+}
+
+export interface ChickenState {
+  userId: string;
+  betTransactionId: string;
+  betAmount: string;
+  currency: string;
+  mode: ChickenMode;
+  seed: SeedContext;
+  /** Lanes survived so far; 0 is the starting verge. */
+  lane: number;
+  /** Last lane of the road for this mode — reaching it cashes out. */
+  maxLanes: number;
+  /** Where this seed kills the chicken, or null if it survives the road. */
+  bustLane: number | null;
   active: boolean;
 }
 
@@ -29,6 +46,7 @@ export interface CrashBet {
 class GameStateStore {
   private mines = new Map<string, MinesState>();
   private crashBets = new Map<string, CrashBet>();
+  private chicken = new Map<string, ChickenState>();
 
   setMines(state: MinesState) {
     this.mines.set(state.userId, state);
@@ -38,6 +56,16 @@ class GameStateStore {
   }
   clearMines(userId: string) {
     this.mines.delete(userId);
+  }
+
+  setChicken(state: ChickenState) {
+    this.chicken.set(state.userId, state);
+  }
+  getChicken(userId: string): ChickenState | undefined {
+    return this.chicken.get(userId);
+  }
+  clearChicken(userId: string) {
+    this.chicken.delete(userId);
   }
 
   addCrashBet(bet: CrashBet) {

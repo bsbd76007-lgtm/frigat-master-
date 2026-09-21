@@ -200,7 +200,7 @@ export const config = {
 } as const;
 
 if (config.env !== 'production' && !process.env.JWT_SECRET) {
-  // eslint-disable-next-line no-console
+   
   console.warn(
     '[config] JWT_SECRET not set — using insecure dev fallback. Do NOT use in production.'
   );

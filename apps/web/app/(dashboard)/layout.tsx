@@ -96,9 +96,8 @@ function DashboardChrome({ children }: { children: ReactNode }) {
       <StreakProgressBar />
       <RestoreStreakModal />
 
-      {/* Support is account-scoped and hides itself when signed out. It stacks
-          in the corner — the dock spans the full width on mobile, so the corner
-          is the only free column. */}
+      {/* Support is account-scoped and hides itself when signed out. There is
+          no floating launcher: the sidebar's Support control opens it. */}
       <SupportChat open={supportOpen} onOpenChange={setSupportOpen} />
 
       {/* One renderer for the whole dashboard; anything can raise a toast

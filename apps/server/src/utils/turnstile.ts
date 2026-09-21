@@ -71,7 +71,7 @@ function warnOnceAboutMissingSecret(): void {
   if (warnedAboutMissingSecret) return;
   warnedAboutMissingSecret = true;
 
-  // eslint-disable-next-line no-console
+   
   console.error(
     '[turnstile] TURNSTILE_SECRET_KEY is not set. Human verification cannot run, so every sign-in and sign-up is being REFUSED with 503. ' +
       'Set the secret, or set TURNSTILE_DISABLED=true to accept traffic unchecked while you finish configuring the deployment.'
@@ -84,7 +84,7 @@ function warnOnceAboutDisabled(): void {
   if (warnedAboutDisabled) return;
   warnedAboutDisabled = true;
 
-  // eslint-disable-next-line no-console
+   
   console.warn(
     '[turnstile] TURNSTILE_DISABLED is set — human verification is OFF and every request is accepted unchecked. ' +
       'This is for first-deploy testing only. Unset it before taking real money.'
@@ -151,7 +151,7 @@ export async function verifyTurnstileToken(
     return { ok: true, bypassed: true };
   }
   if (bypass === 'no-token') {
-    // eslint-disable-next-line no-console
+     
     console.log('[DEV] No Turnstile token supplied — skipping verification on localhost');
     return { ok: true, bypassed: true };
   }

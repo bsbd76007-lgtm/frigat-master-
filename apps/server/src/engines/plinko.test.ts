@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { PLINKO_ROWS, PLINKO_TABLES, type PlinkoRisk } from '@frigat/shared';
 
 import { drop } from './plinko.engine';
+import { HOUSE_EDGE } from '../config/game.config';
 import type { SeedContext } from '../types/engine.types';
 
 const ctx = (nonce = 0): SeedContext => ({
@@ -104,5 +105,51 @@ describe('plinko — payouts', () => {
     expect(high[Math.floor(high.length / 2)]).toBeLessThanOrEqual(
       low[Math.floor(low.length / 2)]
     );
+  });
+});
+
+/**
+ * Plinko's payouts are a hardcoded table, and `HOUSE_EDGE.PLINKO` does not feed
+ * the engine — it only feeds `/api/games/rtp`, which publishes the figure to
+ * players. So the table and the constant can drift apart silently, and the
+ * visible symptom is the API quoting an RTP the game does not pay.
+ *
+ * This is the guard. Every board is enumerated exactly (a ball's path is
+ * `rows` independent coin flips, so bucket k has probability C(rows,k)/2^rows)
+ * — no sampling, no seed, no tolerance for luck.
+ */
+describe('plinko — RTP calibration', () => {
+  function binomial(rows: number, k: number): number {
+    let c = 1;
+    for (let i = 0; i < k; i++) c = (c * (rows - i)) / (i + 1);
+    return c / 2 ** rows;
+  }
+
+  it('every board pays the advertised house edge', () => {
+    const target = 1 - HOUSE_EDGE.PLINKO;
+    for (const risk of RISKS) {
+      for (const rows of PLINKO_ROWS) {
+        const table = PLINKO_TABLES[risk][rows];
+        let rtp = 0;
+        for (let k = 0; k <= rows; k++) rtp += binomial(rows, k) * table[k];
+        expect(
+          Math.abs(rtp - target),
+          `${risk}/${rows} RTP=${rtp.toFixed(6)} target=${target}`
+        ).toBeLessThan(0.001);
+      }
+    }
+  });
+
+  it('every board is symmetric', () => {
+    // A left hop and a right hop are equally likely, so an asymmetric table
+    // would pay one side of the board better for no reason a player could see.
+    for (const risk of RISKS) {
+      for (const rows of PLINKO_ROWS) {
+        const t = PLINKO_TABLES[risk][rows];
+        for (let i = 0; i < t.length; i++) {
+          expect(t[i], `${risk}/${rows} bucket ${i}`).toBe(t[t.length - 1 - i]);
+        }
+      }
+    }
   });
 });

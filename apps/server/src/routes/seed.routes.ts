@@ -12,7 +12,7 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { identityFromRequest } from './auth';
+import { identityFromRequest } from '../middleware/auth';
 import {
   getActiveSeed,
   setClientSeed,

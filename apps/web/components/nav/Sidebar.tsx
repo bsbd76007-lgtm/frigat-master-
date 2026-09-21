@@ -4,18 +4,17 @@ import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Crown,
-  Gift,
-  Headphones,
-  LayoutGrid,
-  ShieldCheck,
-  UserPlus,
-} from 'lucide-react';
-
 import { GAME_ICONS } from '@/components/icons';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CrownIcon,
+  GiftIcon,
+  GridIcon,
+  HeadphonesIcon,
+  ShieldCheckIcon,
+  UserPlusIcon,
+} from '@/components/icons/ui';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
 import { openPanel } from '@/lib/appPanels';
@@ -25,6 +24,16 @@ interface SidebarProps {
   open: boolean;
   onClose: () => void;
 }
+
+/**
+ * One rendered size for every glyph in the rail.
+ *
+ * The chevrons used to draw at 16 while the categories drew at 18. With a
+ * viewBox-relative stroke that is two different weights in one column, which
+ * is the exact wobble this rail has been fixed for twice. One number, one
+ * weight.
+ */
+const RAIL_ICON_PX = 18;
 
 /** Remembers the collapsed rail between visits. */
 const COLLAPSE_KEY = 'frigat.rail.collapsed';
@@ -207,9 +216,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             aria-label={collapsed ? t('nav.expandMenu') : t('nav.collapseMenu')}
           >
             {collapsed ? (
-              <ChevronRight size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
+              <ChevronRightIcon size={RAIL_ICON_PX} aria-hidden="true" />
             ) : (
-              <ChevronLeft size={16} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
+              <ChevronLeftIcon size={RAIL_ICON_PX} aria-hidden="true" />
             )}
             <span className="rail__label">{t('nav.collapse')}</span>
           </button>
@@ -228,12 +237,12 @@ type RailIconName = keyof typeof RAIL_ICONS;
 
 /** Name -> glyph. Adding a rail entry means adding a line here, not an SVG. */
 const RAIL_ICONS = {
-  casino: LayoutGrid,
-  vip: Crown,
-  referrals: UserPlus,
-  rewards: Gift,
-  architecture: ShieldCheck,
-  support: Headphones,
+  casino: GridIcon,
+  vip: CrownIcon,
+  referrals: UserPlusIcon,
+  rewards: GiftIcon,
+  architecture: ShieldCheckIcon,
+  support: HeadphonesIcon,
 } as const;
 
 function RailLink({
@@ -264,21 +273,27 @@ function RailLink({
 }
 
 /**
- * Category icons, from lucide-react's outline set.
+ * Category icons, drawn in components/icons/ui.
  *
  * These were six hand-drawn SVGs with their own stroke weights and optical
  * sizes, which is why the rail never looked settled — a 2.6 stroke sitting
  * next to a 2 reads as a wobble down the column even though every icon is
- * "18px". One family, one weight, one size fixes that by construction.
+ * "18px". They then spent a while as lucide-react, which fixed the wobble by
+ * importing someone else's drawing style; these are the same fix without the
+ * dependency.
  *
- * The bespoke game icons in components/icons/ stay: those are brand artwork
- * for individual titles, not category glyphs, and lucide has no Plinko.
+ * Every rail glyph renders at RAIL_ICON_PX, and the shared Glyph draws at 2
+ * units on a 24 viewBox, so the whole column resolves to one identical stroke
+ * weight. That equality is why the size is a constant here rather than a
+ * number typed at each call site — it is load-bearing, not incidental.
+ *
+ * The bespoke game icons in components/icons/ stay: those are 48px colour
+ * illustrations for individual titles, not monochrome category glyphs, and
+ * nothing about their weight has to match this column.
  */
 function RailIcon({ name }: { name: RailIconName }) {
   const Icon = RAIL_ICONS[name];
-  // absoluteStrokeWidth keeps the stroke at 2 device-independent pixels
-  // regardless of the box, so the icons stay optically equal to each other.
-  return <Icon size={18} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />;
+  return <Icon size={RAIL_ICON_PX} aria-hidden="true" />;
 }
 
 export default Sidebar;

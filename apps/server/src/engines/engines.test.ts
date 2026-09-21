@@ -145,15 +145,26 @@ describe('Crash', () => {
   const N = 20000;
   for (let n = 0; n < N; n++) {
     const u = calculateOutcome('x'.repeat(64), 'c', n);
-    const raw = 0.99 / (1 - u);
+    const raw = (1 - HOUSE_EDGE.CRASH) / (1 - u);
     if (raw < 1) rawBusts++;
   }
+  // A raw draw below 1 is exactly the edge: the fraction of u for which
+  // (1-edge)/(1-u) < 1 is the edge itself. Derived, not hardcoded, so moving
+  // HOUSE_EDGE.CRASH moves this assertion with it.
   const rate = rawBusts / N;
-  assert.ok(Math.abs(rate - 0.01) < 0.004, `raw bust rate ${rate}`);
+  assert.ok(
+    Math.abs(rate - HOUSE_EDGE.CRASH) < 0.004,
+    `raw bust rate ${rate}, expected ~${HOUSE_EDGE.CRASH}`
+  );
 });
-  it('effective 1.00x rate ≈ 2% (raw 1% + floored [1.00,1.01) band)', () => {
+  it('effective 1.00x rate = the edge plus the floored [1.00,1.01) band', () => {
   // Flooring to 2dp collapses the [1.00, 1.01) band onto 1.00x — a house-favouring
   // rounding that roughly doubles the visible instant-loss rate. Documented, intentional.
+  //
+  // The exact figure falls out of the edge rather than being observed and
+  // written down: cp <= 1 whenever (1-e)/(1-u) < 1.01, i.e. u < 1 - (1-e)/1.01.
+  // At a 1% edge that is 1.98%; at 2.5% it is 3.47%. Deriving it means raising
+  // the edge does not silently break a test that looks like it measures crash.
   let flooredToOne = 0;
   const N = 20000;
   for (let n = 0; n < N; n++) {
@@ -166,7 +177,11 @@ describe('Crash', () => {
     if (cp <= 1) flooredToOne++;
   }
   const rate = flooredToOne / N;
-  assert.ok(rate > 0.015 && rate < 0.025, `effective 1.00x rate ${rate}`);
+  const expected = 1 - (1 - HOUSE_EDGE.CRASH) / 1.01;
+  assert.ok(
+    Math.abs(rate - expected) < 0.005,
+    `effective 1.00x rate ${rate}, expected ~${expected}`
+  );
 });
   it('multiplier grows monotonically with time', () => {
   assert.ok(crash.multiplierAtElapsed(1000) < crash.multiplierAtElapsed(5000));
@@ -223,7 +238,7 @@ describe('Limbo', () => {
     if (limbo.play({ targetMultiplier: target }, ctx(n)).win) wins++;
   }
   const rate = wins / N;
-  const expected = 0.99 / target;
+  const expected = (1 - HOUSE_EDGE.LIMBO) / target;
   assert.ok(Math.abs(rate - expected) < 0.01, `win rate ${rate}, expected ~${expected}`);
 });
 
@@ -253,7 +268,7 @@ describe('Keno', () => {
   assert.throws(() => keno.play({ picks: [40] }, ctx()));
   assert.throws(() => keno.play({ picks: [] }, ctx()));
 });
-  it('every paytable row is calibrated to ~98% RTP', () => {
+  it('every paytable row is calibrated to the KENO house edge', () => {
   const N = 40;
   const K = 10;
   function comb(n: number, k: number): number {
@@ -271,7 +286,11 @@ describe('Keno', () => {
     for (const hits of Object.keys(table).map(Number)) {
       ev += prob(picks, hits) * table[hits];
     }
-    assert.ok(Math.abs(ev - 0.98) < 0.005, `picks=${picks} RTP=${ev}`);
+    const target = 1 - HOUSE_EDGE.KENO;
+    assert.ok(
+      Math.abs(ev - target) < 0.005,
+      `picks=${picks} RTP=${ev} target=${target}`
+    );
   }
 });
 

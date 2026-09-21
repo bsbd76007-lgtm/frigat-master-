@@ -22,7 +22,7 @@
  * Styling is injected CSS: this project ships no utility CSS framework.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
   BET_LIMITS,
@@ -32,8 +32,6 @@ import {
   SLOTS_REELS,
   SLOTS_ROWS,
   SLOTS_SYMBOLS,
-  SLOTS_WEIGHTS,
-  type SlotSymbol,
 } from '@frigat/shared';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
@@ -52,488 +50,33 @@ import {
 } from '@/lib/decimal';
 import { useCanvasRenderer, type CanvasFrame } from '@/lib/useCanvasRenderer';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
-// ─────────────────────────────────────────────
-// Spin choreography
-// ─────────────────────────────────────────────
+import {
+  SETTLE_TRAVEL,
+  SILENT,
+  STRIP_LENGTH,
+  TIMING,
+  useDefaultSounds,
+  type Reel,
+  type ReelPhase,
+  type SlotSounds,
+  type SlotSpinResponse,
+} from './slotMachine/choreography';
+import {
+  NEON,
+  SYMBOL_COLOURS,
+  drawSymbol,
+  easeOutBack,
+  makeStrip,
+  roundRect,
+} from './slotMachine/symbols';
+import { CSS, STYLE_ID } from './slotMachine/styles';
 
-const TIMING = {
-  /** Ramp from rest to full speed. */
-  accelerateMs: 380,
-  /** Reels keep turning at least this long, however fast the server answers. */
-  minSpinMs: 950,
-  /** Gap between one reel stopping and the next. */
-  stagger: 200,
-  /** Length of the settle, including the elastic overshoot. */
-  settleMs: 520,
-  /** Symbols per second at full speed. */
-  topSpeed: 26,
-} as const;
+// The sound and response types were part of this file before it was split three
+// ways; re-exported so nothing that reached for them here has to move.
+export type { SlotSounds, SlotSpinResponse } from './slotMachine/choreography';
 
-/** Cells of runway a reel covers while settling — enough to stay a blur. */
-const SETTLE_TRAVEL = 7;
-
-/** Strip length per reel. Long enough that the landing window is never seen twice. */
-const STRIP_LENGTH = 64;
-
-type ReelPhase = 'idle' | 'accelerating' | 'spinning' | 'settling' | 'stopped';
-
-interface Reel {
-  /** Symbols the reel is carrying; the landing window is written in on stop. */
-  strip: SlotSymbol[];
-  /** Scroll position in symbol cells. */
-  offset: number;
-  velocity: number;
-  phase: ReelPhase;
-  /** When this reel should begin settling (performance.now), once known. */
-  settleAt: number | null;
-  settleFrom: number;
-  settleTo: number;
-  settleStartedAt: number;
-}
-
-export interface SlotSpinResponse {
-  sessionId: string;
-  reelMatrix: SlotSymbol[][];
-  winningLines: Array<{
-    lineIndex: number;
-    symbol: SlotSymbol;
-    count: number;
-    cells: Array<[number, number]>;
-    payout: string;
-  }>;
-  totalWin: string;
-  newBalance: string;
-  betAmount: string;
-  multiplier: number;
-  hashedServerSeed: string;
-  clientSeed: string;
-  nonce: number;
-}
-
-/**
- * Sound triggers. Left as injectable no-ops so a host app can drop in real
- * samples without this component owning an asset pipeline; the built-in
- * fallback synthesises tones with WebAudio and is muted until asked for.
- */
-export interface SlotSounds {
-  onSpinStart: () => void;
-  onReelStop: (reelIndex: number) => void;
-  onWin: (totalWin: string) => void;
-  onLose: () => void;
-}
-
-const SILENT: SlotSounds = {
-  onSpinStart: () => {},
-  onReelStop: () => {},
-  onWin: () => {},
-  onLose: () => {},
-};
-
-/**
- * Minimal WebAudio blips, created lazily on the first *user-gesture-driven*
- * play so the browser's autoplay policy is never tripped.
- */
-function useDefaultSounds(enabled: boolean): SlotSounds {
-  const ctxRef = useRef<AudioContext | null>(null);
-
-  const tone = useCallback(
-    (frequency: number, durationMs: number, type: OscillatorType = 'triangle', gain = 0.05) => {
-      if (!enabled || typeof window === 'undefined') return;
-      const Ctor = window.AudioContext ?? (window as any).webkitAudioContext;
-      if (!Ctor) return;
-      const audio: AudioContext = ctxRef.current ?? (ctxRef.current = new Ctor());
-      if (audio.state === 'suspended') void audio.resume();
-
-      const osc = audio.createOscillator();
-      const amp = audio.createGain();
-      osc.type = type;
-      osc.frequency.value = frequency;
-      amp.gain.setValueAtTime(gain, audio.currentTime);
-      amp.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + durationMs / 1000);
-      osc.connect(amp).connect(audio.destination);
-      osc.start();
-      osc.stop(audio.currentTime + durationMs / 1000);
-    },
-    [enabled]
-  );
-
-  useEffect(
-    () => () => {
-      void ctxRef.current?.close();
-      ctxRef.current = null;
-    },
-    []
-  );
-
-  return useMemo<SlotSounds>(
-    () => ({
-      onSpinStart: () => tone(180, 140, 'sawtooth', 0.035),
-      onReelStop: (reel) => tone(300 + reel * 45, 90, 'square', 0.03),
-      onWin: () => {
-        tone(660, 140);
-        window.setTimeout(() => tone(880, 180), 120);
-        window.setTimeout(() => tone(1180, 260), 260);
-      },
-      onLose: () => tone(140, 180, 'sine', 0.02),
-    }),
-    [tone]
-  );
-}
-
-// ─────────────────────────────────────────────
-// Symbols
-// ─────────────────────────────────────────────
-
-const SYMBOL_COLOURS: Record<SlotSymbol, { body: string; edge: string; glow: string }> = {
-  CHERRY: { body: '#e5484d', edge: '#7f1d1d', glow: '#d69199' },
-  LEMON: { body: '#e0b055', edge: '#854d0e', glow: '#fde68a' },
-  ORANGE: { body: '#fb923c', edge: '#7c2d12', glow: '#fed7aa' },
-  PLUM: { body: '#a855f7', edge: '#4c1d95', glow: '#e9d5ff' },
-  BELL: { body: '#fbbf24', edge: '#78350f', glow: '#fef3c7' },
-  BAR: { body: '#e2e8f0', edge: '#1e293b', glow: '#f8fafc' },
-  SEVEN: { body: '#ef4444', edge: '#450a0a', glow: '#fecaca' },
-  WILD: { body: '#e0b055', edge: '#0b0e14', glow: '#bbf7d0' },
-};
-
-const WEIGHT_TOTAL = SLOTS_SYMBOLS.reduce((sum, s) => sum + SLOTS_WEIGHTS[s], 0);
-
-/**
- * A weighted symbol for the *decorative* strip only. The blur between stops is
- * cosmetic — the symbols that matter arrive from the server — but drawing them
- * from the real weights keeps a spin from looking unlike its own paytable.
- */
-function decorativeSymbol(): SlotSymbol {
-  let roll = Math.random() * WEIGHT_TOTAL;
-  for (const symbol of SLOTS_SYMBOLS) {
-    roll -= SLOTS_WEIGHTS[symbol];
-    if (roll <= 0) return symbol;
-  }
-  return SLOTS_SYMBOLS[SLOTS_SYMBOLS.length - 1];
-}
-
-function makeStrip(): SlotSymbol[] {
-  return Array.from({ length: STRIP_LENGTH }, decorativeSymbol);
-}
-
-/** Rounded rectangle path — the plate every symbol is drawn on. */
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number
-) {
-  const radius = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + w, y, x + w, y + h, radius);
-  ctx.arcTo(x + w, y + h, x, y + h, radius);
-  ctx.arcTo(x, y + h, x, y, radius);
-  ctx.arcTo(x, y, x + w, y, radius);
-  ctx.closePath();
-}
-
-/**
- * Draws one symbol centred in a cell. Everything is derived from `size` so the
- * board scales cleanly from a phone to a desktop without a second asset set.
- */
-function drawSymbol(
-  ctx: CanvasRenderingContext2D,
-  symbol: SlotSymbol,
-  cx: number,
-  cy: number,
-  size: number,
-  alpha = 1
-) {
-  const palette = SYMBOL_COLOURS[symbol];
-  const r = size * 0.3;
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-
-  switch (symbol) {
-    case 'CHERRY': {
-      ctx.strokeStyle = '#166534';
-      ctx.lineWidth = Math.max(2, size * 0.05);
-      ctx.beginPath();
-      ctx.moveTo(cx + size * 0.02, cy - size * 0.34);
-      ctx.quadraticCurveTo(cx - size * 0.22, cy - size * 0.1, cx - size * 0.17, cy + size * 0.08);
-      ctx.moveTo(cx + size * 0.02, cy - size * 0.34);
-      ctx.quadraticCurveTo(cx + size * 0.26, cy - size * 0.06, cx + size * 0.18, cy + size * 0.1);
-      ctx.stroke();
-      for (const [dx, dy, rr] of [
-        [-0.17, 0.19, 0.15],
-        [0.18, 0.21, 0.15],
-      ] as const) {
-        ctx.beginPath();
-        ctx.arc(cx + size * dx, cy + size * dy, size * rr, 0, Math.PI * 2);
-        ctx.fillStyle = palette.body;
-        ctx.fill();
-        ctx.strokeStyle = palette.edge;
-        ctx.lineWidth = Math.max(1.5, size * 0.03);
-        ctx.stroke();
-      }
-      break;
-    }
-    case 'LEMON':
-    case 'ORANGE':
-    case 'PLUM': {
-      ctx.beginPath();
-      if (symbol === 'LEMON') {
-        ctx.ellipse(cx, cy, r * 1.15, r * 0.82, 0, 0, Math.PI * 2);
-      } else {
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      }
-      ctx.fillStyle = palette.body;
-      ctx.fill();
-      ctx.strokeStyle = palette.edge;
-      ctx.lineWidth = Math.max(2, size * 0.035);
-      ctx.stroke();
-      // Highlight, so the fruit reads as round rather than flat.
-      ctx.beginPath();
-      ctx.ellipse(cx - r * 0.3, cy - r * 0.35, r * 0.28, r * 0.18, -0.6, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,.45)';
-      ctx.fill();
-      if (symbol !== 'LEMON') {
-        ctx.strokeStyle = '#166534';
-        ctx.lineWidth = Math.max(2, size * 0.04);
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - r);
-        ctx.lineTo(cx + size * 0.04, cy - r - size * 0.1);
-        ctx.stroke();
-      }
-      break;
-    }
-    case 'BELL': {
-      ctx.beginPath();
-      ctx.moveTo(cx - r, cy + r * 0.62);
-      ctx.quadraticCurveTo(cx - r * 0.92, cy - r * 0.5, cx, cy - r * 0.95);
-      ctx.quadraticCurveTo(cx + r * 0.92, cy - r * 0.5, cx + r, cy + r * 0.62);
-      ctx.closePath();
-      ctx.fillStyle = palette.body;
-      ctx.fill();
-      ctx.strokeStyle = palette.edge;
-      ctx.lineWidth = Math.max(2, size * 0.035);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(cx, cy + r * 0.78, r * 0.19, 0, Math.PI * 2);
-      ctx.fillStyle = palette.edge;
-      ctx.fill();
-      break;
-    }
-    case 'BAR': {
-      const w = size * 0.62;
-      const h = size * 0.22;
-      for (let i = -1; i <= 1; i += 1) {
-        roundRect(ctx, cx - w / 2, cy + i * h * 1.22 - h / 2, w, h, h * 0.35);
-        ctx.fillStyle = palette.body;
-        ctx.fill();
-        ctx.strokeStyle = palette.edge;
-        ctx.lineWidth = Math.max(1.5, size * 0.025);
-        ctx.stroke();
-      }
-      ctx.fillStyle = palette.edge;
-      ctx.font = `800 ${size * 0.15}px ui-sans-serif, system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('BAR', cx, cy + size * 0.005);
-      break;
-    }
-    case 'SEVEN': {
-      ctx.fillStyle = palette.body;
-      ctx.strokeStyle = palette.edge;
-      ctx.lineWidth = Math.max(2, size * 0.04);
-      ctx.font = `900 ${size * 0.74}px ui-sans-serif, system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('7', cx, cy + size * 0.02);
-      ctx.strokeText('7', cx, cy + size * 0.02);
-      break;
-    }
-    case 'WILD': {
-      // Five-pointed star: unmistakable at a glance, which matters for the
-      // symbol that substitutes for every other one.
-      ctx.beginPath();
-      for (let i = 0; i < 10; i += 1) {
-        const radius = i % 2 === 0 ? r * 1.12 : r * 0.46;
-        const angle = (Math.PI / 5) * i - Math.PI / 2;
-        const x = cx + Math.cos(angle) * radius;
-        const y = cy + Math.sin(angle) * radius;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.fillStyle = palette.body;
-      ctx.fill();
-      ctx.strokeStyle = palette.edge;
-      ctx.lineWidth = Math.max(2, size * 0.035);
-      ctx.stroke();
-      ctx.fillStyle = palette.edge;
-      ctx.font = `900 ${size * 0.17}px ui-sans-serif, system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('W', cx, cy + size * 0.01);
-      break;
-    }
-  }
-
-  ctx.restore();
-}
-
-/** Overshoot easing — the reel passes its stop and springs back onto it. */
-function easeOutBack(t: number): number {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2;
-}
-
-const NEON = ['#e0b055', '#22d3ee', '#a855f7', '#e0b055', '#fb7185'];
-
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
-
-const STYLE_ID = 'fg-slot-machine-styles';
-
-const CSS = `
-.slot { display: flex; flex-direction: column; align-items: center; gap: 24px;
-  width: 100%; max-width: 1180px; margin-inline: auto; padding: 10px;
-  box-sizing: border-box; color: var(--fg-text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-@media (min-width: 1024px) {
-  .slot { flex-direction: row; align-items: flex-start; justify-content: center; }
-}
-
-/* ── Cabinet ───────────────────────────────── */
-.slot__cabinet { position: relative; width: 100%; max-width: 760px; min-width: 0;
-  padding: 12px; box-sizing: border-box; border-radius: var(--fg-r-lg);
-  background: linear-gradient(180deg, #1b2735 0%, #0d141c 100%);
-  border: 1px solid #253243;
-  box-shadow: 0 30px 60px -20px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.06); }
-
-.slot__marquee { display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin-bottom: 14px; padding: 0 4px; }
-.slot__title { margin: 0; font-size: 15px; font-weight: 900; letter-spacing: .18em;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, var(--fg-gold), #fb923c, var(--fg-gold));
-  -webkit-background-clip: text; background-clip: text; color: transparent; }
-.slot__meta { display: flex; gap: 8px; }
-.slot__chip { padding: 5px 7px; font-size: 11px; font-weight: 800; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--fg-muted); background: rgba(148,163,184,.12);
-  border: 1px solid rgba(148,163,184,.2); border-radius: var(--fg-r);
-  font-variant-numeric: tabular-nums; }
-.slot__chip--win { color: var(--fg-bg); background: var(--fg-accent); border-color: var(--fg-accent); }
-
-.slot__screen { position: relative; width: 100%; aspect-ratio: 5 / 3;
-  border-radius: var(--fg-r-lg); overflow: hidden; background: #070b11;
-  border: 3px solid #2c3a4c;
-  box-shadow: inset 0 0 44px rgba(0,0,0,.85); }
-.slot__canvas { display: block; width: 100%; height: 100%; }
-
-/* Win banner rides over the reels without stealing a click from SPIN. */
-.slot__flash { position: absolute; inset: auto 0 0 0; padding: 10px;
-  text-align: center; font-size: 15px; font-weight: 900; letter-spacing: .04em;
-  color: var(--fg-bg); background: linear-gradient(90deg, rgba(250,204,21,.94), rgba(34,197,94,.94));
-  pointer-events: none; animation: slot-flash-in .35s ease both; }
-@keyframes slot-flash-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-/* ── Panel ─────────────────────────────────── */
-.slot__panel { display: flex; flex-direction: column; gap: 16px; width: 100%;
-  max-width: 760px; min-width: 0; flex: 0 0 auto; padding: 16px; box-sizing: border-box;
-  background: var(--fg-panel); border: var(--fg-edge); border-radius: var(--fg-r-lg); }
-@media (min-width: 1024px) { .slot__panel { width: 340px; } }
-
-.slot__label { display: flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: 8px; font-size: 11px; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--fg-dim); }
-.slot__label b { font-size: 13px; color: var(--fg-gold); letter-spacing: 0;
-  font-variant-numeric: tabular-nums; }
-
-.slot__inputs { display: flex; gap: 6px; }
-.slot__input { flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box;
-  padding: 8px 8px; font-family: inherit; font-size: 15px; font-weight: 700;
-  font-variant-numeric: tabular-nums; color: var(--fg-text); background: var(--fg-sunken);
-  border: 1px solid var(--fg-line); border-radius: var(--fg-r-lg); outline: none;
-  transition: border-color var(--fg-t), box-shadow var(--fg-t); }
-.slot__input:focus-visible { border-color: var(--fg-accent); box-shadow: var(--fg-ring); }
-.slot__input:disabled { opacity: .5; cursor: not-allowed; }
-
-.slot__quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
-  margin-top: 8px; }
-.slot__mod { padding: 10px 4px; font-family: inherit; font-size: 12px; font-weight: 800;
-  color: var(--fg-muted); background: var(--fg-sunken); border: 1px solid var(--fg-line); border-radius: var(--fg-r-lg);
-  cursor: pointer; transition: background var(--fg-t), color var(--fg-t), transform var(--fg-t); }
-.slot__mod:hover:not(:disabled) { color: #fff; background: var(--fg-line); }
-.slot__mod:active:not(:disabled) { transform: translateY(1px); }
-.slot__mod:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-.slot__mod:disabled { opacity: .45; cursor: not-allowed; }
-
-/* ── SPIN ──────────────────────────────────── */
-.slot__spin { position: relative; width: 100%; padding: 12px; overflow: hidden;
-  font-family: inherit; font-size: 18px; font-weight: 900; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--fg-bg);
-  background: linear-gradient(90deg, var(--fg-accent), var(--fg-accent-deep)); border: none;
-  border-radius: var(--fg-r-lg); cursor: pointer;
-  box-shadow: 0 12px 24px -6px rgba(34,197,94,.5);
-  transition: background var(--fg-t), box-shadow var(--fg-t), transform var(--fg-t); }
-.slot__spin:hover:not(:disabled) { background: linear-gradient(90deg, var(--fg-pos), var(--fg-accent));
-  box-shadow: 0 16px 30px -6px rgba(34,197,94,.7); }
-.slot__spin:active:not(:disabled) { transform: translateY(2px); }
-.slot__spin:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-.slot__spin:disabled { color: var(--fg-muted);
-  background: linear-gradient(90deg, var(--fg-line), #142029); box-shadow: none; cursor: not-allowed; }
-/* Sheen sweeps only while the button is live, so "armed" reads at a glance. */
-.slot__spin::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
-  transform: translateX(-150%); }
-.slot__spin:not(:disabled)::after { animation: slot-sheen 2.6s ease-in-out infinite; }
-@keyframes slot-sheen {
-  0%, 55% { transform: translateX(-150%); }
-  100% { transform: translateX(320%); }
-}
-.slot__spin--busy { animation: slot-pulse 1s ease-in-out infinite; }
-@keyframes slot-pulse { 50% { opacity: .72; } }
-
-.slot__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.slot__toggle { padding: 9px 8px; font-family: inherit; font-size: 12px; font-weight: 800;
-  color: var(--fg-muted); background: var(--fg-sunken); border: 1px solid var(--fg-line); border-radius: var(--fg-r-lg);
-  cursor: pointer; }
-.slot__toggle:hover { color: #fff; background: var(--fg-line); }
-.slot__toggle:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-.slot__toggle[aria-pressed="true"] { color: var(--fg-bg); background: var(--fg-accent); border-color: var(--fg-accent); }
-
-.slot__error { display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin: 0; padding: 10px; font-size: 12px; font-weight: 700; text-align: left;
-  color: #d69199; background: rgba(239,68,68,.14); border: 1px solid rgba(239,68,68,.4);
-  border-radius: var(--fg-r-lg); }
-.slot__deposit { flex: 0 0 auto; padding: 6px 8px; font-family: inherit; font-size: 11px;
-  font-weight: 800; letter-spacing: .04em; color: var(--fg-bg); background: var(--fg-accent); border: 0;
-  border-radius: var(--fg-r); cursor: pointer; }
-.slot__deposit:hover { filter: brightness(1.08); }
-.slot__deposit:focus-visible { outline: none; box-shadow: var(--fg-ring); }
-
-/* ── Win list & paytable ───────────────────── */
-.slot__lines { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0;
-  list-style: none; }
-.slot__line { display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 8px 10px; font-size: 12px; font-weight: 700; border-radius: var(--fg-r);
-  background: rgba(250,204,21,.1); border: 1px solid rgba(250,204,21,.28); }
-.slot__line-name { display: flex; align-items: center; gap: 8px; color: #fde68a; }
-.slot__swatch { width: 10px; height: 10px; border-radius: var(--fg-r-sm); }
-.slot__line-pay { color: var(--fg-accent); font-variant-numeric: tabular-nums; }
-
-.slot__paytable { border-top: 1px solid #1e293b; padding-top: 14px; }
-.slot__paytable-grid { display: grid; grid-template-columns: 1fr auto auto auto; gap: 4px 10px;
-  font-size: 11px; font-variant-numeric: tabular-nums; }
-.slot__paytable-head { font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--fg-dim); }
-.slot__paytable-sym { display: flex; align-items: center; gap: 7px; color: var(--fg-muted);
-  font-weight: 700; }
-.slot__paytable-val { text-align: right; color: var(--fg-muted); }
-.slot__foot { margin: 0; font-size: 10px; line-height: 1.5; color: var(--fg-line-2); }
-`;
 
 // ─────────────────────────────────────────────
 // Component
@@ -548,8 +91,6 @@ export interface SlotMachineProps {
   /** Swap in real audio; omit to use the built-in synthesised blips. */
   sounds?: Partial<SlotSounds>;
 }
-
-import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export default function SlotMachine({ sounds }: SlotMachineProps = {}) {
   const { t } = useLanguage();
@@ -1126,3 +667,4 @@ export default function SlotMachine({ sounds }: SlotMachineProps = {}) {
     </div>
   );
 }
+

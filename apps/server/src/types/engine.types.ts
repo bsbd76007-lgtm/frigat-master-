@@ -19,6 +19,7 @@ export type ClientActionType =
   | 'CASHOUT'
   | 'SPIN'
   | 'REVEAL_TILE'
+  | 'STEP'
   | 'RESUME'
   | 'CHAT';
 

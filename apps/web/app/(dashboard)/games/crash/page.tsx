@@ -16,11 +16,12 @@ import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { useGameRound } from '@/hooks/useGameRound';
 
 export default function CrashPage() {
   const { socket, balance, send, crashRounds } = useGameSocket();
   const { t } = useLanguage();
-  const { subscribe } = socket;
+
 
   const [amount, setAmount] = useState('1.00');
   const [phase, setPhase] = useState<CrashPhase>('IDLE');
@@ -28,27 +29,29 @@ export default function CrashPage() {
   const [crashPoint, setCrashPoint] = useState<number | null>(null);
   const [cashedOutAt, setCashedOutAt] = useState<number | null>(null);
   const [hasBet, setHasBet] = useState(false);
-  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    const off = [
+  // `busy` here means "a message is in flight", not "a round is running" —
+  // `phase` is the round. Every frame that answers one of our messages clears
+  // it, so autoSettle stays on for GAME_RESULT.
+  const { busy, begin, settle, bet } = useGameRound('CRASH', {
+    on: {
       // The round is already running by the time this lands — the server opens
       // it on the player's BET, so there is no betting window to count down.
-      subscribe('CRASH_ROUND_START', () => {
+      CRASH_ROUND_START: () => {
         setPhase('RUNNING');
         setMultiplier(1);
         setCrashPoint(null);
         setCashedOutAt(null);
-        setBusy(false);
-      }),
-      subscribe('CRASH_TICK', (data) => {
+        settle();
+      },
+      CRASH_TICK: (data) => {
         if (typeof data.multiplier === 'number') setMultiplier(data.multiplier);
-      }),
-      subscribe('CRASH_ROUND_END', (data) => {
+      },
+      CRASH_ROUND_END: (data) => {
         // Either ending frees the player to start another round, so the stake
         // is released here rather than waiting on a next-round signal.
         setHasBet(false);
-        setBusy(false);
+        settle();
 
         if (data.cashedOut) {
           setPhase('CASHED_OUT');
@@ -64,31 +67,26 @@ export default function CrashPage() {
           setCrashPoint(data.crashPoint);
           setMultiplier(data.crashPoint);
         }
-      }),
-      subscribe('BET_ACCEPTED', (data) => {
-        if (data.gameType !== 'CRASH') return;
+      },
+      BET_ACCEPTED: (data) => {
         setHasBet(true);
-        setBusy(false);
+        settle();
         // On a resume the live stake is the server's, not whatever is sitting
         // in the input — the cash-out quote is computed from this.
         if (typeof data.amount === 'string') setAmount(data.amount);
-      }),
-      subscribe('GAME_RESULT', (data) => {
-        if (data.gameType !== 'CRASH') return;
-        setBusy(false);
-        // Only a win carries a cash-out multiplier; a bust reports the crash
-        // point here, which must not be shown as the player's exit.
-        if (data.win && typeof data.multiplier === 'number') {
-          setCashedOutAt(data.multiplier);
-        }
-      }),
-      subscribe('RESUME_NONE', () => {
+      },
+      RESUME_NONE: () => {
         /* no live round to restore — the idle screen is already correct */
-      }),
-      subscribe('ERROR', () => setBusy(false)),
-    ];
-    return () => off.forEach((fn) => fn());
-  }, [subscribe]);
+      },
+    },
+    onResult: ({ win, raw }) => {
+      // Only a win carries a cash-out multiplier; a bust reports the crash
+      // point here, which must not be shown as the player's exit.
+      if (win && typeof raw.multiplier === 'number') {
+        setCashedOutAt(raw.multiplier);
+      }
+    },
+  });
 
   // A reload mid-round leaves the stake committed server-side; without this the
   // page would sit idle with no way to cash out before the round busts.
@@ -168,12 +166,9 @@ export default function CrashPage() {
             cashoutAmount={
               canCashout ? (Number(amount) * multiplier).toFixed(2) : null
             }
-            onBet={() => {
-              setBusy(true);
-              send('BET', 'CRASH', { amount, currency: balance.currency });
-            }}
+            onBet={() => bet('BET', { amount, currency: balance.currency })}
             onCashout={() => {
-              setBusy(true);
+              begin();
               send('CASHOUT', 'CRASH');
             }}
             disabled={!canBet && !canCashout}

@@ -12,7 +12,7 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma, TransactionType, TransactionStatus } from '@prisma/client';
 import { prisma } from '../config/prisma';
-import { identityFromRequest } from './auth';
+import { identityFromRequest } from '../middleware/auth';
 import {
   claimAffiliateEarnings,
   NothingToClaimError,

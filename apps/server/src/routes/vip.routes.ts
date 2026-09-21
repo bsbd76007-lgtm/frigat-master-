@@ -12,7 +12,7 @@
  */
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { identityFromRequest } from './auth';
+import { identityFromRequest } from '../middleware/auth';
 import { pushBalanceToUser } from '../websocket/socket.server';
 import { WalletNotFoundError } from '../services/ledger.service';
 import {

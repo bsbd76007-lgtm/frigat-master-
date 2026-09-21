@@ -17,9 +17,9 @@
  * belongs on this page the day the ledger can honour it.
  *
  * Each card links to the surface that owns its claim, so there is exactly one
- * implementation of each payout. The wheel is *not* mounted inline here:
- * `DailyWheelModal` calls `useGameSocket`, whose provider lives in the
- * dashboard layout, so rendering it on an information page throws at prerender.
+ * implementation of each payout. The wheel is *not* mounted inline here: it
+ * lives on /freemoney, which needs `useGameSocket`, whose provider lives in the
+ * dashboard layout — rendering it on an information page throws at prerender.
  */
 
 import Link from 'next/link';

@@ -34,7 +34,7 @@ const CSS = `
 .hsearch__field:focus-within { border-color: var(--fg-accent);
   box-shadow: var(--fg-input-inset), var(--fg-ring); }
 .hsearch__icon { display: flex; color: var(--fg-muted); }
-.hsearch__input { flex: 1 1 auto; min-width: 0; padding: 9px 0; font: inherit;
+.hsearch__input { flex: 1 1 auto; min-width: 0; padding: 8px 0; font: inherit;
   font-size: 13px; color: var(--fg-text); background: transparent; border: 0;
   outline: none; }
 .hsearch__input::placeholder { color: var(--fg-muted); }
@@ -53,7 +53,7 @@ const CSS = `
   background: var(--fg-panel); border: var(--fg-edge);
   border-radius: var(--fg-r-lg); }
 .hsearch__option { display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 9px 10px; font: inherit; font-size: 13px; font-weight: 600;
+  padding: 8px 10px; font: inherit; font-size: 13px; font-weight: 600;
   text-align: start; color: var(--fg-muted); background: transparent; border: 0;
   border-radius: var(--fg-r); cursor: pointer;
   transition: background var(--fg-t), color var(--fg-t); }

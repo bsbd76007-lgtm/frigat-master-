@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { PLINKO_ROWS, PLINKO_TABLES, type PlinkoRisk } from '@frigat/shared/constants';
 
@@ -9,49 +9,49 @@ import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { useGameRound } from '@/hooks/useGameRound';
 
 const RISKS: PlinkoRisk[] = ['LOW', 'MEDIUM', 'HIGH'];
 
 export default function PlinkoPage() {
-  const { socket, balance, send } = useGameSocket();
+  const { balance } = useGameSocket();
   const { t } = useLanguage();
-  const { subscribe } = socket;
 
   const [amount, setAmount] = useState('1.00');
   const [rows, setRows] = useState<number>(12);
   const [risk, setRisk] = useState<PlinkoRisk>('MEDIUM');
   const [drops, setDrops] = useState<PlinkoDrop[]>([]);
-  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    const off = [
-      subscribe('GAME_RESULT', (data) => {
-        if (data.gameType !== 'PLINKO') return;
-        const result = data.resultData as
-          | { path?: Array<'L' | 'R'>; bucket?: number; rows?: number }
-          | undefined;
-        if (!Array.isArray(result?.path)) {
-          setBusy(false);
-          return;
-        }
-        const id =
-          typeof data.sessionId === 'string'
-            ? data.sessionId
-            : `drop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-        setDrops((prev) => [
-          ...prev.slice(-5),
-          {
-            id,
-            path: result!.path!,
-            bucket: result!.bucket,
-            multiplier: typeof data.multiplier === 'number' ? data.multiplier : undefined,
-          },
-        ]);
-      }),
-      subscribe('ERROR', () => setBusy(false)),
-    ];
-    return () => off.forEach((fn) => fn());
-  }, [subscribe]);
+  // autoSettle is off: the ball is still falling when the result lands, so the
+  // canvas releases the controls via onDropComplete once it reaches a bucket.
+  const { busy, bet, settle } = useGameRound<{
+    path?: Array<'L' | 'R'>;
+    bucket?: number;
+    rows?: number;
+  }>('PLINKO', {
+    autoSettle: false,
+    onResult: ({ result, raw }) => {
+      // No path means there is nothing to animate, so no drop will ever
+      // complete — release the controls here or the page locks up.
+      if (!Array.isArray(result?.path)) {
+        settle();
+        return;
+      }
+      const id =
+        typeof raw.sessionId === 'string'
+          ? raw.sessionId
+          : `drop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      setDrops((prev) => [
+        ...prev.slice(-5),
+        {
+          id,
+          path: result.path!,
+          bucket: result.bucket,
+          multiplier: typeof raw.multiplier === 'number' ? raw.multiplier : undefined,
+        },
+      ]);
+    },
+  });
 
   const multipliers = PLINKO_TABLES[risk][rows] ?? [];
 
@@ -66,7 +66,7 @@ export default function PlinkoPage() {
           multipliers={multipliers}
           drops={drops}
           height={440}
-          onDropComplete={() => setBusy(false)}
+          onDropComplete={settle}
         />
       }
       panel={
@@ -123,14 +123,13 @@ export default function PlinkoPage() {
             onAmountChange={setAmount}
             balance={balance.balance}
             currency={balance.currency}
-            onBet={() => {
-              setBusy(true);
-              send('BET', 'PLINKO', {
+            onBet={() =>
+              bet('BET', {
                 amount,
                 currency: balance.currency,
                 params: { rows, risk },
-              });
-            }}
+              })
+            }
             busy={busy}
             betLabel={t('game.dropBall')}
           />

@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Prisma } from '@prisma/client';
 
-import { identityFromRequest } from './auth';
+import { identityFromRequest } from '../middleware/auth';
 import { prisma } from '../config/prisma';
 import { creditCashback, processBet } from '../services/ledger.service';
 import { pushBalanceToUser } from '../websocket/socket.server';
