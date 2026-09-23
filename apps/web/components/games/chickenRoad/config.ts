@@ -13,7 +13,7 @@
 
 import { CHICKEN, chickenHazardAt, type ChickenMode } from '@frigat/shared/constants';
 
-import { chickenMaxLanes, chickenMultiplierAt } from '@/lib/verify';
+import { chickenMaxLanes, chickenMinCashoutLane, chickenMultiplierAt } from '@/lib/verify';
 
 // ─────────────────────────────────────────────
 // Configuration
@@ -134,6 +134,14 @@ export function gateFraction(lane: number): number {
 /** Multiplier once `lane` lanes are behind the chicken — the server's ladder. */
 export function multiplierAt(lane: number, trafficMode: TrafficMode): number {
   return chickenMultiplierAt(trafficMode.id, lane);
+}
+
+/**
+ * The first lane cash out opens on — the first paying CHICKEN.minCashoutMultiplier.
+ * The server refuses a CASHOUT below it; the board only mirrors that.
+ */
+export function unlockLane(trafficMode: TrafficMode): number {
+  return chickenMinCashoutLane(trafficMode.id);
 }
 
 /** The road's last lane for a mode; reaching it cashes out automatically. */

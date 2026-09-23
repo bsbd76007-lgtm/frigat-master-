@@ -34,6 +34,29 @@ const connect = (userId: string) => open(port, userId, 'CHICKEN');
 const isType = (type: string) => (f: Frame) => f.type === type && f.data.gameType !== 'CRASH';
 const isError = (f: Frame) => f.type === 'ERROR';
 
+/** Lane a medium round may first cash out on — cash out is locked below it. */
+const UNLOCK = chicken.minCashoutLane('medium');
+
+type Player = Awaited<ReturnType<typeof connect>>;
+
+/**
+ * Bets and steps `lanes` hops, retrying on a bust, until a round is standing on
+ * that lane with the chicken alive. Every retried round is a real settled bet.
+ */
+async function standOn(p: Player, lanes: number, amount = '10.00') {
+  for (;;) {
+    p.send('BET', { amount, currency: 'USD', params: { mode: 'medium' } });
+    await p.next(isType('BET_ACCEPTED'));
+    let alive = true;
+    for (let lane = 1; lane <= lanes && alive; lane += 1) {
+      p.send('STEP');
+      const f = await p.next((x) => isType('STATE_UPDATE')(x) || isType('GAME_RESULT')(x));
+      alive = f.type === 'STATE_UPDATE';
+    }
+    if (alive) return;
+  }
+}
+
 /** The round's bust lane, re-derived from the seed the server committed to. */
 async function predictBust(accepted: Frame): Promise<number | null> {
   const pair = await prisma.provableSeed.findFirstOrThrow({
@@ -72,8 +95,8 @@ describe('chicken over the socket', () => {
       expect(accepted.data.balance).toBe(expected.toString());
 
       const bust = await predictBust(accepted);
-      // Walk two lanes, then cash out if the seed lets the chicken get there.
-      const target = 2;
+      // Walk to the unlock lane, then cash out if the seed lets the chicken get there.
+      const target = UNLOCK;
       let lane = 0;
       let busted = false;
       while (lane < target) {
@@ -123,17 +146,26 @@ describe('chicken over the socket', () => {
     p.ws.close();
   });
 
+  it('refuses a cash out below the unlock lane, and the round plays on', async () => {
+    const userId = await seedPlayer('1000');
+    const p = await connect(userId);
+    await standOn(p, 1);
+    const before = await getBalance(userId);
+    p.send('CASHOUT');
+    const err = await p.next(isError);
+    expect(err.data.code).toBe('CASHOUT_LOCKED');
+    // Nothing paid, and the round is still live: the next hop is answered.
+    expect(await getBalance(userId)).toBe(before);
+    p.send('STEP');
+    const f = await p.next((x) => isType('STATE_UPDATE')(x) || isType('GAME_RESULT')(x));
+    expect(f.data.lane).toBe(2);
+    p.ws.close();
+  });
+
   it('pays once when two CASHOUTs are sent back to back', async () => {
     const userId = await seedPlayer('1000');
     const p = await connect(userId);
-    // Retry until a round survives its first lane, so there is something to cash.
-    for (;;) {
-      p.send('BET', { amount: '10.00', currency: 'USD', params: { mode: 'medium' } });
-      await p.next(isType('BET_ACCEPTED'));
-      p.send('STEP');
-      const f = await p.next((x) => isType('STATE_UPDATE')(x) || isType('GAME_RESULT')(x));
-      if (f.type === 'STATE_UPDATE') break;
-    }
+    await standOn(p, UNLOCK);
     const before = new Prisma.Decimal(await getBalance(userId));
     p.send('CASHOUT');
     p.send('CASHOUT');
@@ -141,20 +173,14 @@ describe('chicken over the socket', () => {
     const err = await p.next(isError);
     expect(err.data.code).toBe('NO_ACTIVE_GAME');
     const paid = new Prisma.Decimal(await getBalance(userId)).minus(before);
-    expect(paid.equals(new Prisma.Decimal(10).mul(chicken.multiplierAt('medium', 1)))).toBe(true);
+    expect(paid.equals(new Prisma.Decimal(10).mul(chicken.multiplierAt('medium', UNLOCK)))).toBe(true);
     p.ws.close();
   });
 
   it('resumes a running round on a fresh connection', async () => {
     const userId = await seedPlayer('1000');
     const first = await connect(userId);
-    for (;;) {
-      first.send('BET', { amount: '5.00', currency: 'USD', params: { mode: 'medium' } });
-      await first.next(isType('BET_ACCEPTED'));
-      first.send('STEP');
-      const f = await first.next((x) => isType('STATE_UPDATE')(x) || isType('GAME_RESULT')(x));
-      if (f.type === 'STATE_UPDATE') break;
-    }
+    await standOn(first, UNLOCK, '5.00');
     first.ws.close();
 
     const second = await connect(userId);
@@ -162,18 +188,18 @@ describe('chicken over the socket', () => {
     expect(resumed.data).toMatchObject({
       resumed: true,
       mode: 'medium',
-      lane: 1,
+      lane: UNLOCK,
       amount: '5.00',
-      multiplier: chicken.multiplierAt('medium', 1),
+      multiplier: chicken.multiplierAt('medium', UNLOCK),
     });
 
     // And the round is really this connection's to finish.
     const before = new Prisma.Decimal(await getBalance(userId));
     second.send('CASHOUT');
     const result = await second.next(isType('GAME_RESULT'));
-    expect(result.data).toMatchObject({ win: true, lane: 1 });
+    expect(result.data).toMatchObject({ win: true, lane: UNLOCK });
     const paid = new Prisma.Decimal(await getBalance(userId)).minus(before);
-    expect(paid.equals(new Prisma.Decimal(5).mul(chicken.multiplierAt('medium', 1)))).toBe(true);
+    expect(paid.equals(new Prisma.Decimal(5).mul(chicken.multiplierAt('medium', UNLOCK)))).toBe(true);
     second.ws.close();
   });
 });

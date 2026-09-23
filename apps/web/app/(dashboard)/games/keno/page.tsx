@@ -9,6 +9,7 @@ import {
   KENO_TILE_COUNT,
 } from '@frigat/shared/constants';
 
+import { KenoCanvas } from '@/components/canvas/KenoCanvas';
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
@@ -118,15 +119,6 @@ export default function KenoPage() {
     [drawn, revealedCount]
   );
 
-  const tileState = (tile: number): 'idle' | 'picked' | 'drawn' | 'hit' => {
-    const isPicked = picks.includes(tile);
-    const isDrawn = revealedDrawn.includes(tile);
-    if (isDrawn && isPicked) return 'hit';
-    if (isDrawn) return 'drawn';
-    if (isPicked) return 'picked';
-    return 'idle';
-  };
-
   const paytable = KENO_PAYTABLE[picks.length] ?? null;
   const settledPaytable =
     settledPickCount !== null ? KENO_PAYTABLE[settledPickCount] : null;
@@ -152,25 +144,14 @@ export default function KenoPage() {
       subtitle={`${KENO_TILE_COUNT} tiles · pick up to ${KENO_MAX_PICKS} · ${KENO_DRAW_COUNT} drawn`}
       stage={
         <>
-          <div className="keno" role="grid" aria-label={t('game.kenoBoard')}>
-            {Array.from({ length: KENO_TILE_COUNT }, (_, tile) => {
-              const state = tileState(tile);
-              return (
-                <button
-                  key={tile}
-                  type="button"
-                  role="gridcell"
-                  className={`keno__tile${state === 'idle' ? '' : ` keno__tile--${state}`}`}
-                  onClick={() => togglePick(tile)}
-                  disabled={busy}
-                  aria-pressed={picks.includes(tile)}
-                  aria-label={`Tile ${tile + 1}${state === 'idle' ? '' : `, ${state}`}`}
-                >
-                  {tile + 1}
-                </button>
-              );
-            })}
-          </div>
+          <KenoCanvas
+            tileCount={KENO_TILE_COUNT}
+            picks={picks}
+            drawn={revealedDrawn}
+            interactive={!busy}
+            onToggle={togglePick}
+            ariaLabel={t('game.kenoBoard')}
+          />
 
           {won !== null ? (
             <p className="readout__note" role="status" style={{ textAlign: 'center', marginTop: 14 }}>

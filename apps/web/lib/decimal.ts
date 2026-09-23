@@ -88,6 +88,24 @@ export function safeDecimal(value: string | number | null | undefined, fallback 
   return normalizeDecimal(fallback) ?? '0';
 }
 
+/**
+ * A decimal string at exactly `digits` places, truncated, with no grouping and
+ * a '.' separator — the shape a stake has to have on the wire and in an input.
+ *
+ * Not `formatDecimalString`: that one is for *display* and follows the browser
+ * locale, so in ru-RU "10.00" comes out as "10,00" and "1500.00" as "1 500,00".
+ * Stripping commas from that to build a stake turned a $10 bet into "1000" —
+ * a hundred times the stake the player typed.
+ */
+export function toFixedDecimal(value: string, digits = 2): string {
+  const normal = normalizeDecimal(value) ?? '0';
+  const negative = normal.startsWith('-');
+  const [intPart, fracPart = ''] = (negative ? normal.slice(1) : normal).split('.');
+  const frac = fracPart.slice(0, digits).padEnd(digits, '0');
+  const body = digits > 0 ? `${intPart}.${frac}` : intPart;
+  return negative && /[1-9]/.test(body) ? `-${body}` : body;
+}
+
 export function compareDecimal(a: string, b: string): -1 | 0 | 1 {
   const left = toUnits(a);
   const right = toUnits(b);

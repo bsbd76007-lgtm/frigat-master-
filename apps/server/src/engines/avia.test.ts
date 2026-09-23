@@ -21,32 +21,32 @@ describe('avia — pricing', () => {
 
   it('keeps the landing chance a real gamble', () => {
     // Pinned so a table change is a visible decision, not a side effect.
-    expect(landingChance()).toBeGreaterThan(0.25);
-    expect(landingChance()).toBeLessThan(0.33);
+    expect(landingChance()).toBeGreaterThan(0.15);
+    expect(landingChance()).toBeLessThan(0.2);
   });
 
   it('matches E[M] by simulation — the exact formula is not wishful', () => {
-    const rounds = 40_000;
+    const rounds = 80_000;
     let sum = 0;
     for (let n = 0; n < rounds; n += 1) sum += fly(ctx(n, 'e'.repeat(64))).flightMultiplier;
-    // M has sd ~5.5, so the mean's is ~0.028; flooring shaves under 0.01.
-    expect(Math.abs(sum / rounds - expectedMultiplier())).toBeLessThan(0.12);
+    // M has sd ~11.7, so the mean's is ~0.041; flooring shaves under 0.01.
+    expect(Math.abs(sum / rounds - expectedMultiplier())).toBeLessThan(0.2);
   });
 
   it('returns the target RTP (Monte Carlo)', () => {
-    const rounds = 60_000;
+    const rounds = 100_000;
     let returned = 0;
     for (let n = 0; n < rounds; n += 1) returned += play({}, ctx(n, 'f'.repeat(64))).multiplier;
-    // Heavy right tail: a round's payout has sd ~3.4, so the mean's is ~0.014.
+    // Heavy right tail: a round's payout has sd ~6.2, so the mean's is ~0.02.
     // This is a sanity check on the wiring; the exact identity above is the proof.
-    expect(Math.abs(returned / rounds - RTP)).toBeLessThan(0.06);
+    expect(Math.abs(returned / rounds - RTP)).toBeLessThan(0.085);
   });
 
   it('lands at the priced rate', () => {
     const rounds = 20_000;
     let landed = 0;
     for (let n = 0; n < rounds; n += 1) if (fly(ctx(n, '1'.repeat(64))).landed) landed += 1;
-    // sd of the rate is ~0.0032 at this size.
+    // sd of the rate is ~0.0027 at this size.
     expect(Math.abs(landed / rounds - landingChance())).toBeLessThan(0.015);
   });
 });

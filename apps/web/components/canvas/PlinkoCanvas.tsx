@@ -1,12 +1,32 @@
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
-import {
 
+import {
   useCanvasRenderer,
   usePrefersReducedMotion,
   type CanvasFrame,
 } from '@/lib/useCanvasRenderer';
+
+import {
+  ACCENT,
+  BOARD,
+  FONT,
+  GOLD,
+  alpha,
+  drawBackdrop,
+  drawBox,
+  drawBoxShadow,
+  drawCylinder,
+  drawFaceText,
+  drawFloorShadow,
+  drawSphere,
+  drawVignette,
+  faces,
+  makeScene,
+  multiplierColour,
+  shade,
+} from './three';
 
 export interface PlinkoDrop {
   id: string;
@@ -25,25 +45,14 @@ export interface PlinkoCanvasProps {
   className?: string;
 }
 
-const COLORS = {
-  bg: '#0d1319',
-  peg: '#3a475a',
-  pegLit: '#8b97a6',
-  ball: '#d9a441',
-  text: '#e6edf3',
-  muted: '#6b7787',
-};
-
-const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 const LANDED_FLASH_MS = 700;
-
-function bucketColor(multiplier: number): string {
-  if (!Number.isFinite(multiplier) || multiplier <= 0) return '#c25560';
-  if (multiplier < 1) return '#f09261';
-  if (multiplier < 2) return '#8b97a6';
-  if (multiplier < 10) return '#e0b055';
-  return '#d9a441';
-}
+const PEG_RADIUS = 3.4;
+const PEG_HEIGHT = 10;
+const BALL_RADIUS = 6.5;
+/** The board's pegs end here, leaving the near strip for the payout slots. */
+const FIELD_END = 0.78;
+const BUCKET_TOP = 0.83;
+const BUCKET_END = 0.99;
 
 export function bucketOf(drop: PlinkoDrop): number {
   if (typeof drop.bucket === 'number') return drop.bucket;
@@ -88,140 +97,142 @@ export function PlinkoCanvas({
 
   const draw = useMemo(
     () =>
-      ({ ctx, width, height: h, time }: CanvasFrame) => {
-        ctx.fillStyle = COLORS.bg;
-        ctx.fillRect(0, 0, width, h);
+      ({ ctx, width, height: h }: CanvasFrame) => {
+        const scene = makeScene(width, h, { top: 0.05, bottom: 0.97, focus: 0.62, far: 2.5 });
 
         const bucketCount = rows + 1;
-        const padX = 14;
-        const bucketH = 26;
-        const topY = 26;
-        const fieldH = Math.max(1, h - topY - bucketH - 18);
-        const rowGap = fieldH / Math.max(1, rows);
-        const spacing = Math.min(
-          rowGap * 1.05,
-          (width - padX * 2) / Math.max(1, bucketCount)
+        const inset = Math.min(width * 0.06, 30);
+        const spacing = (width - inset * 2) / bucketCount;
+        const centre = width / 2;
+        const rowGap = (FIELD_END - 0.03) / Math.max(1, rows);
+
+        /** World x of the node reached after `level` rows, `right` of them right. */
+        const nodeX = (right: number, level: number) =>
+          centre + (right - level / 2) * spacing;
+        const nodeY = (level: number) => 0.03 + level * rowGap;
+
+        const hot = [...landedRef.current.values()].some(
+          (at) => performance.now() - at < LANDED_FLASH_MS
         );
-        const cx = width / 2;
-        const bucketY = topY + rows * rowGap + 10;
+        drawBackdrop(ctx, scene, {
+          glow: hot ? GOLD : ACCENT,
+          glowStrength: hot ? 0.13 : 0.08,
+        });
 
-        const nodeX = (rightCount: number, level: number) =>
-          cx + (rightCount - level / 2) * spacing;
-        const nodeY = (level: number) => topY + level * rowGap;
-
+        // Pegs, far rows first so a nearer peg overlaps the one behind it.
         for (let level = 0; level < rows; level += 1) {
           for (let j = 0; j <= level; j += 1) {
             const x = nodeX(j, level);
             const y = nodeY(level);
-            ctx.beginPath();
-            ctx.arc(x, y, 2.6, 0, Math.PI * 2);
-            ctx.fillStyle = COLORS.peg;
-            ctx.fill();
+            drawFloorShadow(ctx, scene, x, y, PEG_RADIUS, 0, 0.5);
+            drawCylinder(ctx, scene, x, y, PEG_RADIUS, 0, PEG_HEIGHT, BOARD.neutralLit);
           }
         }
 
-        const bucketW = spacing * 0.92;
+        // Payout slots: taller is worth more, so the board's own profile reads
+        // as the paytable before a single number is parsed.
+        const bucketW = spacing * 0.9;
+        const best = multipliers.reduce((m, v) => Math.max(m, v), 1);
         for (let b = 0; b < bucketCount; b += 1) {
           const multiplier = multipliers[b] ?? 0;
-          const x = nodeX(b, rows) - bucketW / 2;
-          const color = bucketColor(multiplier);
-
+          const colour = multiplierColour(multiplier);
           const landedAt = landedRef.current.get(b);
           const flash = landedAt
             ? Math.max(0, 1 - (performance.now() - landedAt) / LANDED_FLASH_MS)
             : 0;
 
-          ctx.beginPath();
-          const r = 5;
-          const y = bucketY + (reducedMotion ? 0 : flash * 3);
-          ctx.moveTo(x + r, y);
-          ctx.arcTo(x + bucketW, y, x + bucketW, y + bucketH, r);
-          ctx.arcTo(x + bucketW, y + bucketH, x, y + bucketH, r);
-          ctx.arcTo(x, y + bucketH, x, y, r);
-          ctx.arcTo(x, y, x + bucketW, y, r);
-          ctx.closePath();
+          const worth = Math.min(1, Math.log(Math.max(multiplier, 1) + 1) / Math.log(best + 1));
+          const tall = 12 + worth * 26;
+          const x = nodeX(b, rows);
+          const box = {
+            x0: x - bucketW / 2,
+            x1: x + bucketW / 2,
+            y0: BUCKET_TOP,
+            y1: BUCKET_END,
+            z0: 0,
+            // A ball landing presses its slot in, then it springs back.
+            z1: Math.max(4, tall - (reducedMotion ? 0 : flash * 7)),
+          };
 
-          ctx.fillStyle = color;
-          ctx.globalAlpha = 0.16 + flash * 0.55;
-          ctx.fill();
-          ctx.globalAlpha = 1;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1 + flash;
-          ctx.stroke();
-
-          ctx.fillStyle = color;
-          ctx.font = `700 ${Math.min(12, bucketW * 0.34)}px ${FONT}`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          const text =
-            multiplier >= 100 ? `${Math.round(multiplier)}x` : `${multiplier}x`;
-          ctx.fillText(text, x + bucketW / 2, y + bucketH / 2);
+          drawBoxShadow(ctx, scene, box, 0.7);
+          drawBox(
+            ctx,
+            scene,
+            box,
+            faces(flash > 0 ? shade(colour, 0.2 + flash * 0.3) : colour)
+          );
+          drawFaceText(ctx, scene, box, 'front', formatMultiplier(multiplier), {
+            fill: slotLabelColour(multiplier, flash),
+            size: Math.min(13, bucketW * 0.34),
+            weight: 700,
+            family: FONT.num,
+          });
         }
 
+        // Balls.
         for (const drop of drops) {
           const runtime = runtimeRef.current.get(drop.id);
           if (!runtime) continue;
 
           const steps = drop.path.length;
-          const elapsed = time >= 0 ? performance.now() - runtime.startedAt : 0;
-          const progress =
-            perSegment === 0 ? steps : Math.min(steps, elapsed / perSegment);
+          const elapsed = performance.now() - runtime.startedAt;
+          const progress = perSegment === 0 ? steps : Math.min(steps, elapsed / perSegment);
           const segment = Math.floor(progress);
           const t = progress - segment;
 
-          let rightCount = 0;
+          let right = 0;
           for (let i = 0; i < Math.min(segment, steps); i += 1) {
-            if (drop.path[i] === 'R') rightCount += 1;
+            if (drop.path[i] === 'R') right += 1;
           }
 
           let x: number;
           let y: number;
+          let z = PEG_HEIGHT + BALL_RADIUS;
+
           if (segment >= steps) {
-            x = nodeX(rightCount, steps);
-            y = nodeY(steps) - 4;
+            const bucket = bucketOf(drop);
+            x = nodeX(right, steps);
+            y = BUCKET_TOP - 0.02;
+            z = PEG_HEIGHT + BALL_RADIUS;
 
             if (!runtime.completed) {
               runtime.completed = true;
-              landedRef.current.set(bucketOf(drop), performance.now());
+              landedRef.current.set(bucket, performance.now());
               onCompleteRef.current?.(drop);
             }
           } else {
             const goesRight = drop.path[segment] === 'R';
-            const fromX = nodeX(rightCount, segment);
-            const toX = nodeX(rightCount + (goesRight ? 1 : 0), segment + 1);
+            const fromX = nodeX(right, segment);
+            const toX = nodeX(right + (goesRight ? 1 : 0), segment + 1);
             const fromY = nodeY(segment);
             const toY = nodeY(segment + 1);
 
             const easeX = t * t * (3 - 2 * t);
             x = fromX + (toX - fromX) * easeX;
-            y = fromY + (toY - fromY) * (t * t) - Math.sin(t * Math.PI) * rowGap * 0.14;
+            y = fromY + (toY - fromY) * (t * t);
+            // A hop over the peg rather than a slide along the board.
+            z += Math.sin(t * Math.PI) * 9;
           }
 
+          drawFloorShadow(ctx, scene, x, y, BALL_RADIUS, z, 0.8);
           if (!reducedMotion && segment < steps) {
+            const glow = scene.project(x, y, z);
+            const r = BALL_RADIUS * scene.scale(y) * 2.1;
             ctx.beginPath();
-            ctx.arc(x, y, 8, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(217, 164, 65,.16)';
+            ctx.arc(glow.x, glow.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = alpha(GOLD, 0.14);
             ctx.fill();
           }
-
-          ctx.beginPath();
-          ctx.arc(x, y, 5, 0, Math.PI * 2);
-          ctx.fillStyle = COLORS.ball;
-          ctx.shadowColor = COLORS.ball;
-          ctx.shadowBlur = 12;
-          ctx.fill();
-          ctx.shadowBlur = 0;
+          drawSphere(ctx, scene, x, y, z, BALL_RADIUS, GOLD);
         }
 
         for (const [bucket, at] of [...landedRef.current.entries()]) {
-          if (performance.now() - at > LANDED_FLASH_MS) {
-            landedRef.current.delete(bucket);
-          }
+          if (performance.now() - at > LANDED_FLASH_MS) landedRef.current.delete(bucket);
         }
 
         if (multipliers.length !== bucketCount) {
-          ctx.fillStyle = COLORS.muted;
-          ctx.font = `11px ${FONT}`;
+          ctx.fillStyle = BOARD.dim;
+          ctx.font = `600 11px ${FONT.body}`;
           ctx.textAlign = 'left';
           ctx.textBaseline = 'top';
           ctx.fillText(
@@ -230,6 +241,8 @@ export function PlinkoCanvas({
             8
           );
         }
+
+        drawVignette(ctx, scene);
       },
     [rows, multipliers, drops, perSegment, reducedMotion]
   );
@@ -252,6 +265,17 @@ export function PlinkoCanvas({
       aria-label={label}
     />
   );
+}
+
+function formatMultiplier(multiplier: number): string {
+  return multiplier >= 100 ? `${Math.round(multiplier)}x` : `${multiplier}x`;
+}
+
+/** Dark text on the bright slots, light on the dim ones. */
+function slotLabelColour(multiplier: number, flash: number): string {
+  if (flash > 0) return '#241a04';
+  if (multiplier >= 2) return '#241a04';
+  return BOARD.text;
 }
 
 export default PlinkoCanvas;

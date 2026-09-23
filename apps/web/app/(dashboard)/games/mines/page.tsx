@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { MINES } from '@frigat/shared/constants';
 
+import { MinesCanvas } from '@/components/canvas/MinesCanvas';
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
@@ -78,13 +79,6 @@ export default function MinesPage() {
     send('REVEAL_TILE', 'MINES', { tile });
   };
 
-  const tileState = (tile: number) => {
-    if (hitTile === tile) return 'hit';
-    if (minePositions.includes(tile)) return 'mine';
-    if (revealed.includes(tile)) return 'safe';
-    return 'idle';
-  };
-
   return (
     <GameShell
       gameType="MINES"
@@ -92,24 +86,15 @@ export default function MinesPage() {
       subtitle={`${MINES.gridSize} tiles · reveal safe tiles and cash out`}
       stage={
         <>
-          <div className="mines" role="grid" aria-label={t('game.minesBoard')}>
-            {Array.from({ length: MINES.gridSize }, (_, tile) => {
-              const state = tileState(tile);
-              return (
-                <button
-                  key={tile}
-                  type="button"
-                  role="gridcell"
-                  className={`mines__tile${state === 'idle' ? '' : ` mines__tile--${state}`}`}
-                  onClick={() => reveal(tile)}
-                  disabled={!active || state !== 'idle' || busy}
-                  aria-label={`Tile ${tile + 1}${state === 'idle' ? '' : `, ${state}`}`}
-                >
-                  {state === 'safe' ? '◆' : state === 'idle' ? '' : '✷'}
-                </button>
-              );
-            })}
-          </div>
+          <MinesCanvas
+            gridSize={MINES.gridSize}
+            revealed={revealed}
+            minePositions={minePositions}
+            hitTile={hitTile}
+            interactive={active && !busy}
+            onReveal={reveal}
+            ariaLabel={t('game.minesBoard')}
+          />
 
           {outcome && (
             <p

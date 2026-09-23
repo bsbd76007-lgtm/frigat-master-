@@ -42,9 +42,11 @@ export interface UseGameRoundOptions<TResult> {
   onResult?: (frame: GameResultFrame<TResult>) => void;
   /**
    * The server rejected the bet. `busy` is already false by the time this runs,
-   * so a handler only needs to undo whatever else `begin()` set up.
+   * so a handler only needs to undo whatever else `begin()` set up — and
+   * should tell the player why, from `code`: a bet that silently does nothing
+   * reads as a broken game.
    */
-  onError?: () => void;
+  onError?: (error: GameError) => void;
   /** Clear `busy` as soon as the result lands. Default true — see above. */
   autoSettle?: boolean;
   /**
@@ -62,6 +64,33 @@ export interface UseGameRoundOptions<TResult> {
    * a rejected bet almost always needs.
    */
   on?: Partial<Record<ServerEventType, (data: Record<string, unknown>) => void>>;
+}
+
+/** The server's ERROR frame, as `{ code, message }`. */
+export interface GameError {
+  code: string;
+  message: string;
+}
+
+/** i18n key for a rejected action, by the server's error code. */
+export function gameErrorKey(code: string): string {
+  switch (code) {
+    case 'INSUFFICIENT_FUNDS':
+      return 'gameUi.errorFunds';
+    case 'BET_LIMIT':
+      return 'gameUi.errorLimit';
+    case 'ACCOUNT_FROZEN':
+      return 'gameUi.errorFrozen';
+    case 'MAINTENANCE_MODE':
+      return 'gameUi.errorMaintenance';
+    case 'CASHOUT_LOCKED':
+      return 'gameUi.errorCashLocked';
+    case 'GAME_IN_PROGRESS':
+    case 'ROUND_IN_PROGRESS':
+      return 'gameUi.errorInProgress';
+    default:
+      return 'gameUi.errorGeneric';
+  }
 }
 
 export interface UseGameRoundResult {
@@ -115,9 +144,12 @@ export function useGameRound<TResult = Record<string, unknown>>(
 
         if (autoSettle) setBusy(false);
       }),
-      subscribe('ERROR', () => {
+      subscribe('ERROR', (data) => {
         setBusy(false);
-        optionsRef.current.onError?.();
+        optionsRef.current.onError?.({
+          code: typeof data.code === 'string' ? data.code : '',
+          message: typeof data.message === 'string' ? data.message : '',
+        });
       }),
     ];
     return () => off.forEach((fn) => fn());

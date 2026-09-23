@@ -26,6 +26,13 @@ export const MINES = {
  * the early multipliers at a flat hazard instead would quietly raise the edge
  * on exactly the lanes most players stop at.
  *
+ * `minCashoutMultiplier` is the difficulty rule, and it is design, not maths:
+ * at a fixed RTP a player's chance of winning a round is rtp / (the multiplier
+ * they bank), so a board that lets them bank 1.08x wins nine rounds in ten and
+ * feels free. Cash out stays locked until the lane reached pays at least this,
+ * which caps any strategy's win rate at rtp / 2 ≈ 49% — the edge is untouched,
+ * every lane is still priced at exactly (1 - edge) / P(reach).
+ *
  * `maxMultiplier` ends the road. The ladder is geometric (the 75% mode passes
  * 10^12 by lane 20), and a game with no admin GameLimit row gets no payout cap
  * at all, so the engine has to bound itself: a mode's last lane is the deepest
@@ -33,6 +40,7 @@ export const MINES = {
  */
 export const CHICKEN = {
   maxMultiplier: 10_000,
+  minCashoutMultiplier: 2,
   ramp: { start: 0.4, lanes: 5 },
   modes: {
     low: { hazard: 0.15 },
@@ -64,8 +72,9 @@ export function chickenHazardAt(mode: ChickenMode, lane: number): number {
  *
  * E[M] is exact, not simulated — every event is independent of the running
  * multiplier, so E[m_{i+1}] = E[mul]·E[m_i] + E[add] (see avia.engine.ts).
- * With this table that is ~29% of flights landing: raising a multiplier or a
- * weight makes flights richer and landings rarer, never a looser edge.
+ * With this table ~17.5% of flights land, and a landing pays a median ~3.2x.
+ * That is the difficulty dial: raising a multiplier or a weight makes flights
+ * richer and landings rarer, never a looser edge.
  *
  * `maxMultiplier` bounds a freak run of stacked multipliers. The cap can only
  * lower a payout, so P(land) computed from the uncapped expectation leaves the
@@ -76,14 +85,14 @@ export const AVIA = {
   flightEvents: { min: 6, max: 12 },
   maxMultiplier: 10_000,
   events: [
-    { kind: 'add025', label: '+0.25', mul: 1, add: 0.25, weight: 12 },
+    { kind: 'add025', label: '+0.25', mul: 1, add: 0.25, weight: 10 },
     { kind: 'add05', label: '+0.5', mul: 1, add: 0.5, weight: 8 },
-    { kind: 'add1', label: '+1', mul: 1, add: 1, weight: 3 },
-    { kind: 'add2', label: '+2', mul: 1, add: 2, weight: 1 },
-    { kind: 'x2', label: 'x2', mul: 2, add: 0, weight: 3 },
-    { kind: 'x3', label: 'x3', mul: 3, add: 0, weight: 0.8 },
-    { kind: 'x5', label: 'x5', mul: 5, add: 0, weight: 0.15 },
-    { kind: 'rocket', label: '÷2', mul: 0.5, add: 0, weight: 12 },
+    { kind: 'add1', label: '+1', mul: 1, add: 1, weight: 4 },
+    { kind: 'add2', label: '+2', mul: 1, add: 2, weight: 1.5 },
+    { kind: 'x2', label: 'x2', mul: 2, add: 0, weight: 3.5 },
+    { kind: 'x3', label: 'x3', mul: 3, add: 0, weight: 1 },
+    { kind: 'x5', label: 'x5', mul: 5, add: 0, weight: 0.2 },
+    { kind: 'rocket', label: '÷2', mul: 0.5, add: 0, weight: 9 },
   ],
 } as const;
 

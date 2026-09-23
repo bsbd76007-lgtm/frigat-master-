@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { LimboCanvas, type LimboRound } from '@/components/canvas/LimboCanvas';
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
@@ -13,17 +14,16 @@ const MAX_TARGET = 1_000_000;
 const LIMBO_EDGE = 0.01;
 
 const QUICK_TARGETS = [1.5, 2, 5, 10, 100];
-const ROLLOUT_MS = 850;
+
+interface Round extends LimboRound {
+  payout: string | null;
+  /** The target the server settled against, not whatever the input says now. */
+  settledTarget: number;
+}
 
 function formatMultiplier(n: number): string {
   if (n >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
   return n.toFixed(2);
-}
-
-function rolloutValue(target: number, t: number): number {
-  const eased = 1 - Math.pow(1 - t, 3);
-  const logTarget = Math.log(Math.max(target, 1.0001));
-  return Math.exp(logTarget * eased);
 }
 
 export default function LimboPage() {
@@ -32,14 +32,11 @@ export default function LimboPage() {
 
   const [amount, setAmount] = useState('1.00');
   const [targetInput, setTargetInput] = useState('2.00');
-  const [rolling, setRolling] = useState(false);
-  const [display, setDisplay] = useState(1);
-  const [achieved, setAchieved] = useState<number | null>(null);
-  const [won, setWon] = useState<boolean | null>(null);
-  const [payout, setPayout] = useState<string | null>(null);
-  const [settledTarget, setSettledTarget] = useState<number | null>(null);
+  const [round, setRound] = useState<Round | null>(null);
+  const [complete, setComplete] = useState(false);
 
-  const rafRef = useRef<number | null>(null);
+  /** Ids the board can compare: rolling the same multiplier twice must animate. */
+  const roundSeq = useRef(0);
 
   const target = useMemo(() => {
     const n = Number(targetInput);
@@ -49,70 +46,39 @@ export default function LimboPage() {
 
   const winChance = useMemo(() => ((1 - LIMBO_EDGE) / target) * 100, [target]);
 
-  // autoSettle is off: the controls stay locked for the whole count-up, not
-  // just until the server answers, so a second bet cannot land mid-rollout.
+  // autoSettle is off: the controls stay locked for the whole count-up, not just
+  // until the server answers, so a second bet cannot land mid-rollout. The
+  // count-up itself belongs to the board — running it as React state meant a
+  // re-render of the page on every one of its frames.
   const { busy, bet, settle } = useGameRound<{
     achievedMultiplier?: number;
     targetMultiplier?: number;
   }>('LIMBO', {
     autoSettle: false,
     onResult: ({ result, win, payout: paid }) => {
-      const finalAchieved =
-        typeof result?.achievedMultiplier === 'number' ? result.achievedMultiplier : 1;
-      const usedTarget =
-        typeof result?.targetMultiplier === 'number' ? result.targetMultiplier : target;
-
-      setSettledTarget(usedTarget);
-      setWon(null);
-      setAchieved(null);
-      setRolling(true);
-
-      const start = performance.now();
-      const tick = (now: number) => {
-        const t = Math.min(1, (now - start) / ROLLOUT_MS);
-        setDisplay(rolloutValue(finalAchieved, t));
-        if (t < 1) {
-          rafRef.current = requestAnimationFrame(tick);
-        } else {
-          setDisplay(finalAchieved);
-          setAchieved(finalAchieved);
-          setWon(win);
-          setPayout(paid);
-          setRolling(false);
-          settle();
-        }
-      };
-      rafRef.current = requestAnimationFrame(tick);
+      roundSeq.current += 1;
+      setComplete(false);
+      setRound({
+        id: `limbo-${roundSeq.current}`,
+        achievedMultiplier:
+          typeof result?.achievedMultiplier === 'number' ? result.achievedMultiplier : 1,
+        win,
+        payout: paid,
+        settledTarget:
+          typeof result?.targetMultiplier === 'number' ? result.targetMultiplier : target,
+      });
     },
-    onError: () => setRolling(false),
   });
 
-  // The rollout frame is owned by this page, so unmounting mid-count has to
-  // cancel it — useGameRound only owns the subscription.
-  useEffect(
-    () => () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    },
-    []
-  );
-
   const placeBet = useCallback(() => {
-    setWon(null);
-    setAchieved(null);
-    setPayout(null);
-    setDisplay(1);
+    setRound(null);
+    setComplete(false);
     bet('BET', {
       amount,
       currency: balance.currency,
       params: { targetMultiplier: target },
     });
   }, [amount, balance.currency, bet, target]);
-
-  const readoutValue = achieved ?? display;
-  const barPercent = Math.min(
-    100,
-    (Math.log(Math.max(readoutValue, 1)) / Math.log(Math.max(target, 1.0001))) * 100
-  );
 
   return (
     <GameShell
@@ -121,38 +87,25 @@ export default function LimboPage() {
       subtitle={t('games.limbo.subtitle')}
       stage={
         <div className="stage__center">
-          <div style={{ width: '100%', maxWidth: 420 }}>
-            <div className="limbobar">
-              <div
-                className={`limbobar__fill${won === false ? ' limbobar__fill--lose' : ''}`}
-                style={{ width: `${barPercent}%` }}
-              />
-              <div className="limbobar__target" style={{ left: '100%' }} />
-            </div>
-            <div className="limbobar__scale">
-              <span>1.00x</span>
-              <span>Target {formatMultiplier(target)}x</span>
-            </div>
+          <div style={{ width: '100%', maxWidth: 520 }}>
+            <LimboCanvas
+              target={round?.settledTarget ?? target}
+              round={round}
+              onRollComplete={() => {
+                setComplete(true);
+                settle();
+              }}
+            />
           </div>
 
-          <div
-            className={
-              won === null
-                ? 'readout'
-                : `readout ${won ? 'readout--win' : 'readout--lose'}`
-            }
-          >
-            {formatMultiplier(readoutValue)}x
-          </div>
-
-          {won !== null && !rolling ? (
+          {complete && round ? (
             <p className="readout__note" role="status">
-              {won ? `Win · +${payout ?? '0'}` : 'No win'} · target was{' '}
-              {formatMultiplier(settledTarget ?? target)}x
+              {round.win ? `Win · +${round.payout ?? '0'}` : 'No win'} · target was{' '}
+              {formatMultiplier(round.settledTarget)}x
             </p>
           ) : (
             <p className="readout__note">
-              {rolling ? 'Rolling…' : 'Set your target and roll'}
+              {busy ? 'Rolling…' : 'Set your target and roll'}
             </p>
           )}
         </div>

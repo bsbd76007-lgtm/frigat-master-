@@ -5,11 +5,24 @@ import { useEffect, useMemo, useRef } from 'react';
 import { CRASH } from '@frigat/shared/constants';
 
 import {
-
   useCanvasRenderer,
   usePrefersReducedMotion,
   type CanvasFrame,
 } from '@/lib/useCanvasRenderer';
+
+import {
+  ACCENT,
+  BOARD,
+  FONT,
+  GOLD,
+  NEG,
+  alpha,
+  drawBackdrop,
+  drawVignette,
+  makeScene,
+  poly,
+} from './three';
+
 export const CRASH_GROWTH_RATE_PER_SEC = CRASH.growthRatePerSec;
 
 /**
@@ -43,19 +56,20 @@ interface Particle {
   hue: number;
 }
 
-const COLORS = {
-  bg: '#0d1319',
-  grid: '#1b2531',
-  axis: '#243040',
-  muted: '#6b7787',
-  text: '#e6edf3',
-  live: '#e0b055',
-  bust: '#c25560',
-  cashed: '#d9a441',
-};
+/**
+ * Blue while the round is live — the state the player is still acting on —
+ * gold once it pays, red when it busts. That is the token contract rather than
+ * the old amber board: gold is reward, so it is not allowed to mean "rising".
+ */
+const LIVE = ACCENT;
+const CASHED = GOLD;
+const BUST = NEG;
 
-const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 const EXPLOSION_MS = 1100;
+/** The depth the flight plane stands at, and the floor band around it. */
+const FLIGHT_Y = 0.52;
+const FLOOR_NEAR = 0.98;
+const FLOOR_FAR = 0.06;
 
 export function elapsedSecondsFor(multiplier: number): number {
   if (multiplier <= 1) return 0;
@@ -118,279 +132,200 @@ export function CrashCanvas({
   const draw = useMemo(
     () =>
       ({ ctx, width, height: h, time }: CanvasFrame) => {
-        ctx.fillStyle = COLORS.bg;
-        ctx.fillRect(0, 0, width, h);
+        const scene = makeScene(width, h, {
+          top: 0.1,
+          bottom: 0.99,
+          focus: FLIGHT_Y,
+          far: 2.4,
+          depthStretch: 1.5,
+        });
 
-        const padLeft = 44;
-        const padRight = 16;
-        const padTop = 18;
-        const padBottom = 28;
+        const padLeft = 50;
+        const padRight = 18;
         const plotW = Math.max(1, width - padLeft - padRight);
-        const plotH = Math.max(1, h - padTop - padBottom);
+        /** How much of the stage the climb is allowed to use. */
+        const zSpan = h * 0.58;
 
         const live = Math.max(1, displayMultiplier || 1);
         const elapsed = elapsedSecondsFor(live);
-
         const spanSeconds = Math.max(6, elapsed * 1.12);
         const spanMultiplier = Math.max(2, live * 1.18);
 
-        const toX = (seconds: number) => padLeft + (seconds / spanSeconds) * plotW;
-        const toY = (m: number) =>
-          padTop + plotH - ((m - 1) / (spanMultiplier - 1)) * plotH;
+        const xOf = (seconds: number) => padLeft + (seconds / spanSeconds) * plotW;
+        const zOf = (m: number) => ((m - 1) / (spanMultiplier - 1)) * zSpan;
 
-        ctx.lineWidth = 1;
-        ctx.font = `11px ${FONT}`;
+        const busted = phase === 'CRASHED';
+        const cashed = phase === 'CASHED_OUT';
+        const ended = busted || cashed;
+        const curveColour = busted ? BUST : cashed ? CASHED : LIVE;
+
+        drawBackdrop(ctx, scene, {
+          x0: padLeft - plotW * 0.08,
+          x1: width - padRight,
+          y0: FLOOR_FAR,
+          y1: FLOOR_NEAR,
+          glow: curveColour,
+          glowStrength: phase === 'RUNNING' || ended ? 0.12 : 0.07,
+          gridCols: 8,
+          gridRows: 4,
+        });
+
+        // Multiplier rungs: horizontal lines standing in the flight plane, the
+        // 3D stand-in for the old flat y-axis.
+        ctx.font = `600 11px ${FONT.num}`;
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         const steps = 4;
         for (let i = 0; i <= steps; i += 1) {
           const m = 1 + ((spanMultiplier - 1) * i) / steps;
-          const y = Math.round(toY(m)) + 0.5;
-          ctx.strokeStyle = i === 0 ? COLORS.axis : COLORS.grid;
+          const z = zOf(m);
+          const a = scene.project(padLeft, FLIGHT_Y, z);
+          const b = scene.project(width - padRight, FLIGHT_Y, z);
+          ctx.strokeStyle = i === 0 ? BOARD.line2 : BOARD.line;
+          ctx.lineWidth = 1;
           ctx.beginPath();
-          ctx.moveTo(padLeft, y);
-          ctx.lineTo(width - padRight, y);
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
           ctx.stroke();
-          ctx.fillStyle = COLORS.muted;
-          ctx.fillText(`${m.toFixed(2)}×`, padLeft - 8, y);
+          ctx.fillStyle = BOARD.dim;
+          ctx.fillText(`${m.toFixed(2)}×`, a.x - 8, a.y);
         }
 
+        // Time ticks, lying on the floor where the flight plane meets it.
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        const timeSteps = 4;
-        for (let i = 1; i <= timeSteps; i += 1) {
-          const seconds = (spanSeconds * i) / timeSteps;
-          const x = Math.round(toX(seconds)) + 0.5;
-          ctx.strokeStyle = COLORS.grid;
-          ctx.beginPath();
-          ctx.moveTo(x, padTop);
-          ctx.lineTo(x, padTop + plotH);
-          ctx.stroke();
-          ctx.fillStyle = COLORS.muted;
-          ctx.fillText(`${seconds.toFixed(0)}s`, x, padTop + plotH + 7);
+        ctx.font = `600 10px ${FONT.num}`;
+        for (let i = 1; i <= 4; i += 1) {
+          const seconds = (spanSeconds * i) / 4;
+          const at = scene.project(xOf(seconds), FLOOR_NEAR, 0);
+          ctx.fillStyle = BOARD.dim;
+          ctx.fillText(`${seconds.toFixed(0)}s`, at.x, at.y - 14);
         }
 
-        const busted = phase === 'CRASHED';
-        const cashed = phase === 'CASHED_OUT';
-        // The round is over in both end states; only a bust keeps climbing to
-        // the crash point and detonates.
-        const ended = busted || cashed;
-        const curveColor = busted
-          ? COLORS.bust
-          : cashed
-            ? COLORS.cashed
-            : COLORS.live;
         const showCurve = phase === 'RUNNING' || ended;
+        let head = { x: scene.vanishX, y: h / 2 };
 
         if (showCurve) {
           const samples = 120;
-          const points: Array<[number, number]> = [];
+          const top: Array<{ x: number; y: number }> = [];
+          const base: Array<{ x: number; y: number }> = [];
           for (let i = 0; i <= samples; i += 1) {
             const seconds = (elapsed * i) / samples;
-            points.push([toX(seconds), toY(multiplierAtSeconds(seconds))]);
+            const x = xOf(seconds);
+            top.push(scene.project(x, FLIGHT_Y, zOf(multiplierAtSeconds(seconds))));
+            base.push(scene.project(x, FLIGHT_Y, 0));
           }
+          head = top[top.length - 1];
 
-          const fill = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
-          fill.addColorStop(
-            0,
-            busted
-              ? 'rgba(240,97,109,.28)'
-              : cashed
-                ? 'rgba(217, 164, 65,.26)'
-                : 'rgba(45,212,167,.26)'
-          );
-          fill.addColorStop(1, 'rgba(13,19,25,0)');
-          ctx.beginPath();
-          ctx.moveTo(points[0][0], padTop + plotH);
-          for (const [x, y] of points) ctx.lineTo(x, y);
-          ctx.lineTo(points[points.length - 1][0], padTop + plotH);
-          ctx.closePath();
-          ctx.fillStyle = fill;
-          ctx.fill();
+          // The climb as a wall standing on the floor: the same area fill the
+          // flat chart had, except it now has a footing you can see.
+          const fill = ctx.createLinearGradient(0, scene.project(0, FLIGHT_Y, zSpan).y, 0, base[0].y);
+          fill.addColorStop(0, alpha(curveColour, 0.34));
+          fill.addColorStop(1, alpha(curveColour, 0.02));
+          poly(ctx, [...top, ...base.slice().reverse()], fill);
 
+          // The curve itself, along the top of the wall.
           ctx.beginPath();
-          for (let i = 0; i < points.length; i += 1) {
-            const [x, y] = points[i];
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+          for (let i = 0; i < top.length; i += 1) {
+            if (i === 0) ctx.moveTo(top[i].x, top[i].y);
+            else ctx.lineTo(top[i].x, top[i].y);
           }
-          ctx.strokeStyle = curveColor;
+          ctx.strokeStyle = curveColour;
           ctx.lineWidth = 2.5;
           ctx.lineJoin = 'round';
           ctx.lineCap = 'round';
-          ctx.shadowColor = curveColor;
+          ctx.shadowColor = curveColour;
           ctx.shadowBlur = 12;
           ctx.stroke();
           ctx.shadowBlur = 0;
 
-          const headX = points[points.length - 1][0];
-          const headY = points[points.length - 1][1];
-
           if (cashedOutAt && cashedOutAt > 1) {
-            const y = toY(cashedOutAt);
+            const z = zOf(cashedOutAt);
+            const a = scene.project(padLeft, FLIGHT_Y, z);
+            const b = scene.project(width - padRight, FLIGHT_Y, z);
             ctx.setLineDash([4, 4]);
-            ctx.strokeStyle = COLORS.cashed;
+            ctx.strokeStyle = CASHED;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(padLeft, y);
-            ctx.lineTo(width - padRight, y);
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
             ctx.stroke();
             ctx.setLineDash([]);
-            ctx.fillStyle = COLORS.cashed;
-            ctx.font = `600 11px ${FONT}`;
+            ctx.fillStyle = CASHED;
+            ctx.font = `600 11px ${FONT.num}`;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'bottom';
-            ctx.fillText(`cashed ${cashedOutAt.toFixed(2)}×`, padLeft + 6, y - 3);
+            ctx.fillText(`cashed ${cashedOutAt.toFixed(2)}×`, a.x + 6, a.y - 3);
           }
 
           if (!ended) {
-            const prev = points[Math.max(0, points.length - 6)];
-            const angle = Math.atan2(headY - prev[1], headX - prev[0]);
-
-            ctx.save();
-            ctx.translate(headX, headY);
-            ctx.rotate(angle);
-
-            const pulse = reducedMotion ? 1 : 0.75 + Math.sin(time / 70) * 0.25;
-            const plume = ctx.createLinearGradient(-26 * pulse, 0, 0, 0);
-            plume.addColorStop(0, 'rgba(217, 164, 65,0)');
-            plume.addColorStop(1, 'rgba(217, 164, 65,.85)');
-            ctx.beginPath();
-            ctx.moveTo(-26 * pulse, 0);
-            ctx.lineTo(-8, -4.5);
-            ctx.lineTo(-8, 4.5);
-            ctx.closePath();
-            ctx.fillStyle = plume;
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(11, 0);
-            ctx.lineTo(-8, -6.5);
-            ctx.lineTo(-4, 0);
-            ctx.lineTo(-8, 6.5);
-            ctx.closePath();
-            ctx.fillStyle = COLORS.text;
-            ctx.shadowColor = COLORS.live;
-            ctx.shadowBlur = 10;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.restore();
+            drawRocket(ctx, top, reducedMotion ? 1 : 0.75 + Math.sin(time / 70) * 0.25);
           } else if (cashed) {
             // A held marker where the player got out — no explosion.
             ctx.beginPath();
-            ctx.arc(headX, headY, 6, 0, Math.PI * 2);
-            ctx.fillStyle = COLORS.cashed;
-            ctx.shadowColor = COLORS.cashed;
+            ctx.arc(head.x, head.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = CASHED;
+            ctx.shadowColor = CASHED;
             ctx.shadowBlur = 12;
             ctx.fill();
             ctx.shadowBlur = 0;
           } else {
-            const since = crashedAtRef.current
-              ? performance.now() - crashedAtRef.current
-              : 0;
-            const progress = Math.min(1, since / EXPLOSION_MS);
-
-            if (progress < 0.18) {
-              const flash = 1 - progress / 0.18;
-              ctx.beginPath();
-              ctx.arc(headX, headY, 10 + flash * 34, 0, Math.PI * 2);
-              ctx.fillStyle = `rgba(255,236,200,${0.75 * flash})`;
-              ctx.fill();
-            }
-
-            if (progress < 1) {
-              const ring = progress ** 0.55;
-              ctx.beginPath();
-              ctx.arc(headX, headY, 8 + ring * 78, 0, Math.PI * 2);
-              ctx.strokeStyle = `rgba(240,97,109,${0.5 * (1 - progress)})`;
-              ctx.lineWidth = 2.5 * (1 - progress) + 0.5;
-              ctx.stroke();
-            }
-
-            for (const p of particlesRef.current) {
-              const distance = p.speed * progress;
-              const px = headX + Math.cos(p.angle) * distance;
-              const py = headY + Math.sin(p.angle) * distance + progress ** 2 * 26;
-              ctx.beginPath();
-              ctx.arc(px, py, p.radius * (1 - progress * 0.7), 0, Math.PI * 2);
-              ctx.fillStyle = `hsla(${p.hue}, 90%, ${62 - progress * 20}%, ${1 - progress})`;
-              ctx.fill();
-            }
+            drawExplosion(ctx, head, crashedAtRef.current, particlesRef.current);
           }
         }
 
+        // The readout is head-up display, not part of the board, so it stays in
+        // screen space — a number sheared into the flight plane would be the one
+        // thing on the stage the player cannot read at a glance.
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const cx = padLeft + plotW / 2;
-        const cy = padTop + plotH / 2;
+        const cy = h * 0.42;
 
         if (phase === 'BETTING') {
-          ctx.fillStyle = COLORS.muted;
-          ctx.font = `600 12px ${FONT}`;
+          ctx.fillStyle = BOARD.muted;
+          ctx.font = `600 12px ${FONT.body}`;
           ctx.fillText('NEXT ROUND', cx, cy - 26);
-          ctx.fillStyle = COLORS.text;
-          ctx.font = `700 46px ${FONT}`;
+          ctx.fillStyle = BOARD.text;
+          ctx.font = `700 46px ${FONT.num}`;
           const seconds = Math.max(0, (bettingMsRemaining ?? 0) / 1000);
           ctx.fillText(`${seconds.toFixed(1)}s`, cx, cy + 6);
-          ctx.fillStyle = COLORS.muted;
-          ctx.font = `12px ${FONT}`;
+          ctx.fillStyle = BOARD.muted;
+          ctx.font = `600 12px ${FONT.body}`;
           ctx.fillText('Place your bet', cx, cy + 38);
         } else if (phase === 'IDLE') {
           // Nothing is running and nothing will until this player bets.
-          ctx.fillStyle = COLORS.muted;
-          ctx.font = `600 14px ${FONT}`;
+          ctx.fillStyle = BOARD.muted;
+          ctx.font = `600 14px ${FONT.body}`;
           ctx.fillText('Place a bet to start a round', cx, cy);
         } else {
+          const since = crashedAtRef.current ? performance.now() - crashedAtRef.current : 0;
           const shake =
             busted && !reducedMotion
-              ? Math.max(
-                  0,
-                  1 -
-                    (crashedAtRef.current
-                      ? performance.now() - crashedAtRef.current
-                      : 0) /
-                      260
-                ) *
-                Math.sin(time / 18) *
-                4
+              ? Math.max(0, 1 - since / 260) * Math.sin(time / 18) * 4
               : 0;
 
           ctx.save();
           ctx.translate(shake, 0);
-          ctx.fillStyle = busted
-            ? COLORS.bust
-            : cashed
-              ? COLORS.cashed
-              : COLORS.text;
-          ctx.font = `700 58px ${FONT}`;
-          ctx.shadowColor = busted
-            ? COLORS.bust
-            : cashed
-              ? COLORS.cashed
-              : COLORS.live;
+          ctx.fillStyle = busted ? BUST : cashed ? CASHED : BOARD.text;
+          // Tabular figures: the climb through 9.99 → 10.00 must not shift.
+          ctx.font = `700 58px ${FONT.num}`;
+          ctx.shadowColor = curveColour;
           ctx.shadowBlur = 18;
           ctx.fillText(`${live.toFixed(2)}×`, cx, cy);
           ctx.shadowBlur = 0;
 
-          if (busted) {
-            ctx.fillStyle = COLORS.bust;
-            ctx.font = `700 14px ${FONT}`;
-            ctx.fillText('CRASHED', cx, cy + 44);
-          } else if (cashed) {
-            ctx.fillStyle = COLORS.cashed;
-            ctx.font = `700 14px ${FONT}`;
-            ctx.fillText('CASHED OUT', cx, cy + 44);
+          if (busted || cashed) {
+            ctx.fillStyle = busted ? BUST : CASHED;
+            ctx.font = `800 14px ${FONT.body}`;
+            ctx.fillText(busted ? 'CRASHED' : 'CASHED OUT', cx, cy + 44);
           }
           ctx.restore();
         }
+
+        drawVignette(ctx, scene);
       },
-    [
-      phase,
-      displayMultiplier,
-      bettingMsRemaining,
-      cashedOutAt,
-      reducedMotion,
-    ]
+    [phase, displayMultiplier, bettingMsRemaining, cashedOutAt, reducedMotion]
   );
 
   const canvasRef = useCanvasRenderer(draw);
@@ -415,6 +350,86 @@ export function CrashCanvas({
       aria-label={label}
     />
   );
+}
+
+/**
+ * The craft at the head of the curve, banked along it. Drawn in screen space:
+ * it is a few pixels across, so projecting a hull would cost a lot of maths to
+ * land inside the same pixels this does.
+ */
+function drawRocket(
+  ctx: CanvasRenderingContext2D,
+  top: ReadonlyArray<{ x: number; y: number }>,
+  pulse: number
+): void {
+  const head = top[top.length - 1];
+  const prev = top[Math.max(0, top.length - 6)];
+  const angle = Math.atan2(head.y - prev.y, head.x - prev.x);
+
+  ctx.save();
+  ctx.translate(head.x, head.y);
+  ctx.rotate(angle);
+
+  const plume = ctx.createLinearGradient(-26 * pulse, 0, 0, 0);
+  plume.addColorStop(0, alpha(LIVE, 0));
+  plume.addColorStop(1, alpha(LIVE, 0.85));
+  ctx.beginPath();
+  ctx.moveTo(-26 * pulse, 0);
+  ctx.lineTo(-8, -4.5);
+  ctx.lineTo(-8, 4.5);
+  ctx.closePath();
+  ctx.fillStyle = plume;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(11, 0);
+  ctx.lineTo(-8, -6.5);
+  ctx.lineTo(-4, 0);
+  ctx.lineTo(-8, 6.5);
+  ctx.closePath();
+  ctx.fillStyle = BOARD.text;
+  ctx.shadowColor = LIVE;
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawExplosion(
+  ctx: CanvasRenderingContext2D,
+  head: { x: number; y: number },
+  crashedAt: number | null,
+  particles: readonly Particle[]
+): void {
+  const since = crashedAt ? performance.now() - crashedAt : 0;
+  const progress = Math.min(1, since / EXPLOSION_MS);
+
+  if (progress < 0.18) {
+    const flash = 1 - progress / 0.18;
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, 10 + flash * 34, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,236,200,${0.75 * flash})`;
+    ctx.fill();
+  }
+
+  if (progress < 1) {
+    const ring = progress ** 0.55;
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, 8 + ring * 78, 0, Math.PI * 2);
+    ctx.strokeStyle = alpha(BUST, 0.5 * (1 - progress));
+    ctx.lineWidth = 2.5 * (1 - progress) + 0.5;
+    ctx.stroke();
+  }
+
+  for (const p of particles) {
+    const distance = p.speed * progress;
+    const px = head.x + Math.cos(p.angle) * distance;
+    const py = head.y + Math.sin(p.angle) * distance + progress ** 2 * 26;
+    ctx.beginPath();
+    ctx.arc(px, py, p.radius * (1 - progress * 0.7), 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${p.hue}, 90%, ${62 - progress * 20}%, ${1 - progress})`;
+    ctx.fill();
+  }
 }
 
 export default CrashCanvas;

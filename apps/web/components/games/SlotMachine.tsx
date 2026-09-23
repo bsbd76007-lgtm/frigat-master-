@@ -47,6 +47,7 @@ import {
   multiplyDecimal,
   safeDecimal,
   sanitizeDecimalInput,
+  toFixedDecimal,
 } from '@/lib/decimal';
 import { useCanvasRenderer, type CanvasFrame } from '@/lib/useCanvasRenderer';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
@@ -184,7 +185,7 @@ export default function SlotMachine({ sounds }: SlotMachineProps = {}) {
    */
   const adjust = useCallback((next: string) => {
     const clamped = clampDecimal(next, BET_LIMITS.min, BET_LIMITS.max);
-    setBet(formatDecimalString(clamped, 2).replace(/,/g, ''));
+    setBet(toFixedDecimal(clamped, 2));
   }, []);
 
   // ── Spin ───────────────────────────────────
@@ -215,7 +216,8 @@ export default function SlotMachine({ sounds }: SlotMachineProps = {}) {
       // an absolute one would post to the Next origin instead of the API.
       const response = await apiJson<SlotSpinResponse>('api/games/slots/spin', {
         method: 'POST',
-        body: JSON.stringify({ betAmount: Number(bet) }),
+        // A decimal string, never Number(bet): the ledger is Decimal(18,8).
+        body: JSON.stringify({ betAmount: toFixedDecimal(safeDecimal(bet, BET_LIMITS.min), 2) }),
       });
 
       // Write the settled matrix into each strip at the cell the reel will land

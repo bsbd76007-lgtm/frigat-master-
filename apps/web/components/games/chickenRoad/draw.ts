@@ -390,7 +390,9 @@ export function drawCover(
   state: CoverState,
   multiplier: string,
   chance: string,
-  timeSeconds: number
+  timeSeconds: number,
+  /** Below the unlock lane: it counts toward the ladder but cannot be banked. */
+  locked = false
 ) {
   const ring = (r: number) => {
     const pts: Pt[] = [];
@@ -447,7 +449,13 @@ export function drawCover(
     ctx.lineWidth = Math.max(2, big * 0.22);
     ctx.strokeStyle = 'rgba(8,12,18,.85)';
     ctx.strokeText(multiplier, c.x, c.y - big * 0.28);
-    ctx.fillStyle = state === 'next' ? '#fde68a' : state === 'cleared' ? '#86efac' : '#ffffff';
+    ctx.fillStyle = locked
+      ? '#94a3b8'
+      : state === 'next'
+        ? '#fde68a'
+        : state === 'cleared'
+          ? '#86efac'
+          : '#ffffff';
     ctx.fillText(multiplier, c.x, c.y - big * 0.28);
     const small = big * 0.62;
     ctx.font = `800 ${small}px ui-sans-serif, system-ui, sans-serif`;

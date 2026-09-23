@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { CHICKEN, chickenHazardAt, type ChickenMode } from '@frigat/shared';
 
-import { bustLane, isChickenMode, maxLanes, multiplierAt, survives } from './chicken.engine';
+import {
+  bustLane,
+  isChickenMode,
+  maxLanes,
+  minCashoutLane,
+  multiplierAt,
+  survives,
+} from './chicken.engine';
 import { HOUSE_EDGE } from '../config/game.config';
 import type { SeedContext } from '../types/engine.types';
 
@@ -67,6 +74,20 @@ describe('chicken — ladder', () => {
       // The flat ladder this replaced priced lane 1 at rtp / (1 - full).
       expect(multiplierAt(mode, 1)).toBeLessThan(RTP / (1 - full));
     }
+  });
+
+  it('locks cash out until a lane pays the minimum, capping any win rate near 49%', () => {
+    for (const mode of MODES) {
+      const lane = minCashoutLane(mode);
+      expect(multiplierAt(mode, lane)).toBeGreaterThanOrEqual(CHICKEN.minCashoutMultiplier);
+      if (lane > 1) {
+        expect(multiplierAt(mode, lane - 1)).toBeLessThan(CHICKEN.minCashoutMultiplier);
+      }
+      // The best any strategy can do is bank at the unlock lane.
+      expect(reach(mode, lane)).toBeLessThanOrEqual(RTP / CHICKEN.minCashoutMultiplier + 1e-12);
+    }
+    // Pinned so a hazard, ramp or minimum change is a visible decision.
+    expect(MODES.map(minCashoutLane)).toEqual([6, 5, 3, 2]);
   });
 
   it('rejects a lane that is not a non-negative integer', () => {

@@ -54,6 +54,17 @@ export function maxLanes(mode: ChickenMode): number {
   return lane;
 }
 
+/**
+ * The first lane a round may be cashed out on: the first whose multiplier
+ * reaches CHICKEN.minCashoutMultiplier. Below it the lanes still pay on the
+ * ladder, but only as a step toward it — see the note on CHICKEN.
+ */
+export function minCashoutLane(mode: ChickenMode): number {
+  let lane = 1;
+  while (multiplierAt(mode, lane) < CHICKEN.minCashoutMultiplier) lane += 1;
+  return lane;
+}
+
 /** Whether the hop *into* `lane` (1-based) survives on this seed. */
 export function survives(mode: ChickenMode, lane: number, seed: SeedContext): boolean {
   if (!Number.isInteger(lane) || lane < 1) {

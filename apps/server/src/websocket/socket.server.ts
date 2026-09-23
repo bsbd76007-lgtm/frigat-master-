@@ -844,8 +844,15 @@ async function handleChickenCashout(ws: WebSocket, userId: string) {
   if (!state || !state.active) {
     return fail(ws, 'No active chicken round', 'NO_ACTIVE_GAME');
   }
-  if (state.lane === 0) {
-    return fail(ws, 'Cross at least one lane before cashing out', 'NOTHING_REVEALED');
+  // Server-side, like every rule that touches money: the board disables the
+  // button too, but a player can send CASHOUT by hand.
+  const unlocksAt = chicken.minCashoutLane(state.mode);
+  if (state.lane < unlocksAt) {
+    return fail(
+      ws,
+      `Cash out unlocks at lane ${unlocksAt} (${chicken.multiplierAt(state.mode, unlocksAt)}x)`,
+      'CASHOUT_LOCKED'
+    );
   }
   return settleChickenCashout(ws, state, false);
 }

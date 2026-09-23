@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
+import { DiceCanvas } from '@/components/canvas/DiceCanvas';
 import { BetControls } from '@/components/games/BetControls';
 import { GameShell } from '@/components/games/GameShell';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
@@ -9,6 +10,16 @@ import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useGameRound } from '@/hooks/useGameRound';
 
 type Direction = 'OVER' | 'UNDER';
+
+interface DiceRound {
+  id: string;
+  roll: number;
+  win: boolean;
+  payout: string | null;
+  /** The line and side the roll was settled against, not the current controls. */
+  target: number;
+  direction: Direction;
+}
 
 const DICE_EDGE = 0.01;
 
@@ -19,15 +30,27 @@ export default function DicePage() {
   const [amount, setAmount] = useState('1.00');
   const [target, setTarget] = useState(50);
   const [direction, setDirection] = useState<Direction>('UNDER');
-  const [roll, setRoll] = useState<number | null>(null);
-  const [won, setWon] = useState<boolean | null>(null);
-  const [payout, setPayout] = useState<string | null>(null);
+  const [round, setRound] = useState<DiceRound | null>(null);
+  const [complete, setComplete] = useState(false);
 
-  const { busy, bet } = useGameRound<{ roll?: number }>('DICE', {
+  /** Ids the board can compare: re-rolling the same number still has to slide. */
+  const roundSeq = useRef(0);
+
+  // autoSettle is off: the needle slides to the roll, so the controls stay
+  // locked for the whole slide rather than just until the server answers.
+  const { busy, bet, settle } = useGameRound<{ roll?: number }>('DICE', {
+    autoSettle: false,
     onResult: ({ result, win, payout: paid }) => {
-      if (typeof result?.roll === 'number') setRoll(result.roll);
-      setWon(win);
-      setPayout(paid);
+      roundSeq.current += 1;
+      setComplete(false);
+      setRound({
+        id: `dice-${roundSeq.current}`,
+        roll: typeof result?.roll === 'number' ? result.roll : 0,
+        win,
+        payout: paid,
+        target,
+        direction,
+      });
     },
   });
 
@@ -44,37 +67,25 @@ export default function DicePage() {
       subtitle={t('games.dice.subtitle')}
       stage={
         <div className="stage__center">
-          <div style={{ width: '100%', maxWidth: 460 }}>
-            <div className="dicebar">
-              <div
-                className="dicebar__win"
-                style={
-                  direction === 'UNDER'
-                    ? { left: 0, width: `${target}%` }
-                    : { left: `${target}%`, right: 0 }
-                }
-              />
-              {roll !== null && (
-                <div className="dicebar__marker" style={{ left: `calc(${roll}% - 1.5px)` }} />
-              )}
-            </div>
-            <div className="dicebar__scale">
-              <span>0</span>
-              <span>50</span>
-              <span>100</span>
-            </div>
+          <div style={{ width: '100%', maxWidth: 560 }}>
+            <DiceCanvas
+              target={target}
+              direction={direction}
+              roll={round?.roll ?? null}
+              rollId={round?.id ?? null}
+              won={complete && round ? round.win : null}
+              onRollComplete={() => {
+                setComplete(true);
+                settle();
+              }}
+            />
           </div>
 
-          {roll !== null && !busy ? (
-            <>
-              <div className={`readout ${won ? 'readout--win' : 'readout--lose'}`}>
-                {roll.toFixed(2)}
-              </div>
-              <p className="readout__note" role="status">
-                {won ? `Win · +${payout ?? '0'}` : 'No win'} · rolled{' '}
-                {direction === 'UNDER' ? 'under' : 'over'} {target}
-              </p>
-            </>
+          {complete && round ? (
+            <p className="readout__note" role="status">
+              {round.win ? `Win · +${round.payout ?? '0'}` : 'No win'} · rolled{' '}
+              {round.direction === 'UNDER' ? 'under' : 'over'} {round.target}
+            </p>
           ) : (
             <p className="readout__note">
               {busy ? 'Rolling…' : 'Set your target and roll'}
@@ -136,8 +147,8 @@ export default function DicePage() {
             balance={balance.balance}
             currency={balance.currency}
             onBet={() => {
-              setRoll(null);
-              setWon(null);
+              setRound(null);
+              setComplete(false);
               bet('BET', {
                 amount,
                 currency: balance.currency,

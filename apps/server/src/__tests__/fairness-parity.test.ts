@@ -44,6 +44,7 @@ import {
   verifyChicken,
   chickenMultiplierAt,
   chickenMaxLanes,
+  chickenMinCashoutLane,
   verifyAvia,
   aviaLandingChance,
 } from '../../../web/lib/verify';
@@ -168,6 +169,7 @@ describe('fairness parity: server engines ↔ browser verifier', () => {
   it('chicken roads agree — bust lane, ladder and road length', async () => {
     for (const mode of Object.keys(CHICKEN.modes) as ChickenMode[]) {
       expect(chickenMaxLanes(mode), mode).toBe(chicken.maxLanes(mode));
+      expect(chickenMinCashoutLane(mode), mode).toBe(chicken.minCashoutLane(mode));
       for (let lane = 0; lane <= chicken.maxLanes(mode) + 1; lane += 1) {
         expect(chickenMultiplierAt(mode, lane), `${mode} lane ${lane}`).toBe(
           chicken.multiplierAt(mode, lane)

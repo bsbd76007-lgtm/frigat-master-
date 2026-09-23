@@ -201,6 +201,13 @@ export function chickenMaxLanes(mode: ChickenMode): number {
   return lane;
 }
 
+/** First lane a round may cash out on — mirrors `minCashoutLane` in chicken.engine.ts. */
+export function chickenMinCashoutLane(mode: ChickenMode): number {
+  let lane = 1;
+  while (chickenMultiplierAt(mode, lane) < CHICKEN.minCashoutMultiplier) lane += 1;
+  return lane;
+}
+
 /**
  * The lane a Chicken Road seed kills the chicken in, or null if it survives
  * the whole road. Lane `k` survives when draw `k - 1` is at least that lane's

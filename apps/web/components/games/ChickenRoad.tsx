@@ -7,7 +7,7 @@ import { useInjectedStyles } from '@/lib/useInjectedStyles';
 import { loadKeyedSprite, type KeyedSprite } from '@/lib/spriteMask';
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
 import { useLanguage } from '@/components/providers/LanguageProvider';
-import { useGameRound } from '@/hooks/useGameRound';
+import { gameErrorKey, useGameRound } from '@/hooks/useGameRound';
 import { compareDecimal, formatDecimalString } from '@/lib/decimal';
 
 import {
@@ -25,6 +25,7 @@ import {
   laneDirection,
   lastLane,
   money,
+  unlockLane,
   multiplierAt,
   randomBetween,
   type Geometry,
@@ -154,6 +155,8 @@ export default function ChickenRoad() {
   const [bet, setBet] = useState(10);
   const [mode, setMode] = useState<TrafficMode>(DEFAULT_MODE);
   const [hopping, setHopping] = useState(false);
+  /** Why the last action was refused, if it was. */
+  const [serverError, setServerError] = useState<string | null>(null);
   /** Settled payout as the server reported it — an exact decimal string. */
   const [lastWin, setLastWin] = useState<string | null>(null);
 
@@ -544,8 +547,9 @@ export default function ChickenRoad() {
       if (raw.auto) playHop(true, finish);
       else finish();
     },
-    onError: () => {
+    onError: ({ code }) => {
       stepPendingRef.current = false;
+      setServerError(t(gameErrorKey(code)));
     },
   });
 
@@ -560,6 +564,7 @@ export default function ChickenRoad() {
     if (betError || busy) return;
     resetBoard();
     setLastWin(null);
+    setServerError(null);
     placeBet('BET', {
       amount: stake,
       currency: balance.currency,
@@ -580,6 +585,7 @@ export default function ChickenRoad() {
     if (phaseRef.current !== 'PLAYING') return;
     if (hopRef.current || doomedRef.current || stepPendingRef.current) return;
     stepPendingRef.current = true;
+    setServerError(null);
     begin();
     send('STEP', 'CHICKEN');
   }, [begin, send]);
@@ -694,7 +700,8 @@ export default function ChickenRoad() {
           state,
           `${formatMultiplier(multiplierAt(l, mode))}x`,
           formatChance(cumulativeChanceAt(l, mode)),
-          reducedMotionRef.current ? 0 : now / 1000
+          reducedMotionRef.current ? 0 : now / 1000,
+          l < unlockLane(mode)
         );
       }
 
@@ -807,7 +814,11 @@ export default function ChickenRoad() {
   const canvasRef = useCanvasRenderer(draw, { maxPixelRatio: 3 });
 
   const canStep = isPlaying && !hopping && !busy;
-  const canCash = isPlaying && lane > 0 && !hopping && !busy;
+  // Cash out opens on the first lane paying the minimum; the server refuses it
+  // earlier, so the button is only saying what the server will do.
+  const unlockAt = unlockLane(mode);
+  const cashLocked = lane < unlockAt;
+  const canCash = isPlaying && !cashLocked && !hopping && !busy;
 
   return (
     <div className="chr">
@@ -916,7 +927,11 @@ export default function ChickenRoad() {
           </div>
         </div>
 
-        {!isPlaying && betError && <p className="chr__error">{betError}</p>}
+        {(serverError || (!isPlaying && betError)) && (
+          <p className="chr__error" role="alert">
+            {serverError ?? betError}
+          </p>
+        )}
 
         {phase === 'LOST' && (
           <div className="chr__banner chr__banner--lost" role="status">
@@ -938,7 +953,11 @@ export default function ChickenRoad() {
             onClick={cashOut}
             disabled={!canCash}
           >
-            Cash Out ({money(payout)})
+            {cashLocked
+              ? t('gameUi.chickenCashLocked', {
+                  multiplier: `${formatMultiplier(multiplierAt(unlockAt, mode))}x`,
+                })
+              : `Cash Out (${money(payout)})`}
           </button>
         ) : (
           <button

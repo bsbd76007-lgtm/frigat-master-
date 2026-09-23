@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useGameSocket } from '@/components/providers/GameSocketProvider';
-import { useGameRound } from '@/hooks/useGameRound';
+import { gameErrorKey, useGameRound } from '@/hooks/useGameRound';
 import { useCanvasRenderer, type CanvasFrame } from '@/lib/useCanvasRenderer';
 import { useInjectedStyles } from '@/lib/useInjectedStyles';
 import {
@@ -12,6 +12,7 @@ import {
   isDecimalString,
   safeDecimal,
   sanitizeDecimalInput,
+  toFixedDecimal,
 } from '@/lib/decimal';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
@@ -121,6 +122,8 @@ export default function AviaMasters() {
   const [phase, setPhase] = useState<Phase>('IDLE');
   const [bet, setBet] = useState('10.00');
   const [settled, setSettled] = useState<Settlement | null>(null);
+  /** Why the last Fly press was refused, if it was. */
+  const [serverError, setServerError] = useState<string | null>(null);
   /** The balance as it stood when Fly was pressed — shown until touchdown. */
   const [launchBalance, setLaunchBalance] = useState<string | null>(null);
 
@@ -280,9 +283,10 @@ export default function AviaMasters() {
       flightClockRef.current = 0;
       setPhaseBoth('FLYING');
     },
-    onError: () => {
+    onError: ({ code }) => {
       if (phaseRef.current === 'WAITING') setPhaseBoth('IDLE');
       setLaunchBalance(null);
+      setServerError(t(gameErrorKey(code)));
     },
   });
 
@@ -317,11 +321,12 @@ export default function AviaMasters() {
     smokeRef.current = 0;
     floatersRef.current = [];
     setSettled(null);
+    setServerError(null);
     setLaunchBalance(balance.balance);
     setHud({ altitude: ON_DECK, distance: 0, multiplier: 1 });
     setPhaseBoth('WAITING');
     placeBet('BET', {
-      amount: formatDecimalString(safeBet, 2).replace(/,/g, ''),
+      amount: toFixedDecimal(safeBet, 2),
       currency: balance.currency,
       params: {},
     });
@@ -686,7 +691,7 @@ export default function AviaMasters() {
       balance.hasSynced && balance.balance && compareDecimal(balance.balance, GAME_CONFIG.maxBet) < 0
         ? balance.balance
         : GAME_CONFIG.maxBet;
-    setBet(formatDecimalString(ceiling, 2));
+    setBet(toFixedDecimal(ceiling, 2));
   };
 
   // Until the plane is down the panel shows the balance from take-off: the
@@ -815,7 +820,11 @@ export default function AviaMasters() {
           ))}
         </div>
 
-        {!isAirborne && betError && <p className="avia__error">{betError}</p>}
+        {!isAirborne && (betError || serverError) && (
+          <p className="avia__error" role="alert">
+            {betError ?? serverError}
+          </p>
+        )}
 
         {isAirborne ? (
           // Not a button: one bet is one flight, and nothing can change it
