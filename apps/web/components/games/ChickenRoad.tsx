@@ -11,10 +11,12 @@ import { gameErrorKey, useGameRound } from '@/hooks/useGameRound';
 import { compareDecimal, formatDecimalString } from '@/lib/decimal';
 
 import {
+  COLOR_LEVELS,
   DEFAULT_MODE,
   FOLLOW_GAP,
   GAME_CONFIG,
   HOP_MS,
+  PIXEL_SIZE,
   LAYOUT,
   SEED_GEOMETRY,
   TRAFFIC_MODES,
@@ -46,6 +48,7 @@ import {
   drawChickenShadow,
   drawChickenSprite,
   drawCover,
+  drawCoverLabels,
   drawRoad,
   randomCarColour,
   type CarColour,
@@ -616,6 +619,17 @@ export default function ChickenRoad() {
   // then every shadow, then the standing objects — barriers, cars and the
   // chicken — sorted by how far down the road they are, then the haze. The
   // simulation stays in flat (u, t) space; `view` is only where it is drawn.
+  /**
+   * What the crisp overlay pass has to redraw. Collected during the world pass
+   * rather than recomputed, so the labels cannot drift from the covers they
+   * belong to by a frame.
+   */
+  const viewRef = useRef<ReturnType<typeof makeView> | null>(null);
+  const coverLabelsRef = useRef<
+    Array<{ u: number; state: CoverState; multiplier: string; chance: string; locked: boolean }>
+  >([]);
+  const coverRadiusRef = useRef(0);
+
   const draw = useCallback(
     ({ ctx, width, height, delta }: CanvasFrame) => {
       const now = performance.now();
@@ -666,6 +680,7 @@ export default function ChickenRoad() {
       cameraRef.current += (target - cameraRef.current) * Math.min(1, dt * 7);
       const camera = cameraRef.current;
       const view = makeView(width, height, laneW, camera);
+      viewRef.current = view;
 
       /** World u of a lane's centre; lane 0 is the starting verge. */
       const laneCentre = (l: number) => (l + 0.5 - camera) * laneW;
@@ -688,9 +703,14 @@ export default function ChickenRoad() {
       const playing = phaseRef.current === 'PLAYING';
       const mode = modeRef.current;
       const coverR = Math.min(laneW * 0.34, 40);
+      coverRadiusRef.current = coverR;
+      coverLabelsRef.current = [];
       for (let l = firstLane; l <= lastVisible; l += 1) {
         const state: CoverState =
           l < settled ? 'cleared' : l === settled ? 'stand' : playing && l === settled + 1 ? 'next' : 'ahead';
+        const multiplier = `${formatMultiplier(multiplierAt(l, mode))}x`;
+        const chance = formatChance(cumulativeChanceAt(l, mode));
+        const locked = l < unlockLane(mode);
         drawCover(
           ctx,
           view,
@@ -698,11 +718,12 @@ export default function ChickenRoad() {
           LAYOUT.chickenY,
           coverR,
           state,
-          `${formatMultiplier(multiplierAt(l, mode))}x`,
-          formatChance(cumulativeChanceAt(l, mode)),
+          multiplier,
+          chance,
           reducedMotionRef.current ? 0 : now / 1000,
-          l < unlockLane(mode)
+          locked
         );
+        coverLabelsRef.current.push({ u: laneCentre(l), state, multiplier, chance, locked });
       }
 
       /** 0 = arm up, 1 = down; overshoots a touch on the way so it lands with a bounce. */
@@ -811,7 +832,34 @@ export default function ChickenRoad() {
   // Every sprite on this board is a vector path, so it costs nothing to render
   // it at the display's full pixel ratio — that is what keeps the cars, lane
   // markings and the chicken from looking stepped on a retina screen.
-  const canvasRef = useCanvasRenderer(draw, { maxPixelRatio: 3 });
+  /** Crisp pass: only the ladder's numbers, over the pixelated world. */
+  const overlay = useCallback(({ ctx }: CanvasFrame) => {
+    const view = viewRef.current;
+    if (!view) return;
+    for (const label of coverLabelsRef.current) {
+      drawCoverLabels(
+        ctx,
+        view,
+        label.u,
+        LAYOUT.chickenY,
+        coverRadiusRef.current,
+        label.state,
+        label.multiplier,
+        label.chance,
+        label.locked
+      );
+    }
+  }, []);
+
+  // PIXEL_SIZE square blocks and a posterised ramp: the board is rendered at a
+  // quarter resolution and blitted back with smoothing off. maxPixelRatio drops
+  // to 2 because a nearest-neighbour blit gains nothing from a third sample.
+  const canvasRef = useCanvasRenderer(draw, {
+    maxPixelRatio: 2,
+    pixelSize: PIXEL_SIZE,
+    colorLevels: COLOR_LEVELS,
+    overlay,
+  });
 
   const canStep = isPlaying && !hopping && !busy;
   // Cash out opens on the first lane paying the minimum; the server refuses it

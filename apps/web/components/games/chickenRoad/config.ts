@@ -53,13 +53,15 @@ export interface TrafficMode {
  * Difficulty is the hazard rate, so the selector reads as "how much traffic".
  * Spawn gap and speed rise with it, which is what keeps the board looking like
  * the odds it is paying. Speeds are lane lengths per second: the far end to the
- * near end in about two seconds on medium, a second and a half on extreme.
+ * near end in about a second and a half on medium, and a little under a second
+ * on extreme — a third quicker than the board first shipped with, which read as
+ * sedate for a game whose whole tension is the gap between two cars.
  */
 export const TRAFFIC_MODES: readonly TrafficMode[] = [
-  mode('low', [2.2, 3.4], [0.36, 0.52]),
-  mode('medium', [1.5, 2.5], [0.44, 0.62]),
-  mode('high', [0.9, 1.6], [0.56, 0.8]),
-  mode('extreme', [0.5, 1.0], [0.7, 1.0]),
+  mode('low', [2.2, 3.4], [0.47, 0.68]),
+  mode('medium', [1.5, 2.5], [0.57, 0.81]),
+  mode('high', [0.9, 1.6], [0.73, 1.04]),
+  mode('extreme', [0.5, 1.0], [0.91, 1.3]),
 ] as const;
 
 /** The hazard is the server's; only the traffic's look is chosen here. */
@@ -73,6 +75,25 @@ function mode(
 }
 
 export const DEFAULT_MODE = TRAFFIC_MODES[1];
+
+/**
+ * The board's art resolution: one art pixel is a PIXEL_SIZE-square block of
+ * screen pixels. The world is rendered into a buffer this many times smaller
+ * and blitted back with smoothing off (see `useCanvasRenderer`).
+ *
+ * 4 is the size where the road markings, the cars and the chicken all survive:
+ * at 6 the chicken loses its beak and the lane covers turn into discs, and at 2
+ * the picture reads as "slightly crunchy" rather than as pixel art.
+ */
+export const PIXEL_SIZE = 4;
+
+/**
+ * Steps per colour channel after pixelation. Chunky blocks drawn in a smooth
+ * 24-bit gradient still read as a downscaled photograph; clamping the ramp is
+ * the other half of the look. Six steps keeps the sky's banding deliberate
+ * without flattening the cars into single colours.
+ */
+export const COLOR_LEVELS = 10;
 
 /** Milliseconds a hop takes; the crash car is timed against this. */
 export const HOP_MS = 320;

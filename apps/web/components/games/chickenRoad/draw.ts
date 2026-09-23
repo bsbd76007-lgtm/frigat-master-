@@ -437,33 +437,58 @@ export function drawCover(
     ctx.fill();
   }
 
+  ctx.restore();
+}
+
+/**
+ * A cover's multiplier and win chance.
+ *
+ * Split out of `drawCover` so it can be drawn in the board's crisp overlay
+ * pass. The board renders its world at a quarter resolution for the pixel look,
+ * and a 12px label resolved into that buffer comes back as three pixels of
+ * mush — the ladder is the one thing on this board a player has to read exactly.
+ */
+export function drawCoverLabels(
+  ctx: CanvasRenderingContext2D,
+  v: View,
+  u: number,
+  t: number,
+  radius: number,
+  state: CoverState,
+  multiplier: string,
+  chance: string,
+  locked = false
+) {
   // The chicken stands on its own cover and hides it; everything else labels.
-  if (state !== 'stand') {
-    const c = v.project(u, t);
-    const s = v.scale(t);
-    const big = Math.max(10, radius * 0.46 * s);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round';
-    ctx.font = `900 ${big}px ui-sans-serif, system-ui, sans-serif`;
-    ctx.lineWidth = Math.max(2, big * 0.22);
-    ctx.strokeStyle = 'rgba(8,12,18,.85)';
-    ctx.strokeText(multiplier, c.x, c.y - big * 0.28);
-    ctx.fillStyle = locked
-      ? '#94a3b8'
-      : state === 'next'
-        ? '#fde68a'
-        : state === 'cleared'
-          ? '#86efac'
-          : '#ffffff';
-    ctx.fillText(multiplier, c.x, c.y - big * 0.28);
-    const small = big * 0.62;
-    ctx.font = `800 ${small}px ui-sans-serif, system-ui, sans-serif`;
-    ctx.lineWidth = Math.max(2, small * 0.24);
-    ctx.strokeText(chance, c.x, c.y + big * 0.62);
-    ctx.fillStyle = 'rgba(226,232,240,.9)';
-    ctx.fillText(chance, c.x, c.y + big * 0.62);
-  }
+  if (state === 'stand') return;
+
+  ctx.save();
+  if (state === 'cleared') ctx.globalAlpha = 0.55;
+
+  const c = v.project(u, t);
+  const s = v.scale(t);
+  const big = Math.max(10, radius * 0.46 * s);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.font = `900 ${big}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.lineWidth = Math.max(2, big * 0.22);
+  ctx.strokeStyle = 'rgba(8,12,18,.85)';
+  ctx.strokeText(multiplier, c.x, c.y - big * 0.28);
+  ctx.fillStyle = locked
+    ? '#94a3b8'
+    : state === 'next'
+      ? '#fde68a'
+      : state === 'cleared'
+        ? '#86efac'
+        : '#ffffff';
+  ctx.fillText(multiplier, c.x, c.y - big * 0.28);
+  const small = big * 0.62;
+  ctx.font = `800 ${small}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.lineWidth = Math.max(2, small * 0.24);
+  ctx.strokeText(chance, c.x, c.y + big * 0.62);
+  ctx.fillStyle = 'rgba(226,232,240,.9)';
+  ctx.fillText(chance, c.x, c.y + big * 0.62);
   ctx.restore();
 }
 

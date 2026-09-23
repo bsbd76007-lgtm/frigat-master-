@@ -8,25 +8,7 @@ import {
   type CanvasFrame,
 } from '@/lib/useCanvasRenderer';
 
-import {
-  ACCENT,
-  BOARD,
-  FONT,
-  GOLD,
-  alpha,
-  drawBackdrop,
-  drawBox,
-  drawBoxShadow,
-  drawCylinder,
-  drawFaceText,
-  drawFloorShadow,
-  drawSphere,
-  drawVignette,
-  faces,
-  makeScene,
-  multiplierColour,
-  shade,
-} from './three';
+import { BOARD, FONT, GOLD, alpha, multiplierColour, shade } from './three';
 
 export interface PlinkoDrop {
   id: string;
@@ -46,13 +28,9 @@ export interface PlinkoCanvasProps {
 }
 
 const LANDED_FLASH_MS = 700;
-const PEG_RADIUS = 3.4;
-const PEG_HEIGHT = 10;
-const BALL_RADIUS = 6.5;
-/** The board's pegs end here, leaving the near strip for the payout slots. */
-const FIELD_END = 0.78;
-const BUCKET_TOP = 0.83;
-const BUCKET_END = 0.99;
+const PEG_R = 3;
+const BALL_R = 6;
+const SLOT_H = 26;
 
 export function bucketOf(drop: PlinkoDrop): number {
   if (typeof drop.bucket === 'number') return drop.bucket;
@@ -64,6 +42,15 @@ interface DropRuntime {
   completed: boolean;
 }
 
+/**
+ * Front-on and flat: the peg triangle, the ball falling through it, the payout
+ * slots underneath.
+ *
+ * The board is read as a shape — where in the triangle the ball is, and which
+ * slot it is heading for — and a tilted camera makes the slots nearest the
+ * bottom of the screen read as bigger than the ones at the edges, which is
+ * exactly the comparison the player is trying to make.
+ */
 export function PlinkoCanvas({
   rows,
   multipliers,
@@ -98,75 +85,64 @@ export function PlinkoCanvas({
   const draw = useMemo(
     () =>
       ({ ctx, width, height: h }: CanvasFrame) => {
-        const scene = makeScene(width, h, { top: 0.05, bottom: 0.97, focus: 0.62, far: 2.5 });
+        ctx.clearRect(0, 0, width, h);
 
         const bucketCount = rows + 1;
-        const inset = Math.min(width * 0.06, 30);
-        const spacing = (width - inset * 2) / bucketCount;
-        const centre = width / 2;
-        const rowGap = (FIELD_END - 0.03) / Math.max(1, rows);
+        const padX = 14;
+        const topY = 24;
+        const fieldH = Math.max(1, h - topY - SLOT_H - 20);
+        const rowGap = fieldH / Math.max(1, rows);
+        const spacing = Math.min(rowGap * 1.05, (width - padX * 2) / Math.max(1, bucketCount));
+        const cx = width / 2;
+        const slotY = topY + rows * rowGap + 12;
 
-        /** World x of the node reached after `level` rows, `right` of them right. */
-        const nodeX = (right: number, level: number) =>
-          centre + (right - level / 2) * spacing;
-        const nodeY = (level: number) => 0.03 + level * rowGap;
+        const nodeX = (right: number, level: number) => cx + (right - level / 2) * spacing;
+        const nodeY = (level: number) => topY + level * rowGap;
 
-        const hot = [...landedRef.current.values()].some(
-          (at) => performance.now() - at < LANDED_FLASH_MS
-        );
-        drawBackdrop(ctx, scene, {
-          glow: hot ? GOLD : ACCENT,
-          glowStrength: hot ? 0.13 : 0.08,
-        });
+        const now = performance.now();
 
-        // Pegs, far rows first so a nearer peg overlaps the one behind it.
+        // Pegs.
+        ctx.fillStyle = BOARD.neutralLit;
         for (let level = 0; level < rows; level += 1) {
           for (let j = 0; j <= level; j += 1) {
-            const x = nodeX(j, level);
-            const y = nodeY(level);
-            drawFloorShadow(ctx, scene, x, y, PEG_RADIUS, 0, 0.5);
-            drawCylinder(ctx, scene, x, y, PEG_RADIUS, 0, PEG_HEIGHT, BOARD.neutralLit);
+            ctx.beginPath();
+            ctx.arc(nodeX(j, level), nodeY(level), PEG_R, 0, Math.PI * 2);
+            ctx.fill();
           }
         }
 
-        // Payout slots: taller is worth more, so the board's own profile reads
-        // as the paytable before a single number is parsed.
-        const bucketW = spacing * 0.9;
-        const best = multipliers.reduce((m, v) => Math.max(m, v), 1);
+        // Payout slots.
+        const slotW = spacing * 0.92;
         for (let b = 0; b < bucketCount; b += 1) {
           const multiplier = multipliers[b] ?? 0;
           const colour = multiplierColour(multiplier);
           const landedAt = landedRef.current.get(b);
-          const flash = landedAt
-            ? Math.max(0, 1 - (performance.now() - landedAt) / LANDED_FLASH_MS)
-            : 0;
+          const flash = landedAt ? Math.max(0, 1 - (now - landedAt) / LANDED_FLASH_MS) : 0;
 
-          const worth = Math.min(1, Math.log(Math.max(multiplier, 1) + 1) / Math.log(best + 1));
-          const tall = 12 + worth * 26;
-          const x = nodeX(b, rows);
-          const box = {
-            x0: x - bucketW / 2,
-            x1: x + bucketW / 2,
-            y0: BUCKET_TOP,
-            y1: BUCKET_END,
-            z0: 0,
-            // A ball landing presses its slot in, then it springs back.
-            z1: Math.max(4, tall - (reducedMotion ? 0 : flash * 7)),
-          };
+          const x = nodeX(b, rows) - slotW / 2;
+          // A ball landing knocks its slot down, and it springs back.
+          const y = slotY + (reducedMotion ? 0 : flash * 4);
 
-          drawBoxShadow(ctx, scene, box, 0.7);
-          drawBox(
-            ctx,
-            scene,
-            box,
-            faces(flash > 0 ? shade(colour, 0.2 + flash * 0.3) : colour)
+          roundedRect(ctx, x, y, slotW, SLOT_H, 5);
+          ctx.fillStyle = alpha(colour, 0.22 + flash * 0.58);
+          ctx.fill();
+          ctx.strokeStyle = colour;
+          ctx.lineWidth = 1 + flash;
+          ctx.stroke();
+
+          // The mid slots are the dullest colour on the board, so their label
+          // takes the text ramp rather than the slot's own near-grey.
+          ctx.fillStyle = flash > 0.35 ? '#141419' : multiplier < 2 ? BOARD.muted : colour;
+          ctx.font = `700 ${Math.min(11, slotW * 0.3)}px ${FONT.num}`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(
+            multiplier >= 100 ? `${Math.round(multiplier)}x` : `${multiplier}x`,
+            x + slotW / 2,
+            y + SLOT_H / 2,
+            // Clamped, or a four-digit multiplier runs into the next slot.
+            slotW - 6
           );
-          drawFaceText(ctx, scene, box, 'front', formatMultiplier(multiplier), {
-            fill: slotLabelColour(multiplier, flash),
-            size: Math.min(13, bucketW * 0.34),
-            weight: 700,
-            family: FONT.num,
-          });
         }
 
         // Balls.
@@ -175,7 +151,7 @@ export function PlinkoCanvas({
           if (!runtime) continue;
 
           const steps = drop.path.length;
-          const elapsed = performance.now() - runtime.startedAt;
+          const elapsed = now - runtime.startedAt;
           const progress = perSegment === 0 ? steps : Math.min(steps, elapsed / perSegment);
           const segment = Math.floor(progress);
           const t = progress - segment;
@@ -187,17 +163,12 @@ export function PlinkoCanvas({
 
           let x: number;
           let y: number;
-          let z = PEG_HEIGHT + BALL_RADIUS;
-
           if (segment >= steps) {
-            const bucket = bucketOf(drop);
             x = nodeX(right, steps);
-            y = BUCKET_TOP - 0.02;
-            z = PEG_HEIGHT + BALL_RADIUS;
-
+            y = nodeY(steps) - 4;
             if (!runtime.completed) {
               runtime.completed = true;
-              landedRef.current.set(bucket, performance.now());
+              landedRef.current.set(bucketOf(drop), now);
               onCompleteRef.current?.(drop);
             }
           } else {
@@ -206,28 +177,30 @@ export function PlinkoCanvas({
             const toX = nodeX(right + (goesRight ? 1 : 0), segment + 1);
             const fromY = nodeY(segment);
             const toY = nodeY(segment + 1);
-
             const easeX = t * t * (3 - 2 * t);
             x = fromX + (toX - fromX) * easeX;
-            y = fromY + (toY - fromY) * (t * t);
-            // A hop over the peg rather than a slide along the board.
-            z += Math.sin(t * Math.PI) * 9;
+            // Falls with gravity, and hops a little off each peg.
+            y = fromY + (toY - fromY) * (t * t) - Math.sin(t * Math.PI) * rowGap * 0.14;
           }
 
-          drawFloorShadow(ctx, scene, x, y, BALL_RADIUS, z, 0.8);
           if (!reducedMotion && segment < steps) {
-            const glow = scene.project(x, y, z);
-            const r = BALL_RADIUS * scene.scale(y) * 2.1;
             ctx.beginPath();
-            ctx.arc(glow.x, glow.y, r, 0, Math.PI * 2);
-            ctx.fillStyle = alpha(GOLD, 0.14);
+            ctx.arc(x, y, BALL_R * 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = alpha(GOLD, 0.15);
             ctx.fill();
           }
-          drawSphere(ctx, scene, x, y, z, BALL_RADIUS, GOLD);
+
+          const shine = ctx.createRadialGradient(x - BALL_R * 0.35, y - BALL_R * 0.4, 1, x, y, BALL_R);
+          shine.addColorStop(0, shade(GOLD, 0.5));
+          shine.addColorStop(1, shade(GOLD, -0.22));
+          ctx.beginPath();
+          ctx.arc(x, y, BALL_R, 0, Math.PI * 2);
+          ctx.fillStyle = shine;
+          ctx.fill();
         }
 
         for (const [bucket, at] of [...landedRef.current.entries()]) {
-          if (performance.now() - at > LANDED_FLASH_MS) landedRef.current.delete(bucket);
+          if (now - at > LANDED_FLASH_MS) landedRef.current.delete(bucket);
         }
 
         if (multipliers.length !== bucketCount) {
@@ -241,8 +214,6 @@ export function PlinkoCanvas({
             8
           );
         }
-
-        drawVignette(ctx, scene);
       },
     [rows, multipliers, drops, perSegment, reducedMotion]
   );
@@ -260,22 +231,29 @@ export function PlinkoCanvas({
     <canvas
       ref={canvasRef}
       className={className}
-      style={{ display: 'block', width: '100%', height, borderRadius: 12 }}
+      style={{ display: 'block', width: '100%', height }}
       role="img"
       aria-label={label}
     />
   );
 }
 
-function formatMultiplier(multiplier: number): string {
-  return multiplier >= 100 ? `${Math.round(multiplier)}x` : `${multiplier}x`;
-}
-
-/** Dark text on the bright slots, light on the dim ones. */
-function slotLabelColour(multiplier: number, flash: number): string {
-  if (flash > 0) return '#241a04';
-  if (multiplier >= 2) return '#241a04';
-  return BOARD.text;
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+): void {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
 }
 
 export default PlinkoCanvas;
