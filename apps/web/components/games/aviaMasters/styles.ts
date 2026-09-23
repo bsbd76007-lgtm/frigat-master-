@@ -81,11 +81,11 @@ export const CSS = `
 .avia__mod:focus-visible { outline: none; box-shadow: var(--fg-ring); }
 
 .avia__action { width: 100%; padding: 10px; font-family: inherit; font-size: 16px;
-  font-weight: 900; color: var(--fg-bg);
-  background: linear-gradient(90deg, var(--fg-accent), var(--fg-accent-deep)); border: none;
-  border-radius: var(--fg-r-lg); cursor: pointer; box-shadow: 0 10px 20px -6px rgba(34,197,94,.45);
+  font-weight: 900; color: var(--fg-on-accent);
+  background: linear-gradient(90deg, var(--fg-accent-mid), var(--fg-accent-deep)); border: none;
+  border-radius: var(--fg-r-lg); cursor: pointer; box-shadow: 0 10px 20px -6px rgba(31,87,214,.45);
   transition: background var(--fg-t), transform var(--fg-t); }
-.avia__action:hover:not(:disabled) { background: linear-gradient(90deg, var(--fg-pos), var(--fg-accent)); }
+.avia__action:hover:not(:disabled) { background: linear-gradient(90deg, var(--fg-accent), var(--fg-accent-mid)); }
 .avia__action:active:not(:disabled) { transform: translateY(1px); }
 .avia__action:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
 .avia__action:focus-visible { outline: none; box-shadow: var(--fg-ring); }
@@ -100,8 +100,18 @@ export const CSS = `
   color: var(--fg-gold-soft); }
 .avia__standing small { font-size: 11px; color: rgba(253,224,71,.75); }
 
-.avia__error { margin: 0; font-size: 12px; font-weight: 600; color: #c25560;
-  text-align: center; }
+/* The blocked state has to be unmissable.
+   A disabled Fly button swallows the click silently, so this line is the only
+   thing telling a player why the board will not move — and as 12px of dull red
+   text wedged between the stake chips and the button, it was routinely read as
+   a caption. An insufficient balance then looks exactly like a broken game.
+   Boxed, so it reads as the reason rather than as decoration. */
+.avia__error { display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin: 0; padding: 8px 10px; font-size: 12px; font-weight: 700; line-height: 1.4;
+  text-align: center; color: var(--fg-red);
+  background: color-mix(in srgb, var(--fg-red) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fg-red) 38%, transparent);
+  border-radius: var(--fg-r); }
 .avia__note { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--fg-line-2);
   text-align: center; }
 

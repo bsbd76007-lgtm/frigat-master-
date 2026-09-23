@@ -88,12 +88,19 @@ export const DEFAULT_MODE = TRAFFIC_MODES[1];
 export const PIXEL_SIZE = 4;
 
 /**
- * Steps per colour channel after pixelation. Chunky blocks drawn in a smooth
- * 24-bit gradient still read as a downscaled photograph; clamping the ramp is
- * the other half of the look. Six steps keeps the sky's banding deliberate
- * without flattening the cars into single colours.
+ * Steps per colour channel after pixelation — now off.
+ *
+ * Quantising was doing the job a palette does, and doing it blindly. Every
+ * fill on this board comes from the fixed set in `pixel.ts`, so the colour
+ * count is already decided by hand; running the posteriser over that snapped
+ * those chosen colours to the nearest tenth and reintroduced the banding it
+ * was there to prevent — worst on the sky and the road, where a deliberate
+ * four-step ramp beat against the quantiser's ten and came out as mud.
+ *
+ * It also cost a full readback of the buffer every frame, which is why the
+ * buffer context no longer asks for `willReadFrequently`.
  */
-export const COLOR_LEVELS = 10;
+export const COLOR_LEVELS = 0;
 
 /** Milliseconds a hop takes; the crash car is timed against this. */
 export const HOP_MS = 320;
